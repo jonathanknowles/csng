@@ -1,0 +1,106 @@
+cabal-version:  3.0
+name:           csng
+version:        0.0.0
+bug-reports:    https://github.com/jonathanknowles/csng/issues
+license:        Apache-2.0
+license-file:   LICENSE
+author:         Jonathan Knowles
+maintainer:     mail@jonathanknowles.net
+copyright:      2022 Jonathan Knowles
+category:       Experimental
+synopsis:       Experimental algorithms
+description:
+    Experimental algorithms.
+
+extra-source-files:
+    README.md
+
+common common-extensions
+    default-extensions:
+        DerivingStrategies
+        FlexibleContexts
+        FlexibleInstances
+        GeneralizedNewtypeDeriving
+        LambdaCase
+        MultiParamTypeClasses
+        ScopedTypeVariables
+        TupleSections
+        TypeApplications
+        TypeFamilies
+        TypeOperators
+        ViewPatterns
+
+source-repository head
+    type: git
+    location: https://github.com/jonathanknowles/csng
+
+library
+    import:
+        common-extensions
+    hs-source-dirs:
+        src/public
+    exposed-modules:
+    default-language:
+        Haskell2010
+    build-depends:
+        base >=4.7 && <5
+      , csng:internal
+
+library examples
+    import:
+        common-extensions
+    hs-source-dirs:
+        src/examples
+    exposed-modules:
+    default-language:
+        Haskell2010
+    build-depends:
+        base >=4.7 && <5
+      , csng
+
+library internal
+    import:
+        common-extensions
+    hs-source-dirs:
+        src/internal
+    exposed-modules:
+    default-language:
+        Haskell2010
+    build-depends:
+        base >=4.7 && <5
+
+test-suite test
+    import:
+        common-extensions
+    main-is:
+        Spec.hs
+    hs-source-dirs:
+        src/test
+    other-modules:
+    type: exitcode-stdio-1.0
+    default-language:
+        Haskell2010
+    build-tool-depends:
+        hspec-discover:hspec-discover ==2.*
+    build-depends:
+        base >=4.7 && <5
+      , hspec
+      , csng
+      , csng:internal
+
+benchmark benchmark
+    default-language:
+        Haskell2010
+    type:
+        exitcode-stdio-1.0
+    hs-source-dirs:
+        src/benchmark
+    main-is:
+        Main.hs
+    ghc-options:
+        -O2
+    build-depends:
+        base >=4.7 && <5
+      , csng:internal
+      , tasty-bench
+      , tasty-hunit
