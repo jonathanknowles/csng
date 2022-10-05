@@ -110,6 +110,7 @@ test-suite test
       , pretty-show
       , QuickCheck
       , quickcheck-classes
+      , strict-containers
 
 benchmark benchmark
     default-language:

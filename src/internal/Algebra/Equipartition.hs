@@ -12,18 +12,28 @@ import Prelude
 
 import Control.Arrow
     ( (&&&) )
+import Data.Function
+    ( on )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
-import Data.Map
-    ( Map )
 import Data.Maybe
     ( mapMaybe )
 import Data.Monoid
     ( Sum (..) )
+import Data.Monoid.Null
+    ( MonoidNull (..) )
+import Data.MonoidMap
+    ( MonoidMap )
 import Data.Proxy
     ( Proxy )
+import Data.Semigroup.Cancellative
+    ( LeftReductive (..) )
 import Data.Set
     ( Set )
+import Data.Strict.Map
+    ( Map )
+import GHC.Exts
+    ( IsList (..) )
 import Numeric.Natural
     ( Natural )
 import Numeric.Natural.Extra
@@ -48,8 +58,9 @@ import Test.QuickCheck.Classes
 import qualified Data.Foldable as F
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
-import qualified Data.Map.Strict as Map
+import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Set as Set
+import qualified Data.Strict.Map as Map
 
 --------------------------------------------------------------------------------
 -- Classes
@@ -119,6 +130,52 @@ bipartitionWhile a f
 --------------------------------------------------------------------------------
 -- Instances
 --------------------------------------------------------------------------------
+
+newtype Keys a = Keys
+    { unKeys :: a }
+    deriving (Eq, Monoid, Semigroup, Show)
+
+newtype Values a = Values
+    { unValues :: a }
+    deriving (Eq, Monoid, Semigroup, Show)
+
+instance (Ord k, Eq v, MonoidNull v) => Equipartition (Keys (MonoidMap k v))
+  where
+    equipartition m
+        = fmap (Keys . MonoidMap.fromMap)
+        . equipartition (MonoidMap.toMap $ unKeys m)
+    equipartitionDistance
+        = equipartitionDistance `on` MonoidMap.toMap
+        . unKeys
+    equipartitionOrdering
+        = equipartitionOrdering `on` MonoidMap.toMap
+        . unKeys
+
+instance (Ord k, Eq v, Equipartition v, MonoidNull v, LeftReductive v) =>
+    Equipartition (Values (MonoidMap k v))
+  where
+    equipartition (Values m) count =
+        Values <$> F.foldl' acc (mempty <$ count) (toList m)
+      where
+        acc :: NonEmpty (MonoidMap k v) -> (k, v) -> NonEmpty (MonoidMap k v)
+        acc ms (k, v) = NE.zipWith (<>) ms $
+            MonoidMap.singleton k <$> equipartition v count
+
+    equipartitionDistance (Values m1) (Values m2) =
+        maybe 0 maximum (NE.nonEmpty distances)
+      where
+        allKeys :: Set k
+        allKeys = MonoidMap.nonNullKeys m1 <> MonoidMap.nonNullKeys m2
+
+        distances :: [Natural]
+        distances = distanceForKey <$> F.toList allKeys
+
+        distanceForKey :: k -> Natural
+        distanceForKey k =
+            MonoidMap.get k m1 `equipartitionDistance` MonoidMap.get k m2
+
+    equipartitionOrdering (Values m1) (Values m2) =
+        m1 `isPrefixOf` m2
 
 instance Equipartition Natural where
     equipartition = equipartitionNatural

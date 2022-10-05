@@ -1,9 +1,12 @@
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Coin
     where
 
+import Algebra.Equipartition
+    ( Equipartition (..), Keys (..), Values (..) )
 import Data.Group
     ( Group (..) )
 import Data.IntCast
@@ -55,6 +58,16 @@ newtype Coin a = Coin {unCoin :: MonoidMap a (Sum Natural)}
     deriving newtype (Monoid, MonoidNull, PositiveMonoid, OverlappingGCDMonoid)
     deriving newtype (LeftCancellative, RightCancellative, Cancellative)
     deriving newtype (LeftReductive, RightReductive, Reductive)
+
+newtype Assets a = Assets
+    {unAssets :: a}
+    deriving (Eq, Monoid, Semigroup, Show)
+
+deriving via Keys (MonoidMap a (Sum Natural))
+    instance Ord a => Equipartition (Assets (Coin a))
+
+deriving via Values (MonoidMap a (Sum Natural))
+    instance Ord a => Equipartition (Values (Coin a))
 
 newtype AsList a = AsList {asList :: a}
 
