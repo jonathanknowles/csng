@@ -82,20 +82,6 @@ instance HasAssets Coin a where
     getAssetValue a = getSum . MonoidMap.get a . unCoin
     setAssetValue a q = Coin . MonoidMap.set a (Sum q) . unCoin
 
-coinToBalance :: Ord a => Coin a -> Balance a
-coinToBalance = Balance . MonoidMap.map (fmap intCast) . unCoin
-
-balanceToCoin :: forall a. Ord a => Balance a -> Coin a
-balanceToCoin
-    = Coin
-    . fromList
-    . fmap (fmap (fmap (fromMaybe 0 . intCastMaybe)))
-    . toList
-    . unBalance
-
-balanceToCoins :: forall a. Ord a => Balance a -> (Coin a, Coin a)
-balanceToCoins b = (balanceToCoin (invert b), balanceToCoin b)
-
 instance Ord a => IsList (Balance a) where
     type Item (Balance a) = (a, Integer)
     fromList = Balance . fromList . fmap (fmap Sum)
@@ -105,3 +91,17 @@ instance Ord a => IsList (Coin a) where
     type Item (Coin a) = (a, Natural)
     fromList = Coin . fromList . fmap (fmap Sum)
     toList = fmap (fmap getSum) . toList . unCoin
+
+coinToBalance :: Ord a => Coin a -> Balance a
+coinToBalance = Balance . MonoidMap.map (fmap intCast) . unCoin
+
+balanceToCoins :: forall a. Ord a => Balance a -> (Coin a, Coin a)
+balanceToCoins b = (balanceToCoin (invert b), balanceToCoin b)
+  where
+    balanceToCoin :: Balance a -> Coin a
+    balanceToCoin
+        = Coin
+        . fromList
+        . fmap (fmap (fmap (fromMaybe 0 . intCastMaybe)))
+        . toList
+        . unBalance
