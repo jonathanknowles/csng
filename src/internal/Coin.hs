@@ -12,8 +12,6 @@ import Data.Maybe
     ( fromMaybe )
 import Data.Monoid
     ( Sum (..) )
-import Data.Monoid.GCD
-    ( OverlappingGCDMonoid )
 import Data.Monoid.Cancellative
     ( Cancellative
     , Commutative
@@ -23,6 +21,8 @@ import Data.Monoid.Cancellative
     , RightCancellative
     , RightReductive
     )
+import Data.Monoid.GCD
+    ( OverlappingGCDMonoid )
 import Data.Monoid.Monus
     ( Monus )
 import Data.Monoid.Null
