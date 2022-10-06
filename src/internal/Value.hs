@@ -3,10 +3,18 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Value where
+module Value
+    ( Coin
+    , Balance
+    , HasAssets (..)
+    , Assets (..)
+    , Values (..)
+    , coinToBalance
+    , balanceToCoins
+    ) where
 
 import Algebra.Equipartition
-    ( Equipartition (..), Keys (..), Values (..) )
+    ( Equipartition (..) )
 import AsList
     ( AsList (..), asList )
 import Data.Coerce
@@ -43,6 +51,7 @@ import GHC.Exts
 import Numeric.Natural
     ( Natural )
 
+import qualified Algebra.Equipartition as Equipartition
 import qualified Data.MonoidMap as MonoidMap
 
 --------------------------------------------------------------------------------
@@ -83,7 +92,7 @@ instance (Ord a, Eq i, Num i) => HasAssets (AssetValueMap a i) where
 -- Balance
 --------------------------------------------------------------------------------
 
-newtype Balance a = Balance {unBalance :: MonoidMap a (Sum Integer)}
+newtype Balance a = Balance (MonoidMap a (Sum Integer))
     deriving (IsList, Read, Show) via SumMap a Integer
     deriving HasAssets via AssetValueMap a Integer
     deriving newtype (Semigroup, Commutative, Monoid, MonoidNull, Group)
@@ -92,7 +101,7 @@ newtype Balance a = Balance {unBalance :: MonoidMap a (Sum Integer)}
 -- Coin
 --------------------------------------------------------------------------------
 
-newtype Coin a = Coin {unCoin :: MonoidMap a (Sum Natural)}
+newtype Coin a = Coin (MonoidMap a (Sum Natural))
     deriving (IsList, Read, Show) via SumMap a Natural
     deriving HasAssets via AssetValueMap a Natural
     deriving newtype (Semigroup, Commutative, Monoid, MonoidNull)
@@ -103,10 +112,15 @@ newtype Coin a = Coin {unCoin :: MonoidMap a (Sum Natural)}
 newtype Assets a = Assets {unAssets :: a}
     deriving Show
 
-deriving via Keys (MonoidMap a (Sum Natural))
+newtype Values a = Values {unValues :: a}
+    deriving Show
+
+deriving via Equipartition.Keys
+      (MonoidMap a (Sum Natural))
     instance Ord a => Equipartition (Assets (Coin a))
 
-deriving via Values (MonoidMap a (Sum Natural))
+deriving via Equipartition.Values
+      (MonoidMap a (Sum Natural))
     instance Ord a => Equipartition (Values (Coin a))
 
 --------------------------------------------------------------------------------
