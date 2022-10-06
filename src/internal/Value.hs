@@ -94,15 +94,14 @@ newtype Balance a = Balance {unBalance :: MonoidMap a (Sum Integer)}
 
 newtype Coin a = Coin {unCoin :: MonoidMap a (Sum Natural)}
     deriving (IsList, Read, Show) via SumMap a Natural
-    deriving HasAssets via (AssetValueMap a Natural)
+    deriving HasAssets via AssetValueMap a Natural
     deriving newtype (Semigroup, Commutative, Monoid, MonoidNull)
     deriving newtype (LeftReductive, RightReductive, Reductive)
     deriving newtype (LeftCancellative, RightCancellative, Cancellative)
     deriving newtype (OverlappingGCDMonoid, Monus, PositiveMonoid)
 
-newtype Assets a = Assets
-    {unAssets :: a}
-    deriving (Eq, Monoid, Semigroup, Show)
+newtype Assets a = Assets {unAssets :: a}
+    deriving Show
 
 deriving via Keys (MonoidMap a (Sum Natural))
     instance Ord a => Equipartition (Assets (Coin a))
