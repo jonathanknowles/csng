@@ -4,8 +4,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Value
-    ( Coin
-    , Balance
+    ( Balance
+    , Coin
     , HasAssets (..)
     , Assets (..)
     , Values (..)
@@ -116,12 +116,14 @@ newtype Values a = Values {unValues :: a}
     deriving Show
 
 deriving via Equipartition.Keys
-      (MonoidMap a (Sum Natural))
-    instance Ord a => Equipartition (Assets (Coin a))
+    (MonoidMap a (Sum Natural))
+    instance Ord a =>
+    Equipartition (Assets (Coin a))
 
 deriving via Equipartition.Values
-      (MonoidMap a (Sum Natural))
-    instance Ord a => Equipartition (Values (Coin a))
+    (MonoidMap a (Sum Natural))
+    instance Ord a =>
+    Equipartition (Values (Coin a))
 
 --------------------------------------------------------------------------------
 -- Conversions
