@@ -1,5 +1,7 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Value where
 
@@ -16,7 +18,7 @@ import Data.Maybe
 import Data.Monoid
     ( Sum (..) )
 import Data.Monoid.Cancellative
-    ( Commutative, LeftReductive, Reductive, RightReductive )
+    ( Commutative, LeftReductive, Reductive, RightReductive, SumCancellative )
 import Data.Monoid.GCD
     ( OverlappingGCDMonoid )
 import Data.Monoid.Monus
@@ -34,15 +36,66 @@ import Numeric.Natural
 
 import qualified Data.MonoidMap as MonoidMap
 
-newtype Balance a = Balance {unBalance :: MonoidMap a (Sum Integer)}
+--------------------------------------------------------------------------------
+-- AssetValueMap
+--------------------------------------------------------------------------------
+
+newtype AssetValueMap a i = AssetValueMap
+    {unAssetValueMap :: MonoidMap a (Sum i)}
     deriving stock Eq
-    deriving (Read, Show) via (AsList (Balance a))
+    deriving (Read, Show) via (AsList (AssetValueMap a i))
+    deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
+    deriving newtype (Reductive, LeftReductive, RightReductive)
+    deriving newtype (PositiveMonoid)
+    deriving newtype (Group)
+
+instance (Ord a, Eq i, Num i) => IsList (AssetValueMap a i) where
+    type Item (AssetValueMap a i) = (a, i)
+    fromList = AssetValueMap . fromList . fmap (fmap Sum)
+    toList = fmap (fmap getSum) . toList . unAssetValueMap
+
+type Deriving c a i = (Ord a, Eq i, Num i, c (Sum i), SumCancellative i)
+
+deriving instance Deriving
+    Monus a i =>
+    Monus (AssetValueMap a i)
+deriving instance Deriving
+    OverlappingGCDMonoid a i =>
+    OverlappingGCDMonoid (AssetValueMap a i)
+
+class HasAssets a where
+    type Asset a
+    type Value a
+    getAssets :: a -> Set (Asset a)
+    getAssetValue :: Ord a => Asset a -> a -> Value a
+    setAssetValue :: Ord a => Asset a -> Value a -> a -> a
+
+instance (Ord a, Eq i, Num i) => HasAssets (AssetValueMap a i) where
+    type Asset (AssetValueMap a i) = a
+    type Value (AssetValueMap a i) = i
+    getAssets = MonoidMap.nonNullKeys . unAssetValueMap
+    getAssetValue a = getSum . MonoidMap.get a . unAssetValueMap
+    setAssetValue a q = AssetValueMap . MonoidMap.set a (Sum q) . unAssetValueMap
+
+--------------------------------------------------------------------------------
+-- Balance
+--------------------------------------------------------------------------------
+
+newtype Balance a = Balance {unBalance :: AssetValueMap a Integer}
+    deriving stock Eq
+    deriving newtype (IsList)
+    deriving newtype (Read, Show)
     deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
     deriving newtype (Group)
 
-newtype Coin a = Coin {unCoin :: MonoidMap a (Sum Natural)}
+--------------------------------------------------------------------------------
+-- Coin
+--------------------------------------------------------------------------------
+
+newtype Coin a = Coin {unCoin :: AssetValueMap a Natural}
     deriving stock Eq
-    deriving (Read, Show) via (AsList (Coin a))
+    deriving newtype (IsList)
+    deriving newtype (Read, Show)
     deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
     deriving newtype (Reductive, LeftReductive, RightReductive)
     deriving newtype (Monus, OverlappingGCDMonoid, PositiveMonoid)
@@ -57,44 +110,15 @@ deriving via Keys (MonoidMap a (Sum Natural))
 deriving via Values (MonoidMap a (Sum Natural))
     instance Ord a => Equipartition (Values (Coin a))
 
-class HasAssets f a where
-    type Value f
-    getAssets :: f a -> Set a
-    getAssetValue :: Ord a => a -> f a -> Value f
-    setAssetValue :: Ord a => a -> Value f -> f a -> f a
-
-instance HasAssets Balance a where
-    type Value Balance = Integer
-    getAssets = MonoidMap.nonNullKeys . unBalance
-    getAssetValue a = getSum . MonoidMap.get a . unBalance
-    setAssetValue a q = Balance . MonoidMap.set a (Sum q) . unBalance
-
-instance HasAssets Coin a where
-    type Value Coin = Natural
-    getAssets = MonoidMap.nonNullKeys . unCoin
-    getAssetValue a = getSum . MonoidMap.get a . unCoin
-    setAssetValue a q = Coin . MonoidMap.set a (Sum q) . unCoin
-
-instance Ord a => IsList (Balance a) where
-    type Item (Balance a) = (a, Integer)
-    fromList = Balance . fromList . fmap (fmap Sum)
-    toList = fmap (fmap getSum) . toList . unBalance
-
-instance Ord a => IsList (Coin a) where
-    type Item (Coin a) = (a, Natural)
-    fromList = Coin . fromList . fmap (fmap Sum)
-    toList = fmap (fmap getSum) . toList . unCoin
+--------------------------------------------------------------------------------
+-- Conversions
+--------------------------------------------------------------------------------
 
 coinToBalance :: Ord a => Coin a -> Balance a
-coinToBalance = Balance . MonoidMap.map (fmap intCast) . unCoin
+coinToBalance = fromList . fmap (fmap intCast) . toList
 
 balanceToCoins :: forall a. Ord a => Balance a -> (Coin a, Coin a)
 balanceToCoins b = (balanceToCoin (invert b), balanceToCoin b)
   where
     balanceToCoin :: Balance a -> Coin a
-    balanceToCoin
-        = Coin
-        . fromList
-        . fmap (fmap (fmap (fromMaybe 0 . intCastMaybe)))
-        . toList
-        . unBalance
+    balanceToCoin = fromList . fmap (fmap (fromMaybe 0 . intCastMaybe)) . toList
