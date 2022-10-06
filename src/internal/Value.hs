@@ -9,6 +9,8 @@ import Algebra.Equipartition
     ( Equipartition (..), Keys (..), Values (..) )
 import AsList
     ( AsList (..) )
+import Data.Coerce
+    ( coerce )
 import Data.Group
     ( Group (..) )
 import Data.IntCast
@@ -18,7 +20,14 @@ import Data.Maybe
 import Data.Monoid
     ( Sum (..) )
 import Data.Monoid.Cancellative
-    ( Commutative, LeftReductive, Reductive, RightReductive, SumCancellative )
+    ( Cancellative
+    , Commutative
+    , LeftCancellative
+    , LeftReductive
+    , Reductive
+    , RightCancellative
+    , RightReductive
+    )
 import Data.Monoid.GCD
     ( OverlappingGCDMonoid )
 import Data.Monoid.Monus
@@ -37,32 +46,24 @@ import Numeric.Natural
 import qualified Data.MonoidMap as MonoidMap
 
 --------------------------------------------------------------------------------
+-- SumMap
+--------------------------------------------------------------------------------
+
+newtype SumMap a i = SumMap
+    {unSumMap :: MonoidMap a (Sum i)}
+    deriving (Read, Show) via (AsList (SumMap a i))
+
+instance (Ord a, Eq i, Num i) => IsList (SumMap a i) where
+    type Item (SumMap a i) = (a, i)
+    fromList = SumMap . fromList . fmap (fmap Sum)
+    toList = fmap (fmap getSum) . toList . unSumMap
+
+--------------------------------------------------------------------------------
 -- AssetValueMap
 --------------------------------------------------------------------------------
 
 newtype AssetValueMap a i = AssetValueMap
     {unAssetValueMap :: MonoidMap a (Sum i)}
-    deriving stock Eq
-    deriving (Read, Show) via (AsList (AssetValueMap a i))
-    deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
-    deriving newtype (Reductive, LeftReductive, RightReductive)
-    deriving newtype (PositiveMonoid)
-    deriving newtype (Group)
-
-instance (Ord a, Eq i, Num i) => IsList (AssetValueMap a i) where
-    type Item (AssetValueMap a i) = (a, i)
-    fromList = AssetValueMap . fromList . fmap (fmap Sum)
-    toList = fmap (fmap getSum) . toList . unAssetValueMap
-
-type Deriving c a i = (Ord a, Eq i, Num i, c (Sum i), SumCancellative i)
-
-deriving instance Deriving
-    Monus a i =>
-    Monus (AssetValueMap a i)
-
-deriving instance Deriving
-    OverlappingGCDMonoid a i =>
-    OverlappingGCDMonoid (AssetValueMap a i)
 
 class HasAssets a where
     type Asset a
@@ -74,37 +75,30 @@ class HasAssets a where
 instance (Ord a, Eq i, Num i) => HasAssets (AssetValueMap a i) where
     type Asset (AssetValueMap a i) = a
     type Value (AssetValueMap a i) = i
-    getAssets =
-        MonoidMap.nonNullKeys . unAssetValueMap
-    getAssetValue a =
-        getSum . MonoidMap.get a . unAssetValueMap
-    setAssetValue a q =
-        AssetValueMap . MonoidMap.set a (Sum q) . unAssetValueMap
+    getAssets = MonoidMap.nonNullKeys . unAssetValueMap
+    getAssetValue a = getSum . MonoidMap.get a . unAssetValueMap
+    setAssetValue a q = coerce (MonoidMap.set a (Sum q))
 
 --------------------------------------------------------------------------------
 -- Balance
 --------------------------------------------------------------------------------
 
-newtype Balance a = Balance {unBalance :: AssetValueMap a Integer}
-    deriving stock Eq
-    deriving newtype (HasAssets)
-    deriving newtype (IsList)
-    deriving newtype (Read, Show)
-    deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
-    deriving newtype (Group)
+newtype Balance a = Balance {unBalance :: MonoidMap a (Sum Integer)}
+    deriving (IsList, Read, Show) via SumMap a Integer
+    deriving HasAssets via AssetValueMap a Integer
+    deriving newtype (Semigroup, Commutative, Monoid, MonoidNull, Group)
 
 --------------------------------------------------------------------------------
 -- Coin
 --------------------------------------------------------------------------------
 
-newtype Coin a = Coin {unCoin :: AssetValueMap a Natural}
-    deriving stock Eq
-    deriving newtype (HasAssets)
-    deriving newtype (IsList)
-    deriving newtype (Read, Show)
-    deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
-    deriving newtype (Reductive, LeftReductive, RightReductive)
-    deriving newtype (Monus, OverlappingGCDMonoid, PositiveMonoid)
+newtype Coin a = Coin {unCoin :: MonoidMap a (Sum Natural)}
+    deriving (IsList, Read, Show) via SumMap a Natural
+    deriving HasAssets via (AssetValueMap a Natural)
+    deriving newtype (Semigroup, Commutative, Monoid, MonoidNull)
+    deriving newtype (LeftReductive, RightReductive, Reductive)
+    deriving newtype (LeftCancellative, RightCancellative, Cancellative)
+    deriving newtype (OverlappingGCDMonoid, Monus, PositiveMonoid)
 
 newtype Assets a = Assets
     {unAssets :: a}
