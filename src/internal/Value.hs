@@ -8,7 +8,7 @@ module Value where
 import Algebra.Equipartition
     ( Equipartition (..), Keys (..), Values (..) )
 import AsList
-    ( AsList (..) )
+    ( AsList (..), asList )
 import Data.Coerce
     ( coerce )
 import Data.Group
@@ -114,10 +114,10 @@ deriving via Values (MonoidMap a (Sum Natural))
 --------------------------------------------------------------------------------
 
 coinToBalance :: Ord a => Coin a -> Balance a
-coinToBalance = fromList . fmap (fmap intCast) . toList
+coinToBalance = asList $ fmap $ fmap intCast
 
 balanceToCoins :: forall a. Ord a => Balance a -> (Coin a, Coin a)
 balanceToCoins b = (balanceToCoin (invert b), balanceToCoin b)
   where
     balanceToCoin :: Balance a -> Coin a
-    balanceToCoin = fromList . fmap (fmap (fromMaybe 0 . intCastMaybe)) . toList
+    balanceToCoin = asList $ fmap $ fmap $ fromMaybe 0 . intCastMaybe
