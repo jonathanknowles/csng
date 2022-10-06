@@ -1,12 +1,12 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE UndecidableInstances #-}
 
-module Coin
-    where
+module Value where
 
 import Algebra.Equipartition
     ( Equipartition (..), Keys (..), Values (..) )
+import AsList
+    ( AsList (..) )
 import Data.Group
     ( Group (..) )
 import Data.IntCast
@@ -16,14 +16,7 @@ import Data.Maybe
 import Data.Monoid
     ( Sum (..) )
 import Data.Monoid.Cancellative
-    ( Cancellative
-    , Commutative
-    , LeftCancellative
-    , LeftReductive
-    , Reductive
-    , RightCancellative
-    , RightReductive
-    )
+    ( Commutative, LeftReductive, Reductive, RightReductive )
 import Data.Monoid.GCD
     ( OverlappingGCDMonoid )
 import Data.Monoid.Monus
@@ -38,8 +31,6 @@ import GHC.Exts
     ( IsList (..) )
 import Numeric.Natural
     ( Natural )
-import Text.Read
-    ( Read (..) )
 
 import qualified Data.MonoidMap as MonoidMap
 
@@ -47,15 +38,12 @@ newtype Balance a = Balance {unBalance :: MonoidMap a (Sum Integer)}
     deriving stock Eq
     deriving (Read, Show) via (AsList (Balance a))
     deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
-    deriving newtype (Cancellative, LeftCancellative, RightCancellative)
-    deriving newtype (Reductive, LeftReductive, RightReductive)
     deriving newtype (Group)
 
 newtype Coin a = Coin {unCoin :: MonoidMap a (Sum Natural)}
     deriving stock Eq
     deriving (Read, Show) via (AsList (Coin a))
     deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
-    deriving newtype (Cancellative, LeftCancellative, RightCancellative)
     deriving newtype (Reductive, LeftReductive, RightReductive)
     deriving newtype (Monus, OverlappingGCDMonoid, PositiveMonoid)
 
@@ -68,14 +56,6 @@ deriving via Keys (MonoidMap a (Sum Natural))
 
 deriving via Values (MonoidMap a (Sum Natural))
     instance Ord a => Equipartition (Values (Coin a))
-
-newtype AsList a = AsList {asList :: a}
-
-instance (IsList a, Show (Item a)) => Show (AsList a) where
-    show = show . toList . asList
-
-instance (IsList a, Read (Item a)) => Read (AsList a) where
-    readPrec = AsList . fromList <$> readPrec
 
 class HasAssets f a where
     type Value f

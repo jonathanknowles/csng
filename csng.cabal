@@ -67,8 +67,9 @@ library internal
     exposed-modules:
         Algebra.Equipartition
         Algebra.Partition
-        Coin
+        AsList
         Numeric.Natural.Extra
+        Value
     default-language:
         Haskell2010
     build-depends:
