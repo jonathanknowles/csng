@@ -46,18 +46,18 @@ import qualified Data.MonoidMap as MonoidMap
 newtype Balance a = Balance {unBalance :: MonoidMap a (Sum Integer)}
     deriving stock Eq
     deriving (Read, Show) via (AsList (Balance a))
-    deriving newtype (Semigroup, Commutative)
-    deriving newtype (Group, Monoid, MonoidNull)
-    deriving newtype (LeftCancellative, RightCancellative, Cancellative)
-    deriving newtype (LeftReductive, RightReductive, Reductive)
+    deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
+    deriving newtype (Cancellative, LeftCancellative, RightCancellative)
+    deriving newtype (Reductive, LeftReductive, RightReductive)
+    deriving newtype (Group)
 
 newtype Coin a = Coin {unCoin :: MonoidMap a (Sum Natural)}
     deriving stock Eq
     deriving (Read, Show) via (AsList (Coin a))
-    deriving newtype (Semigroup, Commutative, Monus)
-    deriving newtype (Monoid, MonoidNull, PositiveMonoid, OverlappingGCDMonoid)
-    deriving newtype (LeftCancellative, RightCancellative, Cancellative)
-    deriving newtype (LeftReductive, RightReductive, Reductive)
+    deriving newtype (Commutative, Monoid, MonoidNull, Semigroup)
+    deriving newtype (Cancellative, LeftCancellative, RightCancellative)
+    deriving newtype (Reductive, LeftReductive, RightReductive)
+    deriving newtype (Monus, OverlappingGCDMonoid, PositiveMonoid)
 
 newtype Assets a = Assets
     {unAssets :: a}
