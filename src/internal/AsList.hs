@@ -15,5 +15,5 @@ instance (IsList a, Show (Item a)) => Show (AsList a) where
 instance (IsList a, Read (Item a)) => Read (AsList a) where
     readPrec = AsList . fromList <$> readPrec
 
-asList :: (IsList b, IsList a) => ([Item a] -> [Item b]) -> a -> b
+asList :: (IsList a, IsList b) => ([Item a] -> [Item b]) -> a -> b
 asList f = fromList . f . toList
