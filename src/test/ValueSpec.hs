@@ -2,12 +2,17 @@ module ValueSpec where
 
 import Prelude
 
+import Data.Function
+    ( (&) )
+import Data.Group
+    ( Group (..) )
 import Test.Hspec
-    ( Spec, describe, parallel )
+    ( Spec, describe, it, parallel )
 import Test.QuickCheck
-    ( Arbitrary )
+    ( Arbitrary, Property, property, (===) )
 import Test.QuickCheck.Classes
-    ( isListLaws
+    ( eqLaws
+    , isListLaws
     , monoidLaws
     , semigroupLaws
     , semigroupMonoidLaws
@@ -36,14 +41,15 @@ import Test.QuickCheck.Classes.Semigroup.Cancellative
 import Test.QuickCheck.Quid
     ( Latin (..), Quid )
 import Value
-    ( Balance, Coin )
+    ( Balance, Coin, balanceToCoins, coinToBalance )
 
 spec :: Spec
 spec = do
 
     parallel $ describe "Class instances obey laws" $ do
-        testLawsMany @(Balance TestAsset)
+        testLawsMany @TestBalance
             [ commutativeLaws
+            , eqLaws
             , groupLaws
             , isListLaws
             , monoidLaws
@@ -53,9 +59,10 @@ spec = do
             , showLaws
             , showReadLaws
             ]
-        testLawsMany @(Coin TestAsset)
+        testLawsMany @TestCoin
             [ cancellativeLaws
             , commutativeLaws
+            , eqLaws
             , isListLaws
             , leftCancellativeLaws
             , leftReductiveLaws
@@ -72,6 +79,34 @@ spec = do
             , showLaws
             , showReadLaws
             ]
+
+    parallel $ describe "Conversions" $ do
+        it "prop_coinToBalance_balanceToCoins" $
+            prop_coinToBalance_balanceToCoins
+                & property
+        it "prop_coinToBalance_invert_balanceToCoins" $
+            prop_coinToBalance_invert_balanceToCoins
+                & property
+        it "prop_balanceToCoins_coinToBalance_invert" $
+            prop_balanceToCoins_coinToBalance_invert
+                & property
+
+prop_coinToBalance_balanceToCoins :: TestCoin -> Property
+prop_coinToBalance_balanceToCoins c =
+    balanceToCoins (coinToBalance c) === (mempty, c)
+
+prop_coinToBalance_invert_balanceToCoins :: TestCoin -> Property
+prop_coinToBalance_invert_balanceToCoins c =
+    balanceToCoins (invert (coinToBalance c)) === (c, mempty)
+
+prop_balanceToCoins_coinToBalance_invert :: TestBalance -> Property
+prop_balanceToCoins_coinToBalance_invert b =
+    invert (coinToBalance n) <> coinToBalance p === b
+  where
+    (n, p) = balanceToCoins b
+
+type TestBalance = Balance TestAsset
+type TestCoin = Coin TestAsset
 
 newtype TestAsset = TestAsset (Latin Quid)
     deriving stock (Eq, Ord, Read, Show)
