@@ -50,6 +50,10 @@ import GHC.Exts
     ( IsList (..) )
 import Numeric.Natural
     ( Natural )
+import Test.QuickCheck
+    ( Arbitrary )
+import Test.QuickCheck.Instances.Natural
+    ()
 
 import qualified Algebra.Equipartition as Equipartition
 import qualified Data.MonoidMap as MonoidMap
@@ -60,7 +64,7 @@ import qualified Data.MonoidMap as MonoidMap
 
 newtype SumMap a i = SumMap
     {unSumMap :: MonoidMap a (Sum i)}
-    deriving (Read, Show) via (AsList (SumMap a i))
+    deriving (Arbitrary, Read, Show) via (AsList (SumMap a i))
 
 instance (Ord a, Eq i, Num i) => IsList (SumMap a i) where
     type Item (SumMap a i) = (a, i)
@@ -93,18 +97,18 @@ instance (Ord a, Eq i, Num i) => HasAssets (AssetValueMap a i) where
 --------------------------------------------------------------------------------
 
 newtype Balance a = Balance (MonoidMap a (Sum Integer))
-    deriving (IsList, Read, Show) via SumMap a Integer
+    deriving (Arbitrary, IsList, Read, Show) via SumMap a Integer
     deriving HasAssets via AssetValueMap a Integer
-    deriving newtype (Semigroup, Commutative, Monoid, MonoidNull, Group)
+    deriving newtype (Eq, Semigroup, Commutative, Monoid, MonoidNull, Group)
 
 --------------------------------------------------------------------------------
 -- Coin
 --------------------------------------------------------------------------------
 
 newtype Coin a = Coin (MonoidMap a (Sum Natural))
-    deriving (IsList, Read, Show) via SumMap a Natural
+    deriving (Arbitrary, IsList, Read, Show) via SumMap a Natural
     deriving HasAssets via AssetValueMap a Natural
-    deriving newtype (Semigroup, Commutative, Monoid, MonoidNull)
+    deriving newtype (Eq, Semigroup, Commutative, Monoid, MonoidNull)
     deriving newtype (LeftReductive, RightReductive, Reductive)
     deriving newtype (LeftCancellative, RightCancellative, Cancellative)
     deriving newtype (OverlappingGCDMonoid, Monus, PositiveMonoid)
