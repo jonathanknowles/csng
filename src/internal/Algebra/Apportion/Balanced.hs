@@ -5,11 +5,13 @@
 {-# LANGUAGE TypeApplications #-}
 {- HLINT ignore "Use camelCase" -}
 
-module Algebra.Equipartition
+module Algebra.Apportion.Balanced
     where
 
 import Prelude
 
+import Algebra.Apportion
+    ( Apportion (..) )
 import Control.Arrow
     ( (&&&) )
 import Data.Function
@@ -36,8 +38,6 @@ import GHC.Exts
     ( IsList (..) )
 import Numeric.Natural
     ( Natural )
-import Numeric.Natural.Extra
-    ( equipartitionNatural )
 import Safe
     ( tailMay )
 import Test.QuickCheck
@@ -66,49 +66,50 @@ import qualified Data.Strict.Map as Map
 -- Classes
 --------------------------------------------------------------------------------
 
-class Equipartition a where
-    equipartition :: a -> NonEmpty void -> NonEmpty a
-    equipartitionDistance :: a -> a -> Natural
-    equipartitionOrdering :: a -> a -> Bool
+class BalancedApportion a where
+    balancedApportion :: a -> NonEmpty void -> NonEmpty a
+    balancedApportionDistance :: a -> a -> Natural
+    balancedApportionOrdering :: a -> a -> Bool
 
-equipartitionN :: Equipartition a => a -> Int -> NonEmpty a
-equipartitionN a n = equipartition a (() :| replicate (max 0 (n - 1)) ())
+balancedApportionN :: BalancedApportion a => a -> Int -> NonEmpty a
+balancedApportionN a n =
+    balancedApportion a (() :| replicate (max 0 (n - 1)) ())
 
 --------------------------------------------------------------------------------
 -- Laws
 --------------------------------------------------------------------------------
 
-equipartitionLaw_distance
-    :: Equipartition a => a -> NonEmpty void -> Bool
-equipartitionLaw_distance a count =
-    all ((<= 1) . uncurry equipartitionDistance)
-        (orderedPairs (equipartition a count))
+balancedApportionLaw_distance
+    :: BalancedApportion a => a -> NonEmpty void -> Bool
+balancedApportionLaw_distance a count =
+    all ((<= 1) . uncurry balancedApportionDistance)
+        (orderedPairs (balancedApportion a count))
 
-equipartitionLaw_length
-    :: Equipartition a => a -> NonEmpty void -> Bool
-equipartitionLaw_length a count =
-    length (equipartition a count) == length count
+balancedApportionLaw_length
+    :: BalancedApportion a => a -> NonEmpty void -> Bool
+balancedApportionLaw_length a count =
+    length (balancedApportion a count) == length count
 
-equipartitionLaw_ordering
-    :: Equipartition a => a -> NonEmpty void -> Bool
-equipartitionLaw_ordering a count =
-    all (uncurry equipartitionOrdering)
-        (orderedPairs (equipartition a count))
+balancedApportionLaw_ordering
+    :: BalancedApportion a => a -> NonEmpty void -> Bool
+balancedApportionLaw_ordering a count =
+    all (uncurry balancedApportionOrdering)
+        (orderedPairs (balancedApportion a count))
 
-equipartitionLaw_sum
-    :: (Eq a, Equipartition a, Monoid a) => a -> NonEmpty void -> Bool
-equipartitionLaw_sum a count =
-    F.fold (equipartition a count) == a
+balancedApportionLaw_sum
+    :: (Eq a, BalancedApportion a, Monoid a) => a -> NonEmpty void -> Bool
+balancedApportionLaw_sum a count =
+    F.fold (balancedApportion a count) == a
 
 --------------------------------------------------------------------------------
 -- Functions
 --------------------------------------------------------------------------------
 
-bipartition :: Equipartition a => a -> (a, a)
-bipartition = (NE.head &&& NE.last) . flip equipartition (() :| [()])
+bipartition :: BalancedApportion a => a -> (a, a)
+bipartition = (NE.head &&& NE.last) . flip balancedApportion (() :| [()])
 
 bipartitionUntil
-    :: (Eq a, Equipartition a, Monoid a) => a -> (a -> Bool) -> NonEmpty a
+    :: (Eq a, BalancedApportion a, Monoid a) => a -> (a -> Bool) -> NonEmpty a
 bipartitionUntil a f
     | x == mempty = pure a
     | y == a      = pure a
@@ -118,7 +119,7 @@ bipartitionUntil a f
     (x, y) = bipartition a
 
 bipartitionWhile
-    :: (Eq a, Equipartition a, Monoid a) => a -> (a -> Bool) -> NonEmpty a
+    :: (Eq a, BalancedApportion a, Monoid a) => a -> (a -> Bool) -> NonEmpty a
 bipartitionWhile a f
     | x == mempty = pure a
     | y == a      = pure a
@@ -139,29 +140,29 @@ newtype Values a = Values
     { unValues :: a }
     deriving (Eq, Monoid, Semigroup, Show)
 
-instance (Ord k, Eq v, MonoidNull v) => Equipartition (Keys (MonoidMap k v))
+instance (Ord k, Eq v, MonoidNull v) => BalancedApportion (Keys (MonoidMap k v))
   where
-    equipartition m
+    balancedApportion m
         = fmap (Keys . MonoidMap.fromMap)
-        . equipartition (MonoidMap.toMap $ unKeys m)
-    equipartitionDistance
-        = equipartitionDistance `on` MonoidMap.toMap
+        . balancedApportion (MonoidMap.toMap $ unKeys m)
+    balancedApportionDistance
+        = balancedApportionDistance `on` MonoidMap.toMap
         . unKeys
-    equipartitionOrdering
-        = equipartitionOrdering `on` MonoidMap.toMap
+    balancedApportionOrdering
+        = balancedApportionOrdering `on` MonoidMap.toMap
         . unKeys
 
-instance (Ord k, Eq v, Equipartition v, MonoidNull v, LeftReductive v) =>
-    Equipartition (Values (MonoidMap k v))
+instance (Ord k, Eq v, BalancedApportion v, MonoidNull v, LeftReductive v) =>
+    BalancedApportion (Values (MonoidMap k v))
   where
-    equipartition (Values m) count =
+    balancedApportion (Values m) count =
         Values <$> F.foldl' acc (mempty <$ count) (toList m)
       where
         acc :: NonEmpty (MonoidMap k v) -> (k, v) -> NonEmpty (MonoidMap k v)
         acc ms (k, v) = NE.zipWith (<>) ms $
-            MonoidMap.singleton k <$> equipartition v count
+            MonoidMap.singleton k <$> balancedApportion v count
 
-    equipartitionDistance (Values m1) (Values m2) =
+    balancedApportionDistance (Values m1) (Values m2) =
         maybe 0 maximum (NE.nonEmpty distances)
       where
         allKeys :: Set k
@@ -172,27 +173,27 @@ instance (Ord k, Eq v, Equipartition v, MonoidNull v, LeftReductive v) =>
 
         distanceForKey :: k -> Natural
         distanceForKey k =
-            MonoidMap.get k m1 `equipartitionDistance` MonoidMap.get k m2
+            MonoidMap.get k m1 `balancedApportionDistance` MonoidMap.get k m2
 
-    equipartitionOrdering (Values m1) (Values m2) =
+    balancedApportionOrdering (Values m1) (Values m2) =
         m1 `isPrefixOf` m2
 
-instance Equipartition Natural where
-    equipartition = equipartitionNatural
+instance BalancedApportion Natural where
+    balancedApportion n count = snd (apportion n (1 <$ count))
 
-    equipartitionDistance n1 n2
+    balancedApportionDistance n1 n2
         | n1 >= n2  = n1 - n2
         | otherwise = n2 - n1
 
-    equipartitionOrdering n1 n2 = n1 <= n2
+    balancedApportionOrdering n1 n2 = n1 <= n2
 
-instance Equipartition [a] where
-    equipartition as count =
+instance BalancedApportion [a] where
+    balancedApportion as count =
         NE.unfoldr makeChunk (chunkLengths, as)
       where
         chunkLengths :: NonEmpty Int
         chunkLengths = fromIntegral @Natural @Int <$>
-            equipartition (fromIntegral @Int @Natural (length as)) count
+            balancedApportion (fromIntegral @Int @Natural (length as)) count
 
         makeChunk :: (NonEmpty Int, [a]) -> ([a], Maybe (NonEmpty Int, [a]))
         makeChunk (c :| mcs, bs) = case NE.nonEmpty mcs of
@@ -201,51 +202,51 @@ instance Equipartition [a] where
           where
             (prefix, suffix) = L.splitAt c bs
 
-    equipartitionDistance xs ys = equipartitionDistance
+    balancedApportionDistance xs ys = balancedApportionDistance
         (fromIntegral @Int @Natural $ length xs)
         (fromIntegral @Int @Natural $ length ys)
 
-    equipartitionOrdering xs ys = length xs <= length ys
+    balancedApportionOrdering xs ys = length xs <= length ys
 
-instance Ord k => Equipartition (Map k v) where
-    equipartition m count =
-        Map.fromList <$> equipartition (Map.toList m) count
+instance Ord k => BalancedApportion (Map k v) where
+    balancedApportion m count =
+        Map.fromList <$> balancedApportion (Map.toList m) count
 
-    equipartitionDistance m1 m2 = equipartitionDistance
+    balancedApportionDistance m1 m2 = balancedApportionDistance
         (fromIntegral @Int @Natural $ Map.size m1)
         (fromIntegral @Int @Natural $ Map.size m2)
 
-    equipartitionOrdering m1 m2 = Map.size m1 <= Map.size m2
+    balancedApportionOrdering m1 m2 = Map.size m1 <= Map.size m2
 
-instance Ord a => Equipartition (Set a) where
-    equipartition set count =
-        Set.fromList <$> equipartition (Set.toList set) count
+instance Ord a => BalancedApportion (Set a) where
+    balancedApportion set count =
+        Set.fromList <$> balancedApportion (Set.toList set) count
 
-    equipartitionDistance xs ys = equipartitionDistance
+    balancedApportionDistance xs ys = balancedApportionDistance
         (fromIntegral @Int @Natural $ Set.size xs)
         (fromIntegral @Int @Natural $ Set.size ys)
 
-    equipartitionOrdering xs ys = length xs <= length ys
+    balancedApportionOrdering xs ys = length xs <= length ys
 
-deriving instance Equipartition a => Equipartition (Sum a)
+deriving instance BalancedApportion a => BalancedApportion (Sum a)
 
 --------------------------------------------------------------------------------
 -- Testing
 --------------------------------------------------------------------------------
 
-equipartitionLaws
-    :: forall a. (Arbitrary a, Eq a, Equipartition a, Monoid a, Show a)
+balancedApportionLaws
+    :: forall a. (Arbitrary a, Eq a, BalancedApportion a, Monoid a, Show a)
     => Proxy a
     -> Laws
-equipartitionLaws _ = Laws "Equipartition"
+balancedApportionLaws _ = Laws "BalancedApportion"
     [ ( "Distance"
-      , makeProperty equipartitionLaw_distance)
+      , makeProperty balancedApportionLaw_distance)
     , ( "Length"
-      , makeProperty equipartitionLaw_length)
+      , makeProperty balancedApportionLaw_length)
     , ( "Ordering"
-      , makeProperty equipartitionLaw_ordering)
+      , makeProperty balancedApportionLaw_ordering)
     , ( "Sum"
-      , makeProperty equipartitionLaw_sum)
+      , makeProperty balancedApportionLaw_sum)
     ]
   where
     makeProperty :: (a -> NonEmpty () -> Bool) -> Property
@@ -267,7 +268,7 @@ equipartitionLaws _ = Laws "Equipartition"
         buildCoverage value count result $
         condition value count
       where
-        result = equipartition value count
+        result = balancedApportion value count
 
     buildCoverage
         :: Testable prop
@@ -308,11 +309,11 @@ equipartitionLaws _ = Laws "Equipartition"
             (NE.head result /= NE.last result)
             "NE.head result /= NE.last result"
         . cover 1
-            (equipartitionDistance (NE.head result) (NE.last result) == 0)
-            "equipartitionDistance (NE.head result) (NE.last result) == 0"
+            (balancedApportionDistance (NE.head result) (NE.last result) == 0)
+            "balancedApportionDistance (NE.head result) (NE.last result) == 0"
         . cover 10
-            (equipartitionDistance (NE.head result) (NE.last result) /= 0)
-            "equipartitionDistance (NE.head result) (NE.last result) /= 0"
+            (balancedApportionDistance (NE.head result) (NE.last result) /= 0)
+            "balancedApportionDistance (NE.head result) (NE.last result) /= 0"
         . cover 1
             (all (uncurry (/=)) (consecutivePairs result))
             "all (uncurry (/=)) (consecutivePairs result)"
