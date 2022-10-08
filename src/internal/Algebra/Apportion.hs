@@ -6,7 +6,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {- HLINT ignore "Use camelCase" -}
 
-module Algebra.Partition
+module Algebra.Apportion
     where
 
 import Prelude
@@ -21,8 +21,6 @@ import Data.Proxy
     ( Proxy )
 import Numeric.Natural
     ( Natural )
-import Numeric.Natural.Extra
-    ( partitionNatural )
 import Test.QuickCheck
     ( Arbitrary
     , Gen
@@ -37,6 +35,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Classes
     ( Laws (..) )
 
+import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty as NE
 
@@ -44,68 +43,68 @@ import qualified Data.List.NonEmpty as NE
 -- Class
 --------------------------------------------------------------------------------
 
-class Partition a where
+class Apportion a where
 
-    partition
+    apportion
         :: a -> NonEmpty a -> (a, NonEmpty a)
-    partitionMaybe
+    apportionMaybe
         :: a -> NonEmpty a -> Maybe (NonEmpty a)
 
-    default partition
+    default apportion
         :: Monoid a
         => a -> NonEmpty a -> (a, NonEmpty a)
-    partition a as = case partitionMaybe a as of
+    apportion a as = case apportionMaybe a as of
         Nothing -> (a, mempty <$ as)
         Just bs -> (mempty, bs)
 
-    default partitionMaybe
+    default apportionMaybe
         :: (Eq a, Monoid a)
         => a -> NonEmpty a -> Maybe (NonEmpty a)
-    partitionMaybe a as = case partition a as of
+    apportionMaybe a as = case apportion a as of
        (b, bs) | b == mempty -> Just bs
-       _ -> Nothing
+       (_, _) -> Nothing
 
 --------------------------------------------------------------------------------
 -- Laws
 --------------------------------------------------------------------------------
 
-partitionLaw_length :: Partition a => a -> NonEmpty a -> Bool
-partitionLaw_length a as =
-    length (snd (partition a as)) == length as
+apportionLaw_length :: Apportion a => a -> NonEmpty a -> Bool
+apportionLaw_length a as =
+    length (snd (apportion a as)) == length as
 
-partitionLaw_sum :: (Eq a, Monoid a, Partition a) => a -> NonEmpty a -> Bool
-partitionLaw_sum a as =
-    F.fold (uncurry NE.cons (partition a as)) == a
+apportionLaw_sum :: (Eq a, Monoid a, Apportion a) => a -> NonEmpty a -> Bool
+apportionLaw_sum a as =
+    F.fold (uncurry NE.cons (apportion a as)) == a
 
 --------------------------------------------------------------------------------
 -- Instances
 --------------------------------------------------------------------------------
 
-instance Partition (Sum Natural) where
-    partitionMaybe a as =
-        fmap Sum <$> partitionNatural (getSum a) (getSum <$> as)
+instance Apportion (Sum Natural) where
+    apportionMaybe a as =
+        fmap Sum <$> Natural.apportion (getSum a) (getSum <$> as)
 
-deriving via Sum Natural instance Partition Natural
+deriving via Sum Natural instance Apportion Natural
 
 --------------------------------------------------------------------------------
 -- Testing
 --------------------------------------------------------------------------------
 
-partitionLaws
+apportionLaws
     :: forall a.
         ( Arbitrary a
         , Eq a
         , Monoid a
-        , Partition a
+        , Apportion a
         , Show a
         )
     => Proxy a
     -> Laws
-partitionLaws _ = Laws "Partition"
+apportionLaws _ = Laws "Apportion"
     [ ( "Length"
-      , makeProperty partitionLaw_length)
+      , makeProperty apportionLaw_length)
     , ( "Sum"
-      , makeProperty partitionLaw_sum)
+      , makeProperty apportionLaw_sum)
     ]
   where
     makeProperty :: (a -> NonEmpty a -> Bool) -> Property
@@ -127,7 +126,7 @@ partitionLaws _ = Laws "Partition"
         buildCoverage value weights result $
         condition value weights
       where
-        result = partition value weights
+        result = apportion value weights
 
     buildCoverage
         :: Testable prop

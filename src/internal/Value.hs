@@ -13,8 +13,8 @@ module Value
     , balanceToCoins
     ) where
 
-import Algebra.Equipartition
-    ( Equipartition (..) )
+import Algebra.Apportion.Balanced
+    ( BalancedApportion (..) )
 import AsList
     ( AsList (..), asList )
 import Data.Coerce
@@ -55,7 +55,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Instances.Natural
     ()
 
-import qualified Algebra.Equipartition as Equipartition
+import qualified Algebra.Apportion.Balanced as BalancedApportion
 import qualified Data.MonoidMap as MonoidMap
 
 --------------------------------------------------------------------------------
@@ -81,16 +81,25 @@ newtype AssetValueMap a i = AssetValueMap
 class HasAssets a where
     type Asset a
     type Value a
+    filterAssets :: (Asset a -> Bool) -> a -> a
     getAssets :: a -> Set (Asset a)
     getAssetValue :: Ord (Asset a) => Asset a -> a -> Value a
     setAssetValue :: Ord (Asset a) => Asset a -> Value a -> a -> a
+    singleton :: Asset a -> Value a -> a
 
 instance (Ord a, Eq i, Num i) => HasAssets (AssetValueMap a i) where
     type Asset (AssetValueMap a i) = a
     type Value (AssetValueMap a i) = i
-    getAssets = MonoidMap.keys . unAssetValueMap
-    getAssetValue a = getSum . MonoidMap.get a . unAssetValueMap
-    setAssetValue a q = coerce (MonoidMap.set a (Sum q))
+    filterAssets f =
+        AssetValueMap . fromList . filter (f . fst) . toList . unAssetValueMap
+    getAssets =
+        MonoidMap.keys . unAssetValueMap
+    getAssetValue a =
+        getSum . MonoidMap.get a . unAssetValueMap
+    setAssetValue a =
+        coerce . MonoidMap.set a . Sum
+    singleton a =
+        AssetValueMap . MonoidMap.singleton a . Sum
 
 --------------------------------------------------------------------------------
 -- Balance
@@ -119,15 +128,15 @@ newtype Assets a = Assets {unAssets :: a}
 newtype Values a = Values {unValues :: a}
     deriving Show
 
-deriving via Equipartition.Keys
+deriving via BalancedApportion.Keys
     (MonoidMap a (Sum Natural))
     instance Ord a =>
-    Equipartition (Assets (Coin a))
+    BalancedApportion (Assets (Coin a))
 
-deriving via Equipartition.Values
+deriving via BalancedApportion.Values
     (MonoidMap a (Sum Natural))
     instance Ord a =>
-    Equipartition (Values (Coin a))
+    BalancedApportion (Values (Coin a))
 
 --------------------------------------------------------------------------------
 -- Conversions

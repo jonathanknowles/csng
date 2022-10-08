@@ -9,18 +9,18 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 {- HLINT ignore "Use camelCase" -}
 
-module Algebra.EquipartitionSpec
+module Algebra.Apportion.BalancedSpec
     where
 
 import Prelude
 
-import Algebra.Equipartition
-    ( Equipartition (..)
+import Algebra.Apportion.Balanced
+    ( BalancedApportion (..)
+    , balancedApportionLaws
+    , balancedApportionN
     , bipartition
     , bipartitionUntil
     , bipartitionWhile
-    , equipartitionLaws
-    , equipartitionN
     )
 import Data.List.NonEmpty
     ( NonEmpty )
@@ -65,16 +65,16 @@ spec = do
 
     parallel $ describe "Class instances obey laws" $ do
         testLawsMany @(Sum Natural)
-            [ equipartitionLaws
+            [ balancedApportionLaws
             ]
         testLawsMany @[Int]
-            [ equipartitionLaws
+            [ balancedApportionLaws
             ]
         testLawsMany @(Map Int Int)
-            [ equipartitionLaws
+            [ balancedApportionLaws
             ]
         testLawsMany @(Set Int)
-            [ equipartitionLaws
+            [ balancedApportionLaws
             ]
 
     parallel $ describe "bipartition" $ do
@@ -115,19 +115,19 @@ spec = do
             it "bipartitionUntil_bipartitionWhile @(Map Int Int)" $
                 property $ prop_bipartitionUntil_bipartitionWhile @(Map Int Int)
 
-    parallel $ describe "equipartitionN" $ do
+    parallel $ describe "balancedApportionN" $ do
 
         describe "unit tests" $ do
-            unitTestSpec_equipartitionN_Natural
-            unitTestSpec_equipartitionN_Set
-            unitTestSpec_equipartitionN_Map
+            unitTestSpec_balancedApportionN_Natural
+            unitTestSpec_balancedApportionN_Set
+            unitTestSpec_balancedApportionN_Map
 
 --------------------------------------------------------------------------------
 -- Bipartitioning
 --------------------------------------------------------------------------------
 
 prop_bipartitionUntil_coverage
-    :: (Arbitrary a, Eq a, Equipartition a, Monoid a, Show a, Testable prop)
+    :: (Arbitrary a, Eq a, BalancedApportion a, Monoid a, Show a, Testable prop)
     => a
     -> (a -> Bool)
     -> prop
@@ -166,7 +166,7 @@ prop_bipartitionUntil_coverage value condition prop
     result = value `bipartitionUntil` condition
 
 prop_bipartitionUntil_const
-    :: (Arbitrary a, Eq a, Equipartition a, Monoid a, Show a)
+    :: (Arbitrary a, Eq a, BalancedApportion a, Monoid a, Show a)
     => a
     -> Bool
     -> Property
@@ -175,12 +175,12 @@ prop_bipartitionUntil_const a condition =
     result ===
         if condition
         then pure a
-        else equipartition a result
+        else balancedApportion a result
   where
     result = a `bipartitionUntil` (const condition)
 
 prop_bipartitionUntil_idempotent
-    :: (Arbitrary a, Eq a, Equipartition a, Monoid a, Show a)
+    :: (Arbitrary a, Eq a, BalancedApportion a, Monoid a, Show a)
     => a
     -> Fun a Bool
     -> Property
@@ -191,7 +191,7 @@ prop_bipartitionUntil_idempotent a (Fn f) =
     result = a `bipartitionUntil` f
 
 prop_bipartitionUntil_mempty
-    :: (Arbitrary a, Eq a, Equipartition a, Monoid a, Show a)
+    :: (Arbitrary a, Eq a, BalancedApportion a, Monoid a, Show a)
     => a
     -> Fun a Bool
     -> Property
@@ -204,7 +204,7 @@ prop_bipartitionUntil_mempty a (Fn f) =
     result = a `bipartitionUntil` f
 
 prop_bipartitionUntil_satisfy
-    :: (Arbitrary a, Eq a, Equipartition a, Monoid a, Show a)
+    :: (Arbitrary a, Eq a, BalancedApportion a, Monoid a, Show a)
     => a
     -> Fun a Bool
     -> Property
@@ -215,7 +215,7 @@ prop_bipartitionUntil_satisfy a (Fn f) =
     satisfiesCondition x = f x || bipartition x == (mempty, x)
 
 prop_bipartitionUntil_sum
-    :: (Arbitrary a, Eq a, Equipartition a, Monoid a, Show a)
+    :: (Arbitrary a, Eq a, BalancedApportion a, Monoid a, Show a)
     => a
     -> Fun a Bool
     -> Property
@@ -224,7 +224,7 @@ prop_bipartitionUntil_sum a (Fn f) =
     F.fold (a `bipartitionUntil` f) === a
 
 prop_bipartitionUntil_bipartitionWhile
-    :: (Arbitrary a, Eq a, Equipartition a, Monoid a, Show a)
+    :: (Arbitrary a, Eq a, BalancedApportion a, Monoid a, Show a)
     => a
     -> Fun a Bool
     -> Property
@@ -233,21 +233,21 @@ prop_bipartitionUntil_bipartitionWhile a (Fn f) =
     a `bipartitionUntil` f === a `bipartitionWhile` (not . f)
 
 --------------------------------------------------------------------------------
--- Unit tests: Equipartition Natural
+-- Unit tests: BalancedApportion Natural
 --------------------------------------------------------------------------------
 
-unitTestSpec_equipartitionN_Natural :: Spec
-unitTestSpec_equipartitionN_Natural = unitTestSpec
-    "equipartitionN Natural"
-    "equipartitionN"
-    (equipartitionN)
-    (unitTestData_equipartitionN_Natural)
+unitTestSpec_balancedApportionN_Natural :: Spec
+unitTestSpec_balancedApportionN_Natural = unitTestSpec
+    "balancedApportionN Natural"
+    "balancedApportionN"
+    (balancedApportionN)
+    (unitTestData_balancedApportionN_Natural)
 
-unitTestData_equipartitionN_Natural :: UnitTestData2
+unitTestData_balancedApportionN_Natural :: UnitTestData2
     (Natural)
     (Int)
     (NonEmpty Natural)
-unitTestData_equipartitionN_Natural = unitTestData2
+unitTestData_balancedApportionN_Natural = unitTestData2
     [ ( 0,  1, [                                     0])
     , ( 0,  2, [                                 0,  0])
     , ( 0,  3, [                             0,  0,  0])
@@ -316,21 +316,21 @@ unitTestData_equipartitionN_Natural = unitTestData2
     ]
 
 --------------------------------------------------------------------------------
--- Unit tests: equipartitionN Set
+-- Unit tests: balancedApportionN Set
 --------------------------------------------------------------------------------
 
-unitTestSpec_equipartitionN_Set :: Spec
-unitTestSpec_equipartitionN_Set = unitTestSpec
-    "equipartitionN Set"
-    "equipartitionN"
-    (equipartitionN)
-    (unitTestData_equipartitionN_Set)
+unitTestSpec_balancedApportionN_Set :: Spec
+unitTestSpec_balancedApportionN_Set = unitTestSpec
+    "balancedApportionN Set"
+    "balancedApportionN"
+    (balancedApportionN)
+    (unitTestData_balancedApportionN_Set)
 
-unitTestData_equipartitionN_Set :: UnitTestData2
+unitTestData_balancedApportionN_Set :: UnitTestData2
     (Set LatinChar)
     (Int)
     (NonEmpty (Set LatinChar))
-unitTestData_equipartitionN_Set = unitTestData2
+unitTestData_balancedApportionN_Set = unitTestData2
     [ (s, 1, [ [A ,  B ,  C ,  D ,  E ,  F ,  G ,  H] ])
     , (s, 2, [ [A ,  B ,  C ,  D], [E ,  F ,  G ,  H] ])
     , (s, 3, [ [A ,  B], [C ,  D ,  E], [F ,  G ,  H] ])
@@ -344,21 +344,21 @@ unitTestData_equipartitionN_Set = unitTestData2
     s = [A .. H]
 
 --------------------------------------------------------------------------------
--- Unit tests: equipartitionN Map
+-- Unit tests: balancedApportionN Map
 --------------------------------------------------------------------------------
 
-unitTestSpec_equipartitionN_Map :: Spec
-unitTestSpec_equipartitionN_Map = unitTestSpec
-    "equipartitionN Map"
-    "equipartitionN"
-    (equipartitionN)
-    (unitTestData_equipartitionN_Map)
+unitTestSpec_balancedApportionN_Map :: Spec
+unitTestSpec_balancedApportionN_Map = unitTestSpec
+    "balancedApportionN Map"
+    "balancedApportionN"
+    (balancedApportionN)
+    (unitTestData_balancedApportionN_Map)
 
-unitTestData_equipartitionN_Map :: UnitTestData2
+unitTestData_balancedApportionN_Map :: UnitTestData2
     (Map LatinChar Int)
     (Int)
     (NonEmpty (Map LatinChar Int))
-unitTestData_equipartitionN_Map = unitTestData2
+unitTestData_balancedApportionN_Map = unitTestData2
     [ (m, 1, [ [A➔1 ,  B➔2 ,  C➔3 ,  D➔4 ,  E➔5 ,  F➔6 ,  G➔7 ,  H➔8] ])
     , (m, 2, [ [A➔1 ,  B➔2 ,  C➔3 ,  D➔4], [E➔5 ,  F➔6 ,  G➔7 ,  H➔8] ])
     , (m, 3, [ [A➔1 ,  B➔2], [C➔3 ,  D➔4 ,  E➔5], [F➔6 ,  G➔7 ,  H➔8] ])
