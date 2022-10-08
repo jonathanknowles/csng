@@ -18,6 +18,7 @@ extra-source-files:
 common common-extensions
     default-extensions:
         DerivingStrategies
+        DerivingVia
         FlexibleContexts
         FlexibleInstances
         GeneralizedNewtypeDeriving
@@ -65,10 +66,25 @@ library internal
     hs-source-dirs:
         src/internal
     exposed-modules:
+        Algebra.Equipartition
+        Algebra.Partition
+        AsList
+        Numeric.Natural.Extra
+        Value
     default-language:
         Haskell2010
     build-depends:
         base >=4.7 && <5
+      , containers
+      , groups
+      , int-cast
+      , monoid-subclasses
+      , monoidmap
+      , QuickCheck
+      , quickcheck-classes
+      , quickcheck-instances
+      , safe
+      , strict-containers
 
 test-suite test
     import:
@@ -78,6 +94,11 @@ test-suite test
     hs-source-dirs:
         src/test
     other-modules:
+        Algebra.EquipartitionSpec
+        Algebra.PartitionSpec
+        Test.Hspec.Unit
+        Test.QuickCheck.Classes.Hspec
+        ValueSpec
     type: exitcode-stdio-1.0
     default-language:
         Haskell2010
@@ -85,9 +106,19 @@ test-suite test
         hspec-discover:hspec-discover ==2.*
     build-depends:
         base >=4.7 && <5
-      , hspec
+      , containers
       , csng
       , csng:internal
+      , groups
+      , hspec
+      , hspec-core
+      , pretty-show
+      , QuickCheck
+      , quickcheck-classes
+      , quickcheck-classes-groups
+      , quickcheck-classes-monoid-subclasses
+      , quickcheck-quid
+      , strict-containers
 
 benchmark benchmark
     default-language:
