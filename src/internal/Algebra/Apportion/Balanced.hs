@@ -38,8 +38,6 @@ import GHC.Exts
     ( IsList (..) )
 import Numeric.Natural
     ( Natural )
-import Safe
-    ( tailMay )
 import Test.QuickCheck
     ( Arbitrary
     , Gen
@@ -55,7 +53,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Classes
     ( Laws (..) )
 
-import qualified Data.Foldable as F
+import qualified Data.Foldable.Extended as F
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
@@ -83,7 +81,7 @@ balancedApportionLaw_distance
     :: BalancedApportion a => a -> NonEmpty void -> Bool
 balancedApportionLaw_distance a count =
     all ((<= 1) . uncurry balancedApportionDistance)
-        (orderedPairs (balancedApportion a count))
+        (F.orderedPairs (balancedApportion a count))
 
 balancedApportionLaw_length
     :: BalancedApportion a => a -> NonEmpty void -> Bool
@@ -94,7 +92,7 @@ balancedApportionLaw_ordering
     :: BalancedApportion a => a -> NonEmpty void -> Bool
 balancedApportionLaw_ordering a count =
     all (uncurry balancedApportionOrdering)
-        (orderedPairs (balancedApportion a count))
+        (F.orderedPairs (balancedApportion a count))
 
 balancedApportionLaw_sum
     :: (Eq a, BalancedApportion a, Monoid a) => a -> NonEmpty void -> Bool
@@ -315,26 +313,8 @@ balancedApportionLaws _ = Laws "BalancedApportion"
             (balancedApportionDistance (NE.head result) (NE.last result) /= 0)
             "balancedApportionDistance (NE.head result) (NE.last result) /= 0"
         . cover 1
-            (all (uncurry (/=)) (consecutivePairs result))
-            "all (uncurry (/=)) (consecutivePairs result)"
+            (all (uncurry (/=)) (F.consecutivePairs result))
+            "all (uncurry (/=)) (F.consecutivePairs result)"
         . cover 1
-            (all (uncurry (==)) (consecutivePairs result))
-            "all (uncurry (==)) (consecutivePairs result)"
-
---------------------------------------------------------------------------------
--- Utilities
---------------------------------------------------------------------------------
-
-consecutivePairs :: Foldable f => f a -> [(a, a)]
-consecutivePairs = inner . F.toList
-  where
-    inner xs = case tailMay xs of
-        Nothing -> []
-        Just ys -> xs `zip` ys
-
-orderedPairs :: Foldable f => f a -> [(a, a)]
-orderedPairs = inner . F.toList
-  where
-    inner [      ] = []
-    inner [_     ] = []
-    inner (x : xs) = [(x, y) | y <- xs] <> inner xs
+            (all (uncurry (==)) (F.consecutivePairs result))
+            "all (uncurry (==)) (F.consecutivePairs result)"

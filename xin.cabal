@@ -71,6 +71,7 @@ library internal
         Algebra.Apportion.Natural
         AsList
         Change
+        Data.Foldable.Extended
         Data.Function.Extended
         Data.List.NonEmpty.Extended
         Value
