@@ -12,8 +12,8 @@ import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Monoid
     ( Sum (..) )
-import Data.Monoid.Monus
-    ( Monus (..) )
+import Data.Monoid.Monus.Extended
+    ( distance )
 import Data.Ord
     ( Down (..) )
 import Data.Semialign
@@ -112,6 +112,3 @@ takeUntilSumIsMinimalDistanceToTarget target as =
     fst <$> NE.zip as (fst $ NE.splitWhen (<=) distances)
   where
     distances = (distance `on` Sum) target <$> NE.scanl1 (+) as
-
-distance :: Monus a => a -> a -> a
-distance a b = (a <\> b) <> (b <\> a)

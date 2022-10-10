@@ -74,6 +74,7 @@ library internal
         Data.Foldable.Extended
         Data.Function.Extended
         Data.List.NonEmpty.Extended
+        Data.Monoid.Monus.Extended
         Value
     default-language:
         Haskell2010
