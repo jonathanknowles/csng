@@ -1,7 +1,13 @@
+{-# LANGUAGE StandaloneDeriving #-}
+
 module ValueSpec where
 
 import Prelude
 
+import Algebra.Apportion
+    ( apportionLaws )
+import Algebra.Apportion.Balanced
+    ( balancedApportionLaws )
 import Data.Function
     ( (&) )
 import Data.Group
@@ -41,7 +47,7 @@ import Test.QuickCheck.Classes.Semigroup.Cancellative
 import Test.QuickCheck.Quid
     ( Latin (..), Quid )
 import Value
-    ( Balance, Coin, balanceToCoins, coinToBalance )
+    ( Assets (..), Balance, Coin, Values (..), balanceToCoins, coinToBalance )
 
 spec :: Spec
 spec = do
@@ -59,8 +65,15 @@ spec = do
             , showLaws
             , showReadLaws
             ]
+        testLawsMany @(Assets TestCoin)
+            [ balancedApportionLaws
+            ]
+        testLawsMany @(Values TestCoin)
+            [ balancedApportionLaws
+            ]
         testLawsMany @TestCoin
-            [ cancellativeLaws
+            [ apportionLaws
+            , cancellativeLaws
             , commutativeLaws
             , eqLaws
             , isListLaws
@@ -107,6 +120,9 @@ prop_balanceToCoins_coinToBalance_invert b =
 
 type TestBalance = Balance TestAsset
 type TestCoin = Coin TestAsset
+
+deriving instance Arbitrary (Assets TestCoin)
+deriving instance Arbitrary (Values TestCoin)
 
 newtype TestAsset = TestAsset (Latin Quid)
     deriving stock (Eq, Ord, Read, Show)
