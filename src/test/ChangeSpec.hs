@@ -11,23 +11,20 @@ import Data.Function
     ( (&) )
 import Data.List.NonEmpty
     ( NonEmpty )
-import Data.Maybe
-    ( mapMaybe )
 import Data.Monoid
     ( Sum (..) )
 import Numeric.Natural
     ( Natural )
-import Safe
-    ( toEnumMay )
 import Test.Hspec
     ( Spec, describe, it, parallel )
-import Test.QuickCheck
+import Test.QuickCheck.Extended
     ( Arbitrary (..)
     , Property
     , arbitraryBoundedEnum
     , checkCoverage
     , cover
     , property
+    , shrinkBoundedEnum
     , (===)
     )
 import Test.QuickCheck.Instances.NonEmpty
@@ -193,6 +190,3 @@ data TestPriority
 instance Arbitrary TestPriority where
     arbitrary = arbitraryBoundedEnum
     shrink = shrinkBoundedEnum
-
-shrinkBoundedEnum :: (Bounded a, Enum a) => a -> [a]
-shrinkBoundedEnum = mapMaybe toEnumMay . shrink . fromEnum
