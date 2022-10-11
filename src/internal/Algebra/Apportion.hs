@@ -11,14 +11,22 @@ module Algebra.Apportion
 
 import Prelude
 
+import Data.Bifunctor
+    ( bimap )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Maybe
     ( mapMaybe )
 import Data.Monoid
     ( Sum (..) )
+import Data.Monoid.Null
+    ( MonoidNull )
+import Data.MonoidMap
+    ( MonoidMap )
 import Data.Proxy
     ( Proxy )
+import Data.Set
+    ( Set )
 import Numeric.Natural
     ( Natural )
 import Test.QuickCheck
@@ -38,6 +46,7 @@ import Test.QuickCheck.Classes
 import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty as NE
+import qualified Data.MonoidMap as MonoidMap
 
 --------------------------------------------------------------------------------
 -- Class
@@ -85,6 +94,30 @@ instance Apportion (Sum Natural) where
         fmap Sum <$> Natural.apportion (getSum a) (getSum <$> as)
 
 deriving via Sum Natural instance Apportion Natural
+
+instance (Ord k, Apportion v, Eq v, MonoidNull v) => Apportion (MonoidMap k v)
+  where
+    apportion m ms
+        = F.foldl' combine empty $ apportionForKey <$> F.toList allKeys
+      where
+        allKeys :: Set k
+        allKeys = F.foldMap MonoidMap.nonNullKeys (m : F.toList ms)
+
+        combine
+            :: (MonoidMap k v, NonEmpty (MonoidMap k v))
+            -> (MonoidMap k v, NonEmpty (MonoidMap k v))
+            -> (MonoidMap k v, NonEmpty (MonoidMap k v))
+        combine (v0, vs0) (v1, vs1) = (v0 <> v1, NE.zipWith (<>) vs0 vs1)
+
+        empty :: (MonoidMap k v, NonEmpty (MonoidMap k v))
+        empty = (mempty, mempty <$ ms)
+
+        apportionForKey :: k -> (MonoidMap k v, NonEmpty (MonoidMap k v))
+        apportionForKey k
+            = bimap
+                (MonoidMap.singleton k)
+                (fmap (MonoidMap.singleton k))
+            $ apportion (MonoidMap.get k m) (MonoidMap.get k <$> ms)
 
 --------------------------------------------------------------------------------
 -- Testing

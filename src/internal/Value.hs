@@ -13,6 +13,8 @@ module Value
     , balanceToCoins
     ) where
 
+import Algebra.Apportion
+    ( Apportion (..) )
 import Algebra.Apportion.Balanced
     ( BalancedApportion (..) )
 import AsList
@@ -116,6 +118,7 @@ newtype Balance a = Balance (MonoidMap a (Sum Integer))
 
 newtype Coin a = Coin (MonoidMap a (Sum Natural))
     deriving (Arbitrary, IsList, Read, Show) via SumMap a Natural
+    deriving Apportion via MonoidMap a (Sum Natural)
     deriving HasAssets via AssetValueMap a Natural
     deriving newtype (Eq, Semigroup, Commutative, Monoid, MonoidNull)
     deriving newtype (LeftReductive, RightReductive, Reductive)
@@ -123,10 +126,10 @@ newtype Coin a = Coin (MonoidMap a (Sum Natural))
     deriving newtype (OverlappingGCDMonoid, Monus, PositiveMonoid)
 
 newtype Assets a = Assets {unAssets :: a}
-    deriving Show
+    deriving (Eq, Monoid, Semigroup, Show)
 
 newtype Values a = Values {unValues :: a}
-    deriving Show
+    deriving (Eq, Monoid, Semigroup, Show)
 
 deriving via BalancedApportion.Keys
     (MonoidMap a (Sum Natural))
