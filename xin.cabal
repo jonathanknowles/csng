@@ -105,6 +105,7 @@ test-suite test
         ChangeSpec
         Test.Hspec.Unit
         Test.QuickCheck.Classes.Hspec
+        Test.QuickCheck.Extended
         Test.QuickCheck.Instances.NonEmpty
         ValueSpec
     type: exitcode-stdio-1.0
