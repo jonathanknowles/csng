@@ -30,6 +30,9 @@ import Value
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty.Extended as NE
 
+-- Make a function that zeros out low-priority weights from within Coins.
+-- Then use the ordinary apportion functions for Coin.
+--
 makeChangeForCoin
     :: forall a p. (Ord a, Ord p)
     => (Coin a, NonEmpty (p, Coin a))
