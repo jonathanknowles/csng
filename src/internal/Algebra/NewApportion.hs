@@ -33,6 +33,7 @@ class (Eq a, Semigroup a) => Apportion a where
     type Weight a
 
     apportion :: a -> NonEmpty (Weight a) -> (a, NonEmpty a)
+
     default apportion
         :: Monoid a => a -> NonEmpty (Weight a) -> (a, NonEmpty a)
     apportion a as = case apportionMaybe a as of
@@ -40,6 +41,7 @@ class (Eq a, Semigroup a) => Apportion a where
         Just bs -> (mempty, bs)
 
     apportionMaybe :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+
     default apportionMaybe
         :: (Eq a, Monoid a) => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     apportionMaybe a as = case apportion a as of
@@ -64,20 +66,18 @@ class Apportion a => BalancedApportion a where
 
     apportionDeviation :: a -> Exact a -> Ratio Natural
     apportionExact :: a -> NonEmpty (Weight a) -> (Exact a, NonEmpty (Exact a))
+    apportionOrder :: a -> a -> Bool
 
-    -- how to do apportionOrdering ?
-    -- perhaps it needs MonoidMap with values that are LeftReductive.
-
-apportionLawBalance :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-apportionLawBalance a ws =
+balancedApportionLawDeviation
+    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+balancedApportionLawDeviation a ws =
     all (<= 1) $ NE.zipWith apportionDeviation
         (uncurry NE.cons (apportion      a ws))
         (uncurry NE.cons (apportionExact a ws))
 
-
-apportionLawLengthExact
+balancedApportionLawExactLength
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-apportionLawLengthExact a ws =
+balancedApportionLawExactLength a ws =
     apportionExact a ws & \(_, rs) -> length rs == length ws
 
 --------------------------------------------------------------------------------
@@ -93,6 +93,7 @@ instance BalancedApportion (Sum Natural) where
     type Exact (Sum Natural) = Ratio Natural
     apportionExact = undefined
     apportionDeviation = undefined
+    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
 -- Instances: List
@@ -109,6 +110,7 @@ instance Eq a => BalancedApportion [a] where
     apportionDeviation :: [a] -> Ratio Natural -> Ratio Natural
     apportionDeviation as = distanceRatioNatural
         (naturalToRatio $ naturalLength as)
+    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
 -- Instances: Map
@@ -123,6 +125,7 @@ instance (Ord k, Eq v) => BalancedApportion (Map k v) where
     type Exact (Map k v) = Exact v
     apportionExact = undefined
     apportionDeviation = undefined
+    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
 -- Instances: Map Keys
@@ -143,6 +146,7 @@ instance (Ord k, Eq v) => BalancedApportion (Keys (Map k v)) where
     apportionDeviation :: Keys (Map k v) -> Ratio Natural -> Ratio Natural
     apportionDeviation (Keys m) = distanceRatioNatural
         (naturalToRatio $ naturalLength $ Map.keys m)
+    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
 -- Instances: Map Values
@@ -165,9 +169,10 @@ instance (Ord k, Eq v, BalancedApportion v) =>
     type Exact (Values (Map k v)) = Exact v
     apportionExact = undefined
     apportionDeviation = undefined
+    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
--- BalancedApportioning with equal weights
+-- Apportioning with equal weights
 --------------------------------------------------------------------------------
 
 apportionEqual
