@@ -69,6 +69,7 @@ library internal
         Algebra.Apportion
         Algebra.Apportion.Balanced
         Algebra.Apportion.Natural
+        Algebra.NewApportion
         AsList
         Change
         Data.Foldable.Extended
