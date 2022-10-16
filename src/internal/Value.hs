@@ -2,6 +2,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Value
     ( Balance
@@ -37,15 +38,18 @@ import Data.Monoid.Cancellative
     , Reductive
     , RightCancellative
     , RightReductive
+    , SumCancellative (..)
     )
 import Data.Monoid.GCD
-    ( OverlappingGCDMonoid )
+    ( OverlappingGCDMonoid (..) )
 import Data.Monoid.Monus
-    ( Monus )
+    ( Monus (..) )
 import Data.Monoid.Null
     ( MonoidNull, PositiveMonoid )
 import Data.MonoidMap
     ( MonoidMap )
+import Data.Ratio
+    ( Ratio, (%) )
 import Data.Set
     ( Set )
 import GHC.Exts
@@ -59,6 +63,40 @@ import Test.QuickCheck.Instances.Natural
 
 import qualified Algebra.Apportion.Balanced as BalancedApportion
 import qualified Data.MonoidMap as MonoidMap
+
+--------------------------------------------------------------------------------
+-- NaturalValue
+--------------------------------------------------------------------------------
+
+newtype NaturalValue = NaturalValue Natural
+    deriving stock (Eq, Ord)
+    deriving (Semigroup, Monoid) via (Sum Natural)
+
+--------------------------------------------------------------------------------
+-- NaturalValueFragment
+--------------------------------------------------------------------------------
+
+newtype NaturalValueFragment = NaturalValueFragment (Ratio Natural)
+    deriving stock (Eq, Ord)
+    deriving (Commutative, Semigroup, Monoid) via Sum (Ratio Natural)
+    deriving MonoidNull via Sum (Ratio Natural)
+    deriving (LeftReductive, RightReductive, Reductive) via Sum (Ratio Natural)
+
+instance OverlappingGCDMonoid NaturalValueFragment where
+    overlap (NaturalValueFragment a) (NaturalValueFragment b) =
+        NaturalValueFragment (min a b)
+    stripOverlap (NaturalValueFragment a) (NaturalValueFragment b) =
+        ( NaturalValueFragment $ a - min a b
+        , NaturalValueFragment $ min a b
+        , NaturalValueFragment $ b - min a b
+        )
+    stripPrefixOverlap = flip (<\>)
+    stripSuffixOverlap = flip (<\>)
+
+instance Monus NaturalValueFragment where
+   NaturalValueFragment a <\> NaturalValueFragment b
+      | a > b = NaturalValueFragment (a - b)
+      | otherwise = NaturalValueFragment 0
 
 --------------------------------------------------------------------------------
 -- SumMap
@@ -82,16 +120,16 @@ newtype AssetValueMap a i = AssetValueMap
 
 class HasAssets a where
     type Asset a
-    type Value a
+    type ValueT a
     filterAssets :: (Asset a -> Bool) -> a -> a
     getAssets :: a -> Set (Asset a)
-    getAssetValue :: Ord (Asset a) => Asset a -> a -> Value a
-    setAssetValue :: Ord (Asset a) => Asset a -> Value a -> a -> a
-    singleton :: Asset a -> Value a -> a
+    getAssetValue :: Ord (Asset a) => Asset a -> a -> ValueT a
+    setAssetValue :: Ord (Asset a) => Asset a -> ValueT a -> a -> a
+    singleton :: Asset a -> ValueT a -> a
 
 instance (Ord a, Eq i, Num i) => HasAssets (AssetValueMap a i) where
     type Asset (AssetValueMap a i) = a
-    type Value (AssetValueMap a i) = i
+    type ValueT (AssetValueMap a i) = i
     filterAssets f =
         AssetValueMap . fromList . filter (f . fst) . toList . unAssetValueMap
     getAssets =
@@ -142,11 +180,31 @@ deriving via BalancedApportion.Values
     BalancedApportion (Values (Coin a))
 
 --------------------------------------------------------------------------------
+-- CoinFragment
+--------------------------------------------------------------------------------
+
+instance SumCancellative (Ratio Natural) where
+   cancelAddition a b
+      | a < b = Nothing
+      | otherwise = Just (a - b)
+
+newtype CoinFragment a = CoinFragment (MonoidMap a NaturalValueFragment)
+    deriving (Arbitrary, IsList, Read, Show) via SumMap a (Ratio Natural)
+    deriving HasAssets via AssetValueMap a (Ratio Natural)
+    deriving newtype (Eq, Semigroup, Commutative, Monoid, MonoidNull)
+    deriving newtype (LeftReductive, RightReductive, Reductive)
+    deriving newtype (LeftCancellative, RightCancellative, Cancellative)
+    deriving newtype (OverlappingGCDMonoid, Monus, PositiveMonoid)
+
+--------------------------------------------------------------------------------
 -- Conversions
 --------------------------------------------------------------------------------
 
 coinToBalance :: Ord a => Coin a -> Balance a
 coinToBalance = asList $ fmap $ fmap intCast
+
+coinToFragment :: Ord a => Coin a -> CoinFragment a
+coinToFragment = asList $ fmap (fmap (% 1))
 
 balanceToCoins :: forall a. Ord a => Balance a -> (Coin a, Coin a)
 balanceToCoins b = (balanceToCoin (invert b), balanceToCoin b)

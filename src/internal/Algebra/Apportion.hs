@@ -101,7 +101,7 @@ instance (Ord k, Apportion v, Eq v, MonoidNull v) => Apportion (MonoidMap k v)
         = F.foldl' combine empty $ apportionForKey <$> F.toList allKeys
       where
         allKeys :: Set k
-        allKeys = F.foldMap MonoidMap.nonNullKeys (m : F.toList ms)
+        allKeys = F.foldMap MonoidMap.keys (m : F.toList ms)
 
         combine
             :: (MonoidMap k v, NonEmpty (MonoidMap k v))

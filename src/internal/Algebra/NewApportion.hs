@@ -16,13 +16,13 @@ import Data.Ratio
     ( Ratio )
 import Data.Semigroup
     ( sconcat )
-import Data.Strict.Map
+import Data.Map.Strict
     ( Map )
 import Numeric.Natural
     ( Natural )
 
 import qualified Data.List.NonEmpty as NE
-import qualified Data.Strict.Map as Map
+import qualified Data.Map.Strict as Map
 
 --------------------------------------------------------------------------------
 -- Apportion
