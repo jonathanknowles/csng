@@ -2,8 +2,6 @@
 
 module AsList where
 
-import GHC.Exts
-    ( IsList (..) )
 import Test.QuickCheck
     ( Arbitrary (..), shrinkMap )
 import Text.Read

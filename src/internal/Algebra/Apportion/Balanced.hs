@@ -8,8 +8,6 @@
 module Algebra.Apportion.Balanced
     where
 
-import Prelude
-
 import Algebra.Apportion
     ( Apportion (..) )
 import Control.Arrow
@@ -36,6 +34,8 @@ import Data.Set
     ( Set )
 import GHC.Exts
     ( IsList (..) )
+import Data.Map.Strict
+    ( Map )
 import Numeric.Natural
     ( Natural )
 import Test.QuickCheck

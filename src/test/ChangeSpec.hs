@@ -3,12 +3,8 @@
 
 module ChangeSpec where
 
-import Prelude
-
 import Change
     ( makeChangeForAsset, makeChangeForCoin )
-import Data.Function
-    ( (&) )
 import Data.List.NonEmpty
     ( NonEmpty )
 import Test.Hspec
@@ -71,8 +67,8 @@ prop_makeChangeForAsset_length
     -> Property
 prop_makeChangeForAsset_length n pws =
     checkCoverage $
-    cover  1 (weightSum == mempty) "weightSum == mempty" $
-    cover 50 (weightSum /= mempty) "weightSum /= mempty" $
+    cover  1 (weightSum == 0) "weightSum == 0" $
+    cover 50 (weightSum /= 0) "weightSum /= 0" $
     NE.length (snd (makeChangeForAsset (n, pws))) === NE.length pws
   where
     weightSum = F.foldMap snd pws
@@ -83,8 +79,8 @@ prop_makeChangeForAsset_order
     -> Property
 prop_makeChangeForAsset_order n pws =
     checkCoverage $
-    cover  1 (weightSum == mempty) "weightSum == mempty" $
-    cover 50 (weightSum /= mempty) "weightSum /= mempty" $
+    cover  1 (weightSum == 0) "weightSum == 0" $
+    cover 50 (weightSum /= 0) "weightSum /= 0" $
     fmap fst (snd (makeChangeForAsset (n, pws)))
         === fmap fst pws
   where
@@ -96,10 +92,10 @@ prop_makeChangeForAsset_remainder
     -> Property
 prop_makeChangeForAsset_remainder n pws =
     checkCoverage $
-    cover  1 (weightSum == mempty) "weightSum == mempty" $
-    cover 50 (weightSum /= mempty) "weightSum /= mempty" $
+    cover  1 (weightSum == 0) "weightSum == 0" $
+    cover 50 (weightSum /= 0) "weightSum /= 0" $
     fst (makeChangeForAsset (n, pws))
-        === if weightSum == mempty then n else mempty
+        === if weightSum == 0 then n else 0
   where
     weightSum = F.foldMap snd pws
 
@@ -109,10 +105,10 @@ prop_makeChangeForAsset_sum
     -> Property
 prop_makeChangeForAsset_sum n pws =
     checkCoverage $
-    cover  1 (weightSum == mempty) "weightSum == mempty" $
-    cover 50 (weightSum /= mempty) "weightSum /= mempty" $
+    cover  1 (weightSum == 0) "weightSum == 0" $
+    cover 50 (weightSum /= 0) "weightSum /= 0" $
     F.fold (fmap snd (snd (makeChangeForAsset (n, pws))))
-        === if weightSum == mempty then mempty else n
+        === if weightSum == 0 then 0 else n
   where
     weightSum = F.foldMap snd pws
 

@@ -6,14 +6,12 @@ module Algebra.NewApportion
 
 import Control.Arrow
     ( (&&&) )
-import Data.Function
-    ( (&) )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Monoid
     ( Sum (..) )
 import Data.Ratio
-    ( Ratio )
+    ( Ratio, (%) )
 import Data.Semigroup
     ( sconcat )
 import Data.Map.Strict
@@ -71,7 +69,7 @@ class Apportion a => BalancedApportion a where
 balancedApportionLawDeviation
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 balancedApportionLawDeviation a ws =
-    all (<= 1) $ NE.zipWith apportionDeviation
+    all (<= (1 % 1)) $ NE.zipWith apportionDeviation
         (uncurry NE.cons (apportion      a ws))
         (uncurry NE.cons (apportionExact a ws))
 
@@ -180,7 +178,7 @@ apportionEqual
     => a
     -> NonEmpty void
     -> NonEmpty a
-apportionEqual a ws = snd (apportion a (1 <$ ws))
+apportionEqual _a _ws = undefined -- snd (apportion a (1 <$ ws))
 
 apportionEqualN
     :: (BalancedApportion a, Integral (Weight a))

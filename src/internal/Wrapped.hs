@@ -2,6 +2,8 @@
 
 module Wrapped where
 
+import Prelude
+
 import Data.Coerce
     ( Coercible, coerce )
 
