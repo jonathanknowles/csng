@@ -2,15 +2,17 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Value
     ( Balance
+    , BalanceValue
     , Coin
+    , CoinValue
     , HasAssets (..)
     , Assets (..)
     , Values (..)
     , coinToBalance
+    , coinToFractionalCoin
     , balanceToCoins
     ) where
 
@@ -20,8 +22,6 @@ import Algebra.Apportion.Balanced
     ( BalancedApportion (..) )
 import AsList
     ( AsList (..), asList )
-import Data.Coerce
-    ( coerce )
 import Data.Group
     ( Group (..) )
 import Data.IntCast
@@ -34,11 +34,10 @@ import Data.Monoid.Cancellative
     ( Cancellative
     , Commutative
     , LeftCancellative
-    , LeftReductive
-    , Reductive
+    , LeftReductive (..)
+    , Reductive (..)
     , RightCancellative
-    , RightReductive
-    , SumCancellative (..)
+    , RightReductive (..)
     )
 import Data.Monoid.GCD
     ( OverlappingGCDMonoid (..) )
@@ -60,108 +59,163 @@ import Test.QuickCheck
     ( Arbitrary )
 import Test.QuickCheck.Instances.Natural
     ()
+import Wrapped
+    ( IsWrapped (..), Wrapped (..), wrapped )
 
 import qualified Algebra.Apportion.Balanced as BalancedApportion
 import qualified Data.MonoidMap as MonoidMap
 
 --------------------------------------------------------------------------------
--- NaturalValue
+-- BalanceValue
 --------------------------------------------------------------------------------
 
-newtype NaturalValue = NaturalValue Natural
-    deriving stock (Eq, Ord)
-    deriving (Semigroup, Monoid) via (Sum Natural)
+newtype BalanceValue = BalanceValue Integer
+    deriving IsWrapped via Wrapped Integer
+    deriving newtype (Arbitrary, Eq, Ord, Read, Show)
+    deriving
+        ( Commutative
+        , Group
+        , LeftReductive
+        , Monoid
+        , MonoidNull
+        , Reductive
+        , RightReductive
+        , Semigroup
+        ) via Sum Integer
 
 --------------------------------------------------------------------------------
--- NaturalValueFragment
+-- CoinValue
 --------------------------------------------------------------------------------
 
-newtype NaturalValueFragment = NaturalValueFragment (Ratio Natural)
-    deriving stock (Eq, Ord)
-    deriving (Commutative, Semigroup, Monoid) via Sum (Ratio Natural)
-    deriving MonoidNull via Sum (Ratio Natural)
-    deriving (LeftReductive, RightReductive, Reductive) via Sum (Ratio Natural)
+newtype CoinValue = CoinValue Natural
+    deriving IsWrapped via Wrapped Natural
+    deriving newtype (Arbitrary, Eq, Ord, Read, Show)
+    deriving
+        ( Apportion
+        , Commutative
+        , LeftReductive
+        , Monoid
+        , MonoidNull
+        , Monus
+        , OverlappingGCDMonoid
+        , PositiveMonoid
+        , Reductive
+        , RightReductive
+        , Semigroup
+        ) via Sum Natural
 
-instance OverlappingGCDMonoid NaturalValueFragment where
-    overlap (NaturalValueFragment a) (NaturalValueFragment b) =
-        NaturalValueFragment (min a b)
-    stripOverlap (NaturalValueFragment a) (NaturalValueFragment b) =
-        ( NaturalValueFragment $ a - min a b
-        , NaturalValueFragment $ min a b
-        , NaturalValueFragment $ b - min a b
-        )
+--------------------------------------------------------------------------------
+-- FractionalCoinValue
+--------------------------------------------------------------------------------
+
+newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
+    deriving IsWrapped via Wrapped (Ratio Natural)
+    deriving newtype (Arbitrary, Eq, Ord, Read, Show)
+    deriving
+        ( Commutative
+        , Monoid
+        , MonoidNull
+        , PositiveMonoid
+        , Semigroup
+        ) via Sum (Ratio Natural)
+
+instance Monus FractionalCoinValue where
+   a <\> b = fromMaybe mempty (a </> b)
+
+instance OverlappingGCDMonoid FractionalCoinValue where
+    overlap (unwrap -> a) (unwrap -> b) = wrap $ min a b
     stripPrefixOverlap = flip (<\>)
     stripSuffixOverlap = flip (<\>)
+    stripOverlap (unwrap -> a) (unwrap -> b) =
+        ( wrap $ a - min a b
+        , wrap $ min a b
+        , wrap $ b - min a b
+        )
 
-instance Monus NaturalValueFragment where
-   NaturalValueFragment a <\> NaturalValueFragment b
-      | a > b = NaturalValueFragment (a - b)
-      | otherwise = NaturalValueFragment 0
+instance Reductive FractionalCoinValue where
+   a </> b
+      | a > b = Just $ wrap $ unwrap a - unwrap b
+      | otherwise = Nothing
 
---------------------------------------------------------------------------------
--- SumMap
---------------------------------------------------------------------------------
+instance LeftReductive FractionalCoinValue where
+    stripPrefix = flip (</>)
 
-newtype SumMap a i = SumMap
-    {unSumMap :: MonoidMap a (Sum i)}
-    deriving (Arbitrary, Read, Show) via (AsList (SumMap a i))
-
-instance (Ord a, Eq i, Num i) => IsList (SumMap a i) where
-    type Item (SumMap a i) = (a, i)
-    fromList = SumMap . fromList . fmap (fmap Sum)
-    toList = fmap (fmap getSum) . toList . unSumMap
+instance RightReductive FractionalCoinValue where
+    stripSuffix = flip (</>)
 
 --------------------------------------------------------------------------------
 -- AssetValueMap
 --------------------------------------------------------------------------------
 
-newtype AssetValueMap a i = AssetValueMap
-    {unAssetValueMap :: MonoidMap a (Sum i)}
+newtype AssetValueMap a v = AssetValueMap (MonoidMap a v)
+    deriving IsWrapped via Wrapped (MonoidMap a v)
 
 class HasAssets a where
     type Asset a
-    type ValueT a
+    type Value a
     filterAssets :: (Asset a -> Bool) -> a -> a
     getAssets :: a -> Set (Asset a)
-    getAssetValue :: Ord (Asset a) => Asset a -> a -> ValueT a
-    setAssetValue :: Ord (Asset a) => Asset a -> ValueT a -> a -> a
-    singleton :: Asset a -> ValueT a -> a
+    getAssetValue :: Ord (Asset a) => Asset a -> a -> Value a
+    setAssetValue :: Ord (Asset a) => Asset a -> Value a -> a -> a
+    singleton :: Asset a -> Value a -> a
 
-instance (Ord a, Eq i, Num i) => HasAssets (AssetValueMap a i) where
-    type Asset (AssetValueMap a i) = a
-    type ValueT (AssetValueMap a i) = i
-    filterAssets f =
-        AssetValueMap . fromList . filter (f . fst) . toList . unAssetValueMap
-    getAssets =
-        MonoidMap.keys . unAssetValueMap
-    getAssetValue a =
-        getSum . MonoidMap.get a . unAssetValueMap
-    setAssetValue a =
-        coerce . MonoidMap.set a . Sum
-    singleton a =
-        AssetValueMap . MonoidMap.singleton a . Sum
+instance (Ord a, MonoidNull v) => HasAssets (AssetValueMap a v) where
+    type Asset (AssetValueMap a v) = a
+    type Value (AssetValueMap a v) = v
+    filterAssets f = wrapped . asList . filter $ f . fst
+    getAssets = MonoidMap.keys . unwrap
+    getAssetValue a = MonoidMap.get a . unwrap
+    setAssetValue a = wrapped . MonoidMap.set a
+    singleton a = wrap . MonoidMap.singleton a
 
 --------------------------------------------------------------------------------
 -- Balance
 --------------------------------------------------------------------------------
 
-newtype Balance a = Balance (MonoidMap a (Sum Integer))
-    deriving (Arbitrary, IsList, Read, Show) via SumMap a Integer
-    deriving HasAssets via AssetValueMap a Integer
-    deriving newtype (Eq, Semigroup, Commutative, Monoid, MonoidNull, Group)
+newtype Balance a = Balance (MonoidMap a BalanceValue)
+    deriving Arbitrary via AsList (Balance a)
+    deriving HasAssets via AssetValueMap a BalanceValue
+    deriving IsWrapped via Wrapped (MonoidMap a BalanceValue)
+    deriving newtype
+        ( Commutative
+        , Eq
+        , Group
+        , IsList
+        , Monoid
+        , MonoidNull
+        , Read
+        , Semigroup
+        , Show
+        )
 
 --------------------------------------------------------------------------------
 -- Coin
 --------------------------------------------------------------------------------
 
-newtype Coin a = Coin (MonoidMap a (Sum Natural))
-    deriving (Arbitrary, IsList, Read, Show) via SumMap a Natural
-    deriving Apportion via MonoidMap a (Sum Natural)
-    deriving HasAssets via AssetValueMap a Natural
-    deriving newtype (Eq, Semigroup, Commutative, Monoid, MonoidNull)
-    deriving newtype (LeftReductive, RightReductive, Reductive)
-    deriving newtype (LeftCancellative, RightCancellative, Cancellative)
-    deriving newtype (OverlappingGCDMonoid, Monus, PositiveMonoid)
+newtype Coin a = Coin (MonoidMap a CoinValue)
+    deriving Arbitrary via AsList (Coin a)
+    deriving HasAssets via AssetValueMap a CoinValue
+    deriving IsWrapped via Wrapped (MonoidMap a CoinValue)
+    deriving newtype
+        ( Apportion
+        , Cancellative
+        , Commutative
+        , Eq
+        , IsList
+        , LeftCancellative
+        , LeftReductive
+        , Monoid
+        , MonoidNull
+        , Monus
+        , OverlappingGCDMonoid
+        , PositiveMonoid
+        , Read
+        , Reductive
+        , RightCancellative
+        , RightReductive
+        , Semigroup
+        , Show
+        )
 
 newtype Assets a = Assets {unAssets :: a}
     deriving (Eq, Monoid, Semigroup, Show)
@@ -180,34 +234,44 @@ deriving via BalancedApportion.Values
     BalancedApportion (Values (Coin a))
 
 --------------------------------------------------------------------------------
--- CoinFragment
+-- FractionalCoin
 --------------------------------------------------------------------------------
 
-instance SumCancellative (Ratio Natural) where
-   cancelAddition a b
-      | a < b = Nothing
-      | otherwise = Just (a - b)
-
-newtype CoinFragment a = CoinFragment (MonoidMap a NaturalValueFragment)
-    deriving (Arbitrary, IsList, Read, Show) via SumMap a (Ratio Natural)
-    deriving HasAssets via AssetValueMap a (Ratio Natural)
-    deriving newtype (Eq, Semigroup, Commutative, Monoid, MonoidNull)
-    deriving newtype (LeftReductive, RightReductive, Reductive)
-    deriving newtype (LeftCancellative, RightCancellative, Cancellative)
-    deriving newtype (OverlappingGCDMonoid, Monus, PositiveMonoid)
+newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
+    deriving newtype
+        ( Commutative
+        , Eq
+        , IsList
+        , LeftReductive
+        , Monoid
+        , MonoidNull
+        , Monus
+        , OverlappingGCDMonoid
+        , RightReductive
+        , Semigroup
+        )
 
 --------------------------------------------------------------------------------
 -- Conversions
 --------------------------------------------------------------------------------
 
-coinToBalance :: Ord a => Coin a -> Balance a
-coinToBalance = asList $ fmap $ fmap intCast
-
-coinToFragment :: Ord a => Coin a -> CoinFragment a
-coinToFragment = asList $ fmap (fmap (% 1))
-
 balanceToCoins :: forall a. Ord a => Balance a -> (Coin a, Coin a)
-balanceToCoins b = (balanceToCoin (invert b), balanceToCoin b)
+balanceToCoins b = (toCoin (invert b), toCoin b)
   where
-    balanceToCoin :: Balance a -> Coin a
-    balanceToCoin = asList $ fmap $ fmap $ fromMaybe 0 . intCastMaybe
+    toCoin :: Balance a -> Coin a
+    toCoin = asList . fmap . fmap $ fromMaybe mempty . balanceValueToCoinValue
+
+balanceValueToCoinValue :: BalanceValue -> Maybe CoinValue
+balanceValueToCoinValue = fmap wrap . intCastMaybe . unwrap
+
+coinToBalance :: Ord a => Coin a -> Balance a
+coinToBalance = asList $ fmap $ fmap coinValueToBalanceValue
+
+coinToFractionalCoin :: Ord a => Coin a -> FractionalCoin a
+coinToFractionalCoin = asList $ fmap $ fmap coinValueToFractionalCoinValue
+
+coinValueToBalanceValue :: CoinValue -> BalanceValue
+coinValueToBalanceValue = wrapped intCast
+
+coinValueToFractionalCoinValue :: CoinValue -> FractionalCoinValue
+coinValueToFractionalCoinValue = wrapped (% 1)
