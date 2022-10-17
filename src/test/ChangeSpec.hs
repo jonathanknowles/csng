@@ -11,10 +11,6 @@ import Data.Function
     ( (&) )
 import Data.List.NonEmpty
     ( NonEmpty )
-import Data.Monoid
-    ( Sum (..) )
-import Numeric.Natural
-    ( Natural )
 import Test.Hspec
     ( Spec, describe, it, parallel )
 import Test.QuickCheck.Extended
@@ -32,7 +28,7 @@ import Test.QuickCheck.Instances.NonEmpty
 import Test.QuickCheck.Quid
     ( Latin (..), Quid, Size (..) )
 import Value
-    ( Coin, HasAssets (..) )
+    ( Coin, CoinValue, HasAssets (..) )
 
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty as NE
@@ -70,55 +66,55 @@ spec = do
                 & property
 
 prop_makeChangeForAsset_length
-    :: Natural
-    -> NonEmpty (TestPriority, Natural)
+    :: CoinValue
+    -> NonEmpty (TestPriority, CoinValue)
     -> Property
 prop_makeChangeForAsset_length n pws =
     checkCoverage $
-    cover  1 (weightSum == 0) "weightSum == 0" $
-    cover 50 (weightSum /= 0) "weightSum /= 0" $
+    cover  1 (weightSum == mempty) "weightSum == mempty" $
+    cover 50 (weightSum /= mempty) "weightSum /= mempty" $
     NE.length (snd (makeChangeForAsset (n, pws))) === NE.length pws
   where
-    weightSum = F.foldMap (Sum . snd) pws
+    weightSum = F.foldMap snd pws
 
 prop_makeChangeForAsset_order
-    :: Natural
-    -> NonEmpty (TestPriority, Natural)
+    :: CoinValue
+    -> NonEmpty (TestPriority, CoinValue)
     -> Property
 prop_makeChangeForAsset_order n pws =
     checkCoverage $
-    cover  1 (weightSum == 0) "weightSum == 0" $
-    cover 50 (weightSum /= 0) "weightSum /= 0" $
+    cover  1 (weightSum == mempty) "weightSum == mempty" $
+    cover 50 (weightSum /= mempty) "weightSum /= mempty" $
     fmap fst (snd (makeChangeForAsset (n, pws)))
         === fmap fst pws
   where
-    weightSum = F.foldMap (Sum . snd) pws
+    weightSum = F.foldMap snd pws
 
 prop_makeChangeForAsset_remainder
-    :: Natural
-    -> NonEmpty (TestPriority, Natural)
+    :: CoinValue
+    -> NonEmpty (TestPriority, CoinValue)
     -> Property
 prop_makeChangeForAsset_remainder n pws =
     checkCoverage $
-    cover  1 (weightSum == 0) "weightSum == 0" $
-    cover 50 (weightSum /= 0) "weightSum /= 0" $
+    cover  1 (weightSum == mempty) "weightSum == mempty" $
+    cover 50 (weightSum /= mempty) "weightSum /= mempty" $
     fst (makeChangeForAsset (n, pws))
-        === if weightSum == 0 then n else 0
+        === if weightSum == mempty then n else mempty
   where
-    weightSum = F.foldMap (Sum . snd) pws
+    weightSum = F.foldMap snd pws
 
 prop_makeChangeForAsset_sum
-    :: Natural
-    -> NonEmpty (TestPriority, Natural)
+    :: CoinValue
+    -> NonEmpty (TestPriority, CoinValue)
     -> Property
 prop_makeChangeForAsset_sum n pws =
     checkCoverage $
-    cover  1 (weightSum == 0) "weightSum == 0" $
-    cover 50 (weightSum /= 0) "weightSum /= 0" $
-    sum (fmap snd (snd (makeChangeForAsset (n, pws))))
-        === if weightSum == 0 then 0 else n
+    cover  1 (weightSum == mempty) "weightSum == mempty" $
+    cover 50 (weightSum /= mempty) "weightSum /= mempty" $
+    F.fold (fmap snd (snd (makeChangeForAsset (n, pws))))
+        === if weightSum == mempty then mempty else n
   where
-    weightSum = F.foldMap (Sum . snd) pws
+    weightSum = F.foldMap snd pws
 
 prop_makeChangeForCoin_length
     :: TestCoin

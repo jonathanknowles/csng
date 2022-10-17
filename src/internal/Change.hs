@@ -1,19 +1,18 @@
 module Change where
 
-import Prelude
+import Prelude hiding
+    ( null )
 
 import Algebra.Apportion
     ( Apportion (..) )
 import Data.Bifunctor
     ( bimap )
-import Data.Function
-    ( on )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
-import Data.Monoid
-    ( Sum (..) )
 import Data.Monoid.Monus.Extended
-    ( distance )
+    ( Monus (..), distance )
+import Data.Monoid.Null
+    ( MonoidNull (..) )
 import Data.Ord
     ( Down (..) )
 import Data.Semialign
@@ -22,10 +21,8 @@ import Data.Set
     ( Set )
 import Data.These
     ( mergeThese )
-import Numeric.Natural
-    ( Natural )
 import Value
-    ( Coin, HasAssets (..) )
+    ( Coin, CoinValue, HasAssets (..) )
 
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty.Extended as NE
@@ -67,51 +64,54 @@ makeChangeForCoin (target, pws)
 
 makeChangeForAsset
     :: forall p. Ord p
-    => (Natural, NonEmpty (p, Natural))
-    -> (Natural, NonEmpty (p, Natural))
-makeChangeForAsset     (n,             pws)
-    | weightSum == 0 = (n, fmap (0 <$) pws)
-    | otherwise      = (0, result         )
+    => (CoinValue, NonEmpty (p, CoinValue))
+    -> (CoinValue, NonEmpty (p, CoinValue))
+makeChangeForAsset     (n,                       pws)
+    | null weightSum = (n     , fmap (mempty <$) pws)
+    | otherwise      = (mempty, result              )
   where
-    weightSum = F.foldMap (Sum . snd) pws
+    weightSum = F.foldMap snd pws
 
-    result :: NonEmpty (p, Natural)
+    result :: NonEmpty (p, CoinValue)
     result
         = fmap (\((p, _), w) -> (p, w))
         . NE.sortWith (\((_, i), _) -> i)
         . NE.zip (fst <$> index)
-        . alignWith (mergeThese (+)) (0 <$ pws)
+        . alignWith (mergeThese (<>)) (mempty <$ pws)
         . snd
         . apportion n
-        . takeUntilSumIsNonZeroAndMinimalDistanceToTarget n
+        . takeUntilSumIsNonNullAndMinimalDistanceToTarget n
         $ snd <$> index
 
-    index :: NonEmpty ((p, Int), Natural)
+    index :: NonEmpty ((p, Int), CoinValue)
     index
         = NE.sortWith (\((p, _), w) -> (p, Down w))
         $ NE.zip
             (NE.zip (fst <$> pws) (NE.iterate (+ 1) 0))
             (snd <$> pws)
 
-takeUntilSumIsNonZeroAndMinimalDistanceToTarget
-    :: Natural
-    -> NonEmpty Natural
-    -> NonEmpty Natural
-takeUntilSumIsNonZeroAndMinimalDistanceToTarget target as =
-    getSum <$> (salign `on` fmap Sum)
-        (takeUntilSumIsNonZero as)
-        (0 <$ takeUntilSumIsMinimalDistanceToTarget target as)
+takeUntilSumIsNonNullAndMinimalDistanceToTarget
+    :: (MonoidNull a, Monus a, Ord a)
+    => a
+    -> NonEmpty a
+    -> NonEmpty a
+takeUntilSumIsNonNullAndMinimalDistanceToTarget target as =
+    salign
+        (takeUntilSumIsNonNull as)
+        (mempty <$ takeUntilSumIsMinimalDistanceToTarget target as)
 
-takeUntilSumIsNonZero
-    :: NonEmpty Natural
-    -> NonEmpty Natural
-takeUntilSumIsNonZero = fst . NE.splitWhen (\a _ -> a > 0)
+takeUntilSumIsNonNull
+    :: MonoidNull a
+    => NonEmpty a
+    -> NonEmpty a
+takeUntilSumIsNonNull = fst . NE.splitWhen (\a _ -> not (null a))
 
 takeUntilSumIsMinimalDistanceToTarget
-    :: Natural
-    -> NonEmpty Natural
-    -> NonEmpty Natural
+    :: (Monus a, Ord a)
+    => a
+    -> NonEmpty a
+    -> NonEmpty a
 takeUntilSumIsMinimalDistanceToTarget target as =
     fst <$> NE.zip as (fst $ NE.splitWhen (<=) distances)
   where
-    distances = (distance `on` Sum) target <$> NE.scanl1 (+) as
+    distances = distance target <$> NE.scanl1 (<>) as
