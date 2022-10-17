@@ -171,7 +171,7 @@ instance (Ord a, MonoidNull v) => HasAssets (AssetValueMap a v) where
 --------------------------------------------------------------------------------
 
 newtype Balance a = Balance (MonoidMap a BalanceValue)
-    deriving Arbitrary via AsList (Balance a)
+    deriving (Arbitrary, Read, Show) via AsList (Balance a)
     deriving HasAssets via AssetValueMap a BalanceValue
     deriving IsWrapped via Wrapped (MonoidMap a BalanceValue)
     deriving newtype
@@ -181,9 +181,7 @@ newtype Balance a = Balance (MonoidMap a BalanceValue)
         , IsList
         , Monoid
         , MonoidNull
-        , Read
         , Semigroup
-        , Show
         )
 
 --------------------------------------------------------------------------------
@@ -191,7 +189,7 @@ newtype Balance a = Balance (MonoidMap a BalanceValue)
 --------------------------------------------------------------------------------
 
 newtype Coin a = Coin (MonoidMap a CoinValue)
-    deriving Arbitrary via AsList (Coin a)
+    deriving (Arbitrary, Read, Show) via AsList (Coin a)
     deriving HasAssets via AssetValueMap a CoinValue
     deriving IsWrapped via Wrapped (MonoidMap a CoinValue)
     deriving newtype
@@ -207,12 +205,10 @@ newtype Coin a = Coin (MonoidMap a CoinValue)
         , Monus
         , OverlappingGCDMonoid
         , PositiveMonoid
-        , Read
         , Reductive
         , RightCancellative
         , RightReductive
         , Semigroup
-        , Show
         )
 
 newtype Assets a = Assets {unAssets :: a}
@@ -236,6 +232,7 @@ deriving via BalancedApportion.Values
 --------------------------------------------------------------------------------
 
 newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
+    deriving (Arbitrary, Read, Show) via AsList (FractionalCoin a)
     deriving newtype
         ( Commutative
         , Eq
