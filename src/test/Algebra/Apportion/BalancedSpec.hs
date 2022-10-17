@@ -12,8 +12,6 @@
 module Algebra.Apportion.BalancedSpec
     where
 
-import Prelude
-
 import Algebra.Apportion.Balanced
     ( BalancedApportion (..)
     , balancedApportionLaws
@@ -30,8 +28,6 @@ import Data.Set
     ( Set )
 import Data.Strict.Map
     ( Map )
-import GHC.Exts
-    ( IsList (..) )
 import Numeric.Natural
     ( Natural )
 import Test.Hspec

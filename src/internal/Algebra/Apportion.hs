@@ -9,8 +9,6 @@
 module Algebra.Apportion
     where
 
-import Prelude
-
 import Data.Bifunctor
     ( bimap )
 import Data.List.NonEmpty

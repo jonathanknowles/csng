@@ -16,7 +16,7 @@ import Prelude hiding
 import Control.Arrow
     ( (&&&) )
 import Data.Function.Extended
-    ( applyN, (&) )
+    ( applyN )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Ord

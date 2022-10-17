@@ -7,8 +7,6 @@
 module Algebra.ApportionSpec
     where
 
-import Prelude
-
 import Algebra.Apportion
     ( Apportion (..), apportionLaws )
 import Data.List.NonEmpty

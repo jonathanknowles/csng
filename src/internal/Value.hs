@@ -51,8 +51,6 @@ import Data.Ratio
     ( Ratio, (%) )
 import Data.Strict.Set
     ( Set )
-import GHC.Exts
-    ( IsList (..) )
 import Numeric.Natural
     ( Natural )
 import Test.QuickCheck
@@ -89,7 +87,7 @@ newtype BalanceValue = BalanceValue Integer
 
 newtype CoinValue = CoinValue Natural
     deriving IsWrapped via Wrapped Natural
-    deriving newtype (Arbitrary, Eq, Ord, Read, Show)
+    deriving newtype (Arbitrary, FromInteger, Eq, Ord, Read, Show)
     deriving
         ( Apportion
         , Commutative

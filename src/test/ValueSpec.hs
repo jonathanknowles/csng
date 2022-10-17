@@ -2,14 +2,10 @@
 
 module ValueSpec where
 
-import Prelude
-
 import Algebra.Apportion
     ( apportionLaws )
 import Algebra.Apportion.Balanced
     ( balancedApportionLaws )
-import Data.Function
-    ( (&) )
 import Data.Group
     ( Group (..) )
 import Test.Hspec

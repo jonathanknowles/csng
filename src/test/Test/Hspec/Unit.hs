@@ -6,8 +6,6 @@
 --
 module Test.Hspec.Unit where
 
-import Prelude
-
 import Data.Functor
     ( (<&>) )
 import Test.Hspec

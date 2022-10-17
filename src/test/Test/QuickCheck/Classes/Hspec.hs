@@ -11,8 +11,6 @@ module Test.QuickCheck.Classes.Hspec
     , testLawsMany
     ) where
 
-import Prelude
-
 import Control.Monad
     ( forM_ )
 import Data.Proxy
