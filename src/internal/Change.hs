@@ -7,6 +7,8 @@ import Algebra.Apportion
     ( Apportion (..) )
 import Data.Bifunctor
     ( bimap )
+import Data.Functor
+    ( ($>) )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Monoid.Monus.Extended
@@ -98,7 +100,7 @@ takeUntilSumIsNonNullAndMinimalDistanceToTarget
 takeUntilSumIsNonNullAndMinimalDistanceToTarget target as =
     salign
         (takeUntilSumIsNonNull as)
-        (mempty <$ takeUntilSumIsMinimalDistanceToTarget target as)
+        (takeUntilSumIsMinimalDistanceToTarget target as $> mempty)
 
 takeUntilSumIsNonNull
     :: MonoidNull a
