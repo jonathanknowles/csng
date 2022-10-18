@@ -152,11 +152,8 @@ instance RightReductive FractionalCoinValue where
     stripSuffix = flip (</>)
 
 --------------------------------------------------------------------------------
--- AssetValueMap
+-- HasAssets
 --------------------------------------------------------------------------------
-
-newtype AssetValueMap a v = AssetValueMap (MonoidMap a v)
-    deriving IsWrapped via Wrapped (MonoidMap a v)
 
 class HasAssets a where
     type Asset a
@@ -166,6 +163,19 @@ class HasAssets a where
     getAssetValue :: Ord (Asset a) => Asset a -> a -> Value a
     setAssetValue :: Ord (Asset a) => Asset a -> Value a -> a -> a
     singleton :: Asset a -> Value a -> a
+
+newtype Assets a = Assets a
+    deriving (Eq, Monoid, Semigroup, Show)
+
+newtype Values a = Values a
+    deriving (Eq, Monoid, Semigroup, Show)
+
+--------------------------------------------------------------------------------
+-- AssetValueMap
+--------------------------------------------------------------------------------
+
+newtype AssetValueMap a v = AssetValueMap (MonoidMap a v)
+    deriving IsWrapped via Wrapped (MonoidMap a v)
 
 instance (Ord a, MonoidNull v) => HasAssets (AssetValueMap a v) where
     type Asset (AssetValueMap a v) = a
@@ -220,12 +230,6 @@ newtype Coin a = Coin (MonoidMap a CoinValue)
         , RightReductive
         , Semigroup
         )
-
-newtype Assets a = Assets {unAssets :: a}
-    deriving (Eq, Monoid, Semigroup, Show)
-
-newtype Values a = Values {unValues :: a}
-    deriving (Eq, Monoid, Semigroup, Show)
 
 deriving via BalancedApportion.Keys
     (MonoidMap a (Sum Natural))
