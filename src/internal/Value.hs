@@ -8,6 +8,8 @@ module Value
     , BalanceValue
     , Coin
     , CoinValue
+    , FractionalCoin
+    , FractionalCoinValue
     , HasAssets (..)
     , Assets (..)
     , Values (..)
@@ -48,7 +50,7 @@ import Data.Monoid.Null
 import Data.MonoidMap
     ( MonoidMap )
 import Data.Ratio
-    ( Ratio, (%) )
+    ( Ratio )
 import Data.Strict.Set
     ( Set )
 import Numeric.Natural
@@ -69,7 +71,7 @@ import qualified Data.MonoidMap as MonoidMap
 
 newtype BalanceValue = BalanceValue Integer
     deriving IsWrapped via Wrapped Integer
-    deriving newtype (Arbitrary, Eq, Ord, Read, Show)
+    deriving newtype (Arbitrary, Eq, FromInteger, Negatable, Ord, Read, Show)
     deriving
         ( Commutative
         , Group
@@ -87,7 +89,7 @@ newtype BalanceValue = BalanceValue Integer
 
 newtype CoinValue = CoinValue Natural
     deriving IsWrapped via Wrapped Natural
-    deriving newtype (Arbitrary, FromInteger, Eq, Ord, Read, Show)
+    deriving newtype (Arbitrary, Eq, FromInteger, Ord, Read, Show)
     deriving
         ( Apportion
         , Commutative
@@ -108,7 +110,15 @@ newtype CoinValue = CoinValue Natural
 
 newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
     deriving IsWrapped via Wrapped (Ratio Natural)
-    deriving newtype (Arbitrary, Eq, Ord, Read, Show)
+    deriving newtype
+        ( Arbitrary
+        , Eq
+        , FromFractional
+        , FromInteger
+        , Ord
+        , Read
+        , Show
+        )
     deriving
         ( Commutative
         , Monoid

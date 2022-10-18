@@ -11,7 +11,7 @@ import Data.List.NonEmpty
 import Data.Monoid
     ( Sum (..) )
 import Data.Ratio
-    ( Ratio, (%) )
+    ( Ratio )
 import Data.Semigroup
     ( sconcat )
 import Data.Strict.Map
