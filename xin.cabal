@@ -27,6 +27,7 @@ common common-extensions
         RebindableSyntax
         ImplicitPrelude
         ScopedTypeVariables
+        StandaloneDeriving
         TupleSections
         TypeApplications
         TypeFamilies

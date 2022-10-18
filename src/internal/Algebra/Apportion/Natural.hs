@@ -21,8 +21,6 @@ import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Ord
     ( Down (..), comparing )
-import Data.Ratio
-    ( (%) )
 import Numeric.Natural
     ( Natural )
 
