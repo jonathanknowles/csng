@@ -32,10 +32,6 @@ import Data.Semigroup.Cancellative
     ( LeftReductive (..) )
 import Data.Set
     ( Set )
-import GHC.Exts
-    ( IsList (..) )
-import Data.Map.Strict
-    ( Map )
 import Numeric.Natural
     ( Natural )
 import Test.QuickCheck

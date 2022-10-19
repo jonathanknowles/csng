@@ -28,10 +28,6 @@ import Data.Monoid
     ( Sum (..) )
 import Data.Set
     ( Set )
-import GHC.Exts
-    ( IsList (..) )
-import Data.Map.Strict
-    ( Map )
 import Numeric.Natural
     ( Natural )
 import Test.Hspec
@@ -40,25 +36,20 @@ import Test.Hspec.Unit
     ( UnitTestData2, unitTestData2, unitTestSpec )
 import Test.QuickCheck
     ( Arbitrary (..)
-    , CoArbitrary (..)
     , pattern Fn
     , Fun
-    , Function (..)
     , Property
     , Testable
     , arbitrarySizedIntegral
     , checkCoverage
     , cover
-    , functionMap
     , property
-    , shrinkMap
     , (===)
     )
 import Test.QuickCheck.Classes.Hspec
     ( testLawsMany )
 
 import qualified Data.Foldable as F
-import qualified Data.Map.Strict as Map
 
 spec :: Spec
 spec = do

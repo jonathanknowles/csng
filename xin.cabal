@@ -41,6 +41,8 @@ common common-options
 
 common common-extensions
     default-extensions:
+        DeriveFoldable
+        DeriveFunctor
         DerivingStrategies
         DerivingVia
         FlexibleContexts
@@ -132,6 +134,7 @@ library internal
       , quickcheck-instances
       , safe
       , semialign
+      , semigroupoids
       , these
 
 library prelude
