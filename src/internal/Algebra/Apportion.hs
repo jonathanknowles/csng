@@ -1,9 +1,3 @@
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {- HLINT ignore "Use camelCase" -}
 
 module Algebra.Apportion

@@ -1,6 +1,4 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE InstanceSigs #-}
 
 module Algebra.NewApportion
     where
