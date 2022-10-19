@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE InstanceSigs #-}
 
@@ -12,15 +13,45 @@ import Data.Monoid
     ( Sum (..) )
 import Data.Ratio
     ( Ratio )
-import Data.Semigroup
-    ( sconcat )
+import Data.Semialign
+    ( Semialign (..), Zip (..) )
+import Data.Semigroup.Foldable
+    ( Foldable1 (..) )
 import Data.Strict.Map
     ( Map )
+import Data.These
+    ( These (..) )
 import Numeric.Natural
     ( Natural )
 
+import Prelude hiding
+    ( zip, zipWith )
+
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Strict.Map as Map
+
+--------------------------------------------------------------------------------
+-- Apportionment
+--------------------------------------------------------------------------------
+
+data Apportionment a = Apportionment
+    { leftover :: a
+    , portions :: NonEmpty a
+    }
+    deriving stock (Eq, Foldable, Functor, Show)
+    deriving anyclass Foldable1
+
+instance Semialign Apportionment where
+    align a0 a1 = Apportionment
+        { leftover = These (leftover a0) (leftover a1)
+        , portions = align (portions a0) (portions a1)
+        }
+
+instance Zip Apportionment where
+    zip a0 a1 = Apportionment
+        { leftover = (leftover a0, leftover a1)
+        , portions = zip (portions a0) (portions a1)
+        }
 
 --------------------------------------------------------------------------------
 -- Apportion
@@ -30,29 +61,29 @@ class (Eq a, Semigroup a) => Apportion a where
 
     type Weight a
 
-    apportion :: a -> NonEmpty (Weight a) -> (a, NonEmpty a)
+    apportion :: a -> NonEmpty (Weight a) -> Apportionment a
 
     default apportion
-        :: Monoid a => a -> NonEmpty (Weight a) -> (a, NonEmpty a)
+        :: Monoid a => a -> NonEmpty (Weight a) -> Apportionment a
     apportion a as = case apportionMaybe a as of
-        Nothing -> (a, mempty <$ as)
-        Just bs -> (mempty, bs)
+        Nothing -> Apportionment a (mempty <$ as)
+        Just bs -> Apportionment mempty bs
 
     apportionMaybe :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
 
     default apportionMaybe
         :: (Eq a, Monoid a) => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     apportionMaybe a as = case apportion a as of
-       (b, bs) | b == mempty -> Just bs
-       (_, _) -> Nothing
+       Apportionment b bs | b == mempty -> Just bs
+       _ -> Nothing
 
 apportionLawLength :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLawLength a ws =
-    apportion a ws & \(_, rs) -> length rs == length ws
+    length (portions (apportion a ws)) == length ws
 
 apportionLawSum :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLawSum a ws =
-    apportion a ws & \(r, rs) -> sconcat (NE.cons r rs) == a
+    fold1 (apportion a ws) == a
 
 --------------------------------------------------------------------------------
 -- BalancedApportion
@@ -63,20 +94,20 @@ class Apportion a => BalancedApportion a where
     type Exact a
 
     apportionDeviation :: a -> Exact a -> Ratio Natural
-    apportionExact :: a -> NonEmpty (Weight a) -> (Exact a, NonEmpty (Exact a))
+    apportionExact :: a -> NonEmpty (Weight a) -> Apportionment (Exact a)
     apportionOrder :: a -> a -> Bool
 
 balancedApportionLawDeviation
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 balancedApportionLawDeviation a ws =
-    all (<= (1 % 1)) $ NE.zipWith apportionDeviation
-        (uncurry NE.cons (apportion      a ws))
-        (uncurry NE.cons (apportionExact a ws))
+    all (<= (1 % 1)) $ zipWith apportionDeviation
+        (apportion      a ws)
+        (apportionExact a ws)
 
 balancedApportionLawExactLength
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 balancedApportionLawExactLength a ws =
-    apportionExact a ws & \(_, rs) -> length rs == length ws
+    length (portions (apportionExact a ws)) == length ws
 
 --------------------------------------------------------------------------------
 -- Instances: Sum Natural
@@ -131,7 +162,7 @@ instance (Ord k, Eq v) => BalancedApportion (Map k v) where
 
 newtype Keys a = Keys
     { unKeys :: a }
-    deriving (Eq, Monoid, Semigroup, Show)
+    deriving newtype (Eq, Monoid, Semigroup, Show)
 
 instance (Ord k, Eq v) => Apportion (Keys (Map k v)) where
     type Weight (Keys (Map k v)) = Natural
@@ -152,7 +183,7 @@ instance (Ord k, Eq v) => BalancedApportion (Keys (Map k v)) where
 
 newtype Values a = Values
     { unValues :: a }
-    deriving (Eq, Monoid, Semigroup, Show)
+    deriving newtype (Eq, Monoid, Semigroup, Show)
 
 instance (Ord k, Eq v, Apportion v) =>
     Apportion (Values (Map k v))
