@@ -95,7 +95,6 @@ class Apportion a => BalancedApportion a where
 
     apportionDeviation :: a -> Exact a -> Ratio Natural
     apportionExact :: a -> NonEmpty (Weight a) -> Apportionment (Exact a)
-    apportionOrder :: a -> a -> Bool
 
 balancedApportionLawDeviation
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -122,7 +121,6 @@ instance BalancedApportion (Sum Natural) where
     type Exact (Sum Natural) = Ratio Natural
     apportionExact = undefined
     apportionDeviation = undefined
-    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
 -- Instances: List
@@ -139,7 +137,6 @@ instance Eq a => BalancedApportion [a] where
     apportionDeviation :: [a] -> Ratio Natural -> Ratio Natural
     apportionDeviation as = distanceRatioNatural
         (naturalToRatio $ naturalLength as)
-    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
 -- Instances: Map
@@ -154,7 +151,6 @@ instance (Ord k, Eq v) => BalancedApportion (Map k v) where
     type Exact (Map k v) = Exact v
     apportionExact = undefined
     apportionDeviation = undefined
-    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
 -- Instances: Map Keys
@@ -175,7 +171,6 @@ instance (Ord k, Eq v) => BalancedApportion (Keys (Map k v)) where
     apportionDeviation :: Keys (Map k v) -> Ratio Natural -> Ratio Natural
     apportionDeviation (Keys m) = distanceRatioNatural
         (naturalToRatio $ naturalLength $ Map.keys m)
-    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
 -- Instances: Map Values
@@ -198,7 +193,6 @@ instance (Ord k, Eq v, BalancedApportion v) =>
     type Exact (Values (Map k v)) = Exact v
     apportionExact = undefined
     apportionDeviation = undefined
-    apportionOrder = undefined
 
 --------------------------------------------------------------------------------
 -- Apportioning with equal weights
