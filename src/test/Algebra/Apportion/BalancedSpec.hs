@@ -1,12 +1,7 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+{- HLINT ignore "Redundant bracket" -}
 {- HLINT ignore "Use camelCase" -}
 
 module Algebra.Apportion.BalancedSpec
@@ -168,7 +163,7 @@ prop_bipartitionUntil_const a condition =
         then pure a
         else balancedApportion a result
   where
-    result = a `bipartitionUntil` (const condition)
+    result = a `bipartitionUntil` const condition
 
 prop_bipartitionUntil_idempotent
     :: (Arbitrary a, Eq a, BalancedApportion a, Monoid a, Show a)

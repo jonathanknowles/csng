@@ -1,7 +1,6 @@
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{- HLINT ignore "Redundant brackets" -}
 {- HLINT ignore "Use camelCase" -}
 
 module Algebra.ApportionSpec

@@ -30,6 +30,31 @@ flag parallel
     default:     True
     manual:      True
 
+common common-extensions
+    default-extensions:
+        ConstraintKinds
+        DataKinds
+        DefaultSignatures
+        DeriveFoldable
+        DeriveFunctor
+        DerivingStrategies
+        DerivingVia
+        FlexibleContexts
+        FlexibleInstances
+        FunctionalDependencies
+        GeneralizedNewtypeDeriving
+        InstanceSigs
+        LambdaCase
+        MultiParamTypeClasses
+        PatternSynonyms
+        ScopedTypeVariables
+        StandaloneDeriving
+        TupleSections
+        TypeApplications
+        TypeFamilies
+        TypeOperators
+        ViewPatterns
+
 common common-options
     ghc-options: -Wall
     if flag(development)
@@ -39,33 +64,15 @@ common common-options
     if flag(parallel)
         ghc-options: -j +RTS -A256m -n4m -RTS
 
-common common-extensions
-    default-extensions:
-        DeriveFoldable
-        DeriveFunctor
-        DerivingStrategies
-        DerivingVia
-        FlexibleContexts
-        FlexibleInstances
-        GeneralizedNewtypeDeriving
-        LambdaCase
-        MultiParamTypeClasses
-        RebindableSyntax
-        ImplicitPrelude
-        ScopedTypeVariables
-        StandaloneDeriving
-        TupleSections
-        TypeApplications
-        TypeFamilies
-        TypeOperators
-        ViewPatterns
-
-common common-mixins
+common common-prelude
     build-depends:
         xin:prelude
     mixins:
         base hiding (Prelude)
       , xin:prelude (Internal.Prelude as Prelude)
+    default-extensions:
+        RebindableSyntax
+        ImplicitPrelude
 
 source-repository head
     type: git
@@ -74,8 +81,8 @@ source-repository head
 library
     import:
         common-extensions
-      , common-mixins
       , common-options
+      , common-prelude
     hs-source-dirs:
         src/public
     exposed-modules:
@@ -89,8 +96,8 @@ library
 library examples
     import:
         common-extensions
-      , common-mixins
       , common-options
+      , common-prelude
     hs-source-dirs:
         src/examples
     exposed-modules:
@@ -103,8 +110,8 @@ library examples
 library internal
     import:
         common-extensions
-      , common-mixins
       , common-options
+      , common-prelude
     hs-source-dirs:
         src/internal
     exposed-modules:
@@ -153,8 +160,8 @@ library prelude
 test-suite test
     import:
         common-extensions
-      , common-mixins
       , common-options
+      , common-prelude
     main-is:
         Spec.hs
     hs-source-dirs:
@@ -192,8 +199,8 @@ test-suite test
 benchmark benchmark
     import:
         common-extensions
-      , common-mixins
       , common-options
+      , common-prelude
     default-language:
         Haskell2010
     type:
