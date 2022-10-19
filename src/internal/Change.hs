@@ -29,6 +29,10 @@ import Value
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty.Extended as NE
 
+-- 1. assign priorities
+-- 2. zero out low priorities
+-- 3. apportion
+
 -- Make a function that zeros out low-priority weights from within Coins.
 -- Then use the ordinary apportion functions for Coin.
 --
