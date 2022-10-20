@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{- HLINT ignore "Use camelCase" -}
 
 module Algebra.NewApportion
     where
@@ -15,8 +16,6 @@ import Data.Semialign
     ( Semialign (..), Zip (..) )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
-import Data.Strict.Map
-    ( Map )
 import Data.These
     ( These (..) )
 import Numeric.Natural
@@ -25,8 +24,8 @@ import Numeric.Natural
 import Prelude hiding
     ( zip, zipWith )
 
+import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.List.NonEmpty as NE
-import qualified Data.Strict.Map as Map
 
 --------------------------------------------------------------------------------
 -- Apportionment
@@ -40,15 +39,15 @@ data Apportionment a = Apportionment
     deriving anyclass Foldable1
 
 instance Semialign Apportionment where
-    align a0 a1 = Apportionment
-        { leftover = These (leftover a0) (leftover a1)
-        , portions = align (portions a0) (portions a1)
+    alignWith f a0 a1 = Apportionment
+        { leftover =           f $ These (leftover a0) (leftover a1)
+        , portions = alignWith f         (portions a0) (portions a1)
         }
 
 instance Zip Apportionment where
-    zip a0 a1 = Apportionment
-        { leftover = (leftover a0, leftover a1)
-        , portions = zip (portions a0) (portions a1)
+    zipWith f a0 a1 = Apportionment
+        { leftover =         f (leftover a0) (leftover a1)
+        , portions = zipWith f (portions a0) (portions a1)
         }
 
 --------------------------------------------------------------------------------
@@ -75,36 +74,67 @@ class (Eq a, Semigroup a) => Apportion a where
        Apportionment b bs | b == mempty -> Just bs
        _ -> Nothing
 
-apportionLawLength :: Apportion a => a -> NonEmpty (Weight a) -> Bool
-apportionLawLength a ws =
-    length (portions (apportion a ws)) == length ws
+apportionLaw_length :: Apportion a => a -> NonEmpty (Weight a) -> Bool
+apportionLaw_length a ws = length (portions (apportion a ws)) == length ws
 
-apportionLawSum :: Apportion a => a -> NonEmpty (Weight a) -> Bool
-apportionLawSum a ws =
-    fold1 (apportion a ws) == a
+apportionLaw_sum :: Apportion a => a -> NonEmpty (Weight a) -> Bool
+apportionLaw_sum a ws = fold1 (apportion a ws) == a
+
+--------------------------------------------------------------------------------
+-- Roundable
+--------------------------------------------------------------------------------
+
+class Roundable a b where
+    roundD :: a -> b
+    roundU :: a -> b
+
+instance Roundable (Ratio Natural) Natural where
+    roundD = floor
+    roundU = ceiling
+
+instance Roundable (Sum (Ratio Natural)) (Sum Natural) where
+    roundD = fmap floor
+    roundU = fmap ceiling
 
 --------------------------------------------------------------------------------
 -- BalancedApportion
 --------------------------------------------------------------------------------
 
-class Apportion a => BalancedApportion a where
+class
+    ( Apportion a
+    , Roundable (Fraction a) a
+    , Semigroup (Fraction a)
+    ) =>
+    BalancedApportion a
+  where
+    type Fraction a
+    apportionExact :: a -> NonEmpty (Weight a) -> Apportionment (Fraction a)
+    apportionOrder :: a -> a -> Bool
 
-    type Exact a
-
-    apportionDeviation :: a -> Exact a -> Ratio Natural
-    apportionExact :: a -> NonEmpty (Weight a) -> Apportionment (Exact a)
-
-balancedApportionLawDeviation
+balancedApportionLaw_length
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLawDeviation a ws =
-    all (<= (1 % 1)) $ zipWith apportionDeviation
-        (apportion      a ws)
-        (apportionExact a ws)
-
-balancedApportionLawExactLength
-    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLawExactLength a ws =
+balancedApportionLaw_length a ws =
     length (portions (apportionExact a ws)) == length ws
+
+balancedApportionLaw_order_roundD
+    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+balancedApportionLaw_order_roundD a ws =
+    zipAll apportionOrder (roundD <$> apportionExact a ws) (apportion a ws)
+
+balancedApportionLaw_order_roundU
+    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+balancedApportionLaw_order_roundU a ws =
+    zipAll apportionOrder (apportion a ws) (roundU <$> apportionExact a ws)
+
+balancedApportionLaw_sum_roundD
+    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+balancedApportionLaw_sum_roundD a ws =
+    roundD (fold1 (apportionExact a ws)) == a
+
+balancedApportionLaw_sum_roundU
+    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+balancedApportionLaw_sum_roundU a ws =
+    roundU (fold1 (apportionExact a ws)) == a
 
 --------------------------------------------------------------------------------
 -- Instances: Sum Natural
@@ -112,48 +142,47 @@ balancedApportionLawExactLength a ws =
 
 instance Apportion (Sum Natural) where
     type Weight (Sum Natural) = Natural
-    apportion = undefined
-    apportionMaybe = undefined
+    apportionMaybe (Sum n) = fmap (fmap Sum) . Natural.apportion n
 
 instance BalancedApportion (Sum Natural) where
-    type Exact (Sum Natural) = Ratio Natural
-    apportionExact = undefined
-    apportionDeviation = undefined
+    type Fraction (Sum Natural) = Sum (Ratio Natural)
+    apportionExact (Sum n) ws
+        | total == 0 = Apportionment (Sum (n % 1)) (Sum (0 % 1)     <$  ws)
+        | otherwise  = Apportionment (Sum (0 % 1)) (Sum . (% total) <$> ws)
+      where
+        total = sum ws
+    apportionOrder = (<=)
 
 --------------------------------------------------------------------------------
 -- Instances: List
 --------------------------------------------------------------------------------
-
+{-
 instance Eq a => Apportion [a] where
     type Weight [a] = Natural
     apportion = undefined
     apportionMaybe = undefined
 
 instance Eq a => BalancedApportion [a] where
-    type Exact [a] = Ratio Natural
+    type Fraction [a] = Ratio Natural
     apportionExact = undefined
-    apportionDeviation :: [a] -> Ratio Natural -> Ratio Natural
-    apportionDeviation as = distanceRatioNatural
-        (naturalToRatio $ naturalLength as)
-
+-}
 --------------------------------------------------------------------------------
 -- Instances: Map
 --------------------------------------------------------------------------------
-
+{-
 instance (Ord k, Eq v) => Apportion (Map k v) where
     type Weight (Map k v) = Map k v
     apportion = undefined
     apportionMaybe = undefined
 
-instance (Ord k, Eq v) => BalancedApportion (Map k v) where
-    type Exact (Map k v) = Exact v
+instance (Ord k, Eq v, Roundable (Fraction v)) => BalancedApportion (Map k v) where
+    type Fraction (Map k v) = Fraction v
     apportionExact = undefined
-    apportionDeviation = undefined
-
+-}
 --------------------------------------------------------------------------------
 -- Instances: Map Keys
 --------------------------------------------------------------------------------
-
+{-
 newtype Keys a = Keys
     { unKeys :: a }
     deriving newtype (Eq, Monoid, Semigroup, Show)
@@ -164,16 +193,13 @@ instance (Ord k, Eq v) => Apportion (Keys (Map k v)) where
     apportionMaybe = undefined
 
 instance (Ord k, Eq v) => BalancedApportion (Keys (Map k v)) where
-    type Exact (Keys (Map k v)) = Ratio Natural
+    type Fraction (Keys (Map k v)) = Ratio Natural
     apportionExact = undefined
-    apportionDeviation :: Keys (Map k v) -> Ratio Natural -> Ratio Natural
-    apportionDeviation (Keys m) = distanceRatioNatural
-        (naturalToRatio $ naturalLength $ Map.keys m)
-
+-}
 --------------------------------------------------------------------------------
 -- Instances: Map Values
 --------------------------------------------------------------------------------
-
+{-
 newtype Values a = Values
     { unValues :: a }
     deriving newtype (Eq, Monoid, Semigroup, Show)
@@ -188,10 +214,9 @@ instance (Ord k, Eq v, Apportion v) =>
 instance (Ord k, Eq v, BalancedApportion v) =>
     BalancedApportion (Values (Map k v))
   where
-    type Exact (Values (Map k v)) = Exact v
+    type Fraction (Values (Map k v)) = Fraction v
     apportionExact = undefined
-    apportionDeviation = undefined
-
+-}
 --------------------------------------------------------------------------------
 -- Apportioning with equal weights
 --------------------------------------------------------------------------------
@@ -226,7 +251,7 @@ naturalToRatio = fromIntegral
 
 naturalLength :: Foldable f => f a -> Natural
 naturalLength = fromIntegral @Int @Natural . length
-
+{-
 apportionEqualMapKeys
     :: (Ord k, Eq v) => Map k v -> NonEmpty void -> NonEmpty (Map k v)
 apportionEqualMapKeys m ws = unKeys <$> apportionEqual (Keys m) ws
@@ -235,7 +260,17 @@ apportionEqualMapValues
     :: (Ord k, Eq v, BalancedApportion v, Integral (Weight v))
     => Map k v -> NonEmpty void -> NonEmpty (Map k v)
 apportionEqualMapValues m ws = unValues <$> apportionEqual (Values m) ws
-
-apportionEqualNatural
+-}
+{-apportionEqualNatural
     :: Sum Natural -> NonEmpty void -> NonEmpty (Sum Natural)
-apportionEqualNatural = apportionEqual
+apportionEqualNatural = apportionEqual-}
+
+--------------------------------------------------------------------------------
+-- Utilities
+--------------------------------------------------------------------------------
+
+zipAll :: (Foldable t, Zip t) => (a -> b -> Bool) -> t a -> t b -> Bool
+zipAll f xs ys = all (uncurry f) (zip xs ys)
+
+zipAny :: (Foldable t, Zip t) => (a -> b -> Bool) -> t a -> t b -> Bool
+zipAny f xs ys = any (uncurry f) (zip xs ys)
