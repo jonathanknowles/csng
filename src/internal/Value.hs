@@ -19,6 +19,8 @@ import Algebra.Apportion
     ( Apportion (..) )
 import Algebra.Apportion.Balanced
     ( BalancedApportion (..) )
+import Algebra.NewApportion
+    ( Roundable (..) )
 import AsList
     ( AsList (..), asList )
 import Data.Group
@@ -244,6 +246,7 @@ deriving via BalancedApportion.Values
 
 newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
     deriving (Arbitrary, Read, Show) via AsList (FractionalCoin a)
+    deriving IsWrapped via Wrapped (MonoidMap a FractionalCoinValue)
     deriving newtype
         ( Commutative
         , Eq
@@ -256,6 +259,14 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         , RightReductive
         , Semigroup
         )
+
+instance Roundable FractionalCoinValue CoinValue where
+    roundU = wrapped ceiling
+    roundD = wrapped floor
+
+instance Ord a => Roundable (FractionalCoin a) (Coin a) where
+    roundU = wrapped $ MonoidMap.mapValues roundU
+    roundD = wrapped $ MonoidMap.mapValues roundD
 
 --------------------------------------------------------------------------------
 -- Conversions
