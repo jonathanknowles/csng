@@ -25,6 +25,7 @@ import Prelude hiding
     ( zip, zipWith )
 
 import qualified Algebra.Apportion.Natural as Natural
+import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 
 --------------------------------------------------------------------------------
@@ -156,6 +157,26 @@ instance BalancedApportion (Sum Natural) where
 --------------------------------------------------------------------------------
 -- Instances: List
 --------------------------------------------------------------------------------
+
+instance Eq a => Apportion [a] where
+    type Weight [a] = Int
+    apportionMaybe as ws = do
+        chunkLengths <- maybeChunkLengths
+        Just $ NE.unfoldr makeChunk (chunkLengths, as)
+      where
+        maybeChunkLengths :: Maybe (NonEmpty Int)
+        maybeChunkLengths =
+            fmap (fromIntegral @Natural @Int . getSum) <$>
+            apportionMaybe
+                (Sum $ fromIntegral $ length as)
+                (fromIntegral <$> ws)
+
+        makeChunk :: (NonEmpty Int, [a]) -> ([a], Maybe (NonEmpty Int, [a]))
+        makeChunk (c :| mcs, bs) = case NE.nonEmpty mcs of
+            Just cs -> (prefix, Just (cs, suffix))
+            Nothing -> (bs, Nothing)
+          where
+            (prefix, suffix) = L.splitAt c bs
 {-
 instance Eq a => Apportion [a] where
     type Weight [a] = Natural
