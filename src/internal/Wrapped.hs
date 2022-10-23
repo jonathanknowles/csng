@@ -5,6 +5,9 @@ import Prelude
 import Data.Coerce
     ( Coercible, coerce )
 
+-- Use this
+-- https://hackage.haskell.org/package/generic-data-1.0.0.0/docs/src/Generic.Data.Internal.Newtype.html#Newtype
+--
 newtype Wrap t = Wrap t
 
 class Wrapped a where

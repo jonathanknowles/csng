@@ -132,6 +132,7 @@ library internal
     build-depends:
       , base >=4.7 && <5
       , containers
+      , generic-data
       , groups
       , int-cast
       , monoid-subclasses
