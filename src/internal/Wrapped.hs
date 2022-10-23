@@ -5,12 +5,9 @@ import Prelude
 import Data.Coerce
     ( Coercible, coerce )
 
-newtype Wrapped t = Wrapped t
+newtype Wrap t = Wrap t
 
-instance IsWrapped (Wrapped t) where
-    type Unwrapped (Wrapped t) = t
-
-class IsWrapped a where
+class Wrapped a where
     type Unwrapped a
 
     wrap :: Unwrapped a -> a
@@ -21,5 +18,8 @@ class IsWrapped a where
     default unwrap :: Coercible a (Unwrapped a) => a -> Unwrapped a
     unwrap = coerce
 
-wrapped :: (IsWrapped a, IsWrapped b) => (Unwrapped a -> Unwrapped b) -> a -> b
+instance Wrapped (Wrap t) where
+    type Unwrapped (Wrap t) = t
+
+wrapped :: (Wrapped a, Wrapped b) => (Unwrapped a -> Unwrapped b) -> a -> b
 wrapped f = wrap . f . unwrap
