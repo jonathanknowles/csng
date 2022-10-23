@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Value
@@ -23,6 +24,8 @@ import Algebra.NewApportion
     ( Roundable (..) )
 import AsList
     ( AsList (..), asList )
+import Generic.Data
+    ( Newtype, Old, pack, unpack )
 import Data.Group
     ( Group (..) )
 import Data.IntCast
@@ -52,14 +55,14 @@ import Data.Ratio
     ( Ratio )
 import Data.Strict.Set
     ( Set )
+import GHC.Generics
+    ( Generic )
 import Numeric.Natural
     ( Natural )
 import Test.QuickCheck
     ( Arbitrary )
 import Test.QuickCheck.Instances.Natural
     ()
-import Wrapped
-    ( Wrapped (..), Wrap (..), wrapped )
 
 import qualified Algebra.Apportion.Balanced as BalancedApportion
 import qualified Data.MonoidMap as MonoidMap
@@ -69,7 +72,7 @@ import qualified Data.MonoidMap as MonoidMap
 --------------------------------------------------------------------------------
 
 newtype BalanceValue = BalanceValue Integer
-    deriving Wrapped via Wrap Integer
+    deriving Generic
     deriving newtype (Arbitrary, Eq, FromInteger, Negatable, Ord, Read, Show)
     deriving
         ( Commutative
@@ -87,7 +90,7 @@ newtype BalanceValue = BalanceValue Integer
 --------------------------------------------------------------------------------
 
 newtype CoinValue = CoinValue Natural
-    deriving Wrapped via Wrap Natural
+    deriving Generic
     deriving newtype (Arbitrary, Eq, FromInteger, Ord, Read, Show)
     deriving
         ( Apportion
@@ -108,7 +111,7 @@ newtype CoinValue = CoinValue Natural
 --------------------------------------------------------------------------------
 
 newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
-    deriving Wrapped via Wrap (Ratio Natural)
+    deriving Generic
     deriving newtype
         ( Arbitrary
         , Eq
@@ -130,18 +133,18 @@ instance Monus FractionalCoinValue where
    a <\> b = fromMaybe mempty (a </> b)
 
 instance OverlappingGCDMonoid FractionalCoinValue where
-    overlap (unwrap -> a) (unwrap -> b) = wrap $ min a b
+    overlap (unpack -> a) (unpack -> b) = pack $ min a b
     stripPrefixOverlap = flip (<\>)
     stripSuffixOverlap = flip (<\>)
-    stripOverlap (unwrap -> a) (unwrap -> b) =
-        ( wrap $ a - min a b
-        , wrap $ min a b
-        , wrap $ b - min a b
+    stripOverlap (unpack -> a) (unpack -> b) =
+        ( pack $ a - min a b
+        , pack $ min a b
+        , pack $ b - min a b
         )
 
 instance Reductive FractionalCoinValue where
    a </> b
-      | a > b = Just $ wrap $ unwrap a - unwrap b
+      | a > b = Just $ pack $ unpack a - unpack b
       | otherwise = Nothing
 
 instance LeftReductive FractionalCoinValue where
@@ -164,33 +167,33 @@ class HasAssets a where
     singleton :: Asset a -> Value a -> a
 
 newtype Assets a = Assets a
-    deriving (Eq, Monoid, Semigroup, Show)
+    deriving newtype (Eq, Monoid, Semigroup, Show)
 
 newtype Values a = Values a
-    deriving (Eq, Monoid, Semigroup, Show)
+    deriving newtype (Eq, Monoid, Semigroup, Show)
 
 --------------------------------------------------------------------------------
 -- AssetValueMap
 --------------------------------------------------------------------------------
 
 newtype AssetValueMap a v = AssetValueMap (MonoidMap a v)
-    deriving Wrapped via Wrap (MonoidMap a v)
+    deriving Generic
 
 instance (Ord a, MonoidNull v) => HasAssets (AssetValueMap a v) where
     type Asset (AssetValueMap a v) = a
     type Value (AssetValueMap a v) = v
-    filterAssets f = wrapped . asList . filter $ f . fst
-    getAssets = MonoidMap.nonNullKeys . unwrap
-    getAssetValue a = MonoidMap.get a . unwrap
-    setAssetValue a = wrapped . MonoidMap.set a
-    singleton a = wrap . MonoidMap.singleton a
+    filterAssets f = unpacked . asList . filter $ f . fst
+    getAssets = MonoidMap.nonNullKeys . unpack
+    getAssetValue a = MonoidMap.get a . unpack
+    setAssetValue a = unpacked . MonoidMap.set a
+    singleton a = pack . MonoidMap.singleton a
 
 --------------------------------------------------------------------------------
 -- Balance
 --------------------------------------------------------------------------------
 
 newtype Balance a = Balance (MonoidMap a BalanceValue)
-    deriving Wrapped via Wrap (MonoidMap a BalanceValue)
+    deriving Generic
     deriving HasAssets via AssetValueMap a BalanceValue
     deriving (Arbitrary, Read, Show) via AsList (Balance a)
     deriving newtype
@@ -208,7 +211,7 @@ newtype Balance a = Balance (MonoidMap a BalanceValue)
 --------------------------------------------------------------------------------
 
 newtype Coin a = Coin (MonoidMap a CoinValue)
-    deriving Wrapped via Wrap (MonoidMap a CoinValue)
+    deriving Generic
     deriving HasAssets via AssetValueMap a CoinValue
     deriving (Arbitrary, Read, Show) via AsList (Coin a)
     deriving newtype
@@ -245,7 +248,7 @@ deriving via BalancedApportion.Values
 --------------------------------------------------------------------------------
 
 newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
-    deriving Wrapped via Wrap (MonoidMap a FractionalCoinValue)
+    deriving Generic
     deriving (Arbitrary, Read, Show) via AsList (FractionalCoin a)
     deriving newtype
         ( Commutative
@@ -261,16 +264,19 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         )
 
 instance Roundable FractionalCoinValue CoinValue where
-    roundU = wrapped ceiling
-    roundD = wrapped floor
+    roundU = unpacked ceiling
+    roundD = unpacked floor
 
 instance Ord a => Roundable (FractionalCoin a) (Coin a) where
-    roundU = wrapped $ MonoidMap.map roundU
-    roundD = wrapped $ MonoidMap.map roundD
+    roundU = unpacked $ MonoidMap.map roundU
+    roundD = unpacked $ MonoidMap.map roundD
 
 --------------------------------------------------------------------------------
 -- Conversions
 --------------------------------------------------------------------------------
+
+unpacked :: (Newtype a, Newtype b) => (Old a -> Old b) -> a -> b
+unpacked f = pack . f . unpack
 
 balanceToCoins :: forall a. Ord a => Balance a -> (Coin a, Coin a)
 balanceToCoins b = (toCoin (invert b), toCoin b)
@@ -279,7 +285,7 @@ balanceToCoins b = (toCoin (invert b), toCoin b)
     toCoin = asList . fmap . fmap $ fromMaybe mempty . balanceValueToCoinValue
 
 balanceValueToCoinValue :: BalanceValue -> Maybe CoinValue
-balanceValueToCoinValue = fmap wrap . intCastMaybe . unwrap
+balanceValueToCoinValue = fmap pack . intCastMaybe . unpack
 
 coinToBalance :: Ord a => Coin a -> Balance a
 coinToBalance = asList $ fmap $ fmap coinValueToBalanceValue
@@ -288,7 +294,7 @@ coinToFractionalCoin :: Ord a => Coin a -> FractionalCoin a
 coinToFractionalCoin = asList $ fmap $ fmap coinValueToFractionalCoinValue
 
 coinValueToBalanceValue :: CoinValue -> BalanceValue
-coinValueToBalanceValue = wrapped intCast
+coinValueToBalanceValue = unpacked intCast
 
 coinValueToFractionalCoinValue :: CoinValue -> FractionalCoinValue
-coinValueToFractionalCoinValue = wrapped (% 1)
+coinValueToFractionalCoinValue = unpacked (% 1)
