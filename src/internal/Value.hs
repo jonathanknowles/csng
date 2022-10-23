@@ -59,7 +59,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Instances.Natural
     ()
 import Wrapped
-    ( IsWrapped (..), Wrapped (..), wrapped )
+    ( Wrapped (..), Wrap (..), wrapped )
 
 import qualified Algebra.Apportion.Balanced as BalancedApportion
 import qualified Data.MonoidMap as MonoidMap
@@ -69,7 +69,7 @@ import qualified Data.MonoidMap as MonoidMap
 --------------------------------------------------------------------------------
 
 newtype BalanceValue = BalanceValue Integer
-    deriving IsWrapped via Wrapped Integer
+    deriving Wrapped via Wrap Integer
     deriving newtype (Arbitrary, Eq, FromInteger, Negatable, Ord, Read, Show)
     deriving
         ( Commutative
@@ -87,7 +87,7 @@ newtype BalanceValue = BalanceValue Integer
 --------------------------------------------------------------------------------
 
 newtype CoinValue = CoinValue Natural
-    deriving IsWrapped via Wrapped Natural
+    deriving Wrapped via Wrap Natural
     deriving newtype (Arbitrary, Eq, FromInteger, Ord, Read, Show)
     deriving
         ( Apportion
@@ -108,7 +108,7 @@ newtype CoinValue = CoinValue Natural
 --------------------------------------------------------------------------------
 
 newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
-    deriving IsWrapped via Wrapped (Ratio Natural)
+    deriving Wrapped via Wrap (Ratio Natural)
     deriving newtype
         ( Arbitrary
         , Eq
@@ -174,7 +174,7 @@ newtype Values a = Values a
 --------------------------------------------------------------------------------
 
 newtype AssetValueMap a v = AssetValueMap (MonoidMap a v)
-    deriving IsWrapped via Wrapped (MonoidMap a v)
+    deriving Wrapped via Wrap (MonoidMap a v)
 
 instance (Ord a, MonoidNull v) => HasAssets (AssetValueMap a v) where
     type Asset (AssetValueMap a v) = a
@@ -190,9 +190,9 @@ instance (Ord a, MonoidNull v) => HasAssets (AssetValueMap a v) where
 --------------------------------------------------------------------------------
 
 newtype Balance a = Balance (MonoidMap a BalanceValue)
-    deriving (Arbitrary, Read, Show) via AsList (Balance a)
+    deriving Wrapped via Wrap (MonoidMap a BalanceValue)
     deriving HasAssets via AssetValueMap a BalanceValue
-    deriving IsWrapped via Wrapped (MonoidMap a BalanceValue)
+    deriving (Arbitrary, Read, Show) via AsList (Balance a)
     deriving newtype
         ( Commutative
         , Eq
@@ -208,9 +208,9 @@ newtype Balance a = Balance (MonoidMap a BalanceValue)
 --------------------------------------------------------------------------------
 
 newtype Coin a = Coin (MonoidMap a CoinValue)
-    deriving (Arbitrary, Read, Show) via AsList (Coin a)
+    deriving Wrapped via Wrap (MonoidMap a CoinValue)
     deriving HasAssets via AssetValueMap a CoinValue
-    deriving IsWrapped via Wrapped (MonoidMap a CoinValue)
+    deriving (Arbitrary, Read, Show) via AsList (Coin a)
     deriving newtype
         ( Apportion
         , Cancellative
@@ -245,8 +245,8 @@ deriving via BalancedApportion.Values
 --------------------------------------------------------------------------------
 
 newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
+    deriving Wrapped via Wrap (MonoidMap a FractionalCoinValue)
     deriving (Arbitrary, Read, Show) via AsList (FractionalCoin a)
-    deriving IsWrapped via Wrapped (MonoidMap a FractionalCoinValue)
     deriving newtype
         ( Commutative
         , Eq
