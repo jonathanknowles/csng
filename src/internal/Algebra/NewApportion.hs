@@ -5,7 +5,7 @@
 module Algebra.NewApportion
     where
 
-import Data.List.NonEmpty
+import Data.List.NonEmpty.Extended
     ( NonEmpty (..) )
 import Data.Maybe
     ( isJust )
@@ -24,6 +24,8 @@ import Numeric.Natural
 
 import Prelude hiding
     ( zip, zipWith )
+
+import qualified Data.List.NonEmpty.Extended as NE
 
 --------------------------------------------------------------------------------
 -- Apportionment
@@ -52,22 +54,22 @@ instance Zip Apportionment where
 -- Apportion
 --------------------------------------------------------------------------------
 
-class (Eq a, Semigroup a) => Apportion a where
+class (Eq a, Monoid a, Monoid (Weight a)) => Apportion a where
 
     type Weight a
 
     apportion
         :: a -> NonEmpty (Weight a) -> Apportionment a
-    default apportion :: Monoid a
-        => a -> NonEmpty (Weight a) -> Apportionment a
+    default apportion
+        :: a -> NonEmpty (Weight a) -> Apportionment a
     apportion a as = case apportionMaybe a as of
         Nothing -> Apportionment a (mempty <$ as)
         Just bs -> Apportionment mempty bs
 
     apportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    default apportionMaybe :: Monoid a
-        => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    default apportionMaybe
+        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     apportionMaybe a as = case apportion a as of
        Apportionment b bs | b == mempty -> Just bs
        _ -> Nothing
@@ -92,27 +94,27 @@ class (Apportion a, ExactBalancedApportion (Exact a)) => BalancedApportion a
   where
     type Exact a
 
-    apportionBalanced
+    balancedApportion
         :: a -> NonEmpty (Weight a) -> Apportionment a
-    default apportionBalanced
+    default balancedApportion
         :: a -> NonEmpty (Weight a) -> Apportionment a
-    apportionBalanced = apportion
+    balancedApportion = apportion
 
-    apportionBalancedMaybe
+    balancedApportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    default apportionBalancedMaybe
+    default balancedApportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    apportionBalancedMaybe = apportionMaybe
+    balancedApportionMaybe = apportionMaybe
 
 balancedApportionLaw_identity
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 balancedApportionLaw_identity a ws =
-    apportionBalanced a ws == apportion a ws
+    balancedApportion a ws == apportion a ws
 
 balancedApportionLaw_identity_maybe
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 balancedApportionLaw_identity_maybe a ws =
-    apportionBalancedMaybe a ws == apportionMaybe a ws
+    balancedApportionMaybe a ws == apportionMaybe a ws
 
 --------------------------------------------------------------------------------
 -- ExactBalancedApportion
@@ -120,27 +122,35 @@ balancedApportionLaw_identity_maybe a ws =
 
 class BalancedApportion a => ExactBalancedApportion a where
 
-    apportionExactBalanced
-        :: a -> NonEmpty (Weight a) -> Apportionment a
-    default apportionExactBalanced
-        :: a -> NonEmpty (Weight a) -> Apportionment a
-    apportionExactBalanced = apportion
+    exactBalancedApportionPart
+        :: a -> (Weight a, Weight a, Weight a) -> Maybe a
 
-    apportionExactBalancedMaybe
+    exactBalancedApportion
+        :: a -> NonEmpty (Weight a) -> Apportionment a
+    default exactBalancedApportion
+        :: a -> NonEmpty (Weight a) -> Apportionment a
+    exactBalancedApportion = apportion
+
+    exactBalancedApportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    default apportionExactBalancedMaybe
+    default exactBalancedApportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    apportionExactBalancedMaybe = apportionMaybe
+    exactBalancedApportionMaybe = apportionMaybe
 
 exactBalancedApportionLaw_identity
     :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 exactBalancedApportionLaw_identity a ws =
-    apportionExactBalanced a ws == apportion a ws
+    exactBalancedApportion a ws == apportion a ws
 
 exactBalancedApportionLaw_identity_maybe
     :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 exactBalancedApportionLaw_identity_maybe a ws =
-    apportionExactBalancedMaybe a ws == apportionMaybe a ws
+    exactBalancedApportionMaybe a ws == apportionMaybe a ws
+
+exactBalancedApportionLaw_parts
+    :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+exactBalancedApportionLaw_parts a ws =
+    traverse (exactBalancedApportionPart a) (splits ws) == apportionMaybe a ws
 
 --------------------------------------------------------------------------------
 -- Instances: Sum (Ratio Natural)
@@ -161,7 +171,13 @@ instance BalancedApportion (Sum (Ratio Natural)) where
 
     type Exact (Sum (Ratio Natural)) = Sum (Ratio Natural)
 
-instance ExactBalancedApportion (Sum (Ratio Natural))
+instance ExactBalancedApportion (Sum (Ratio Natural)) where
+
+    exactBalancedApportionPart (Sum a) (Sum w0, Sum w1, Sum w2)
+        | weightSum == 0 = Nothing
+        | otherwise = Just (Sum $ a * w1 / weightSum)
+      where
+        weightSum = w0 + w1 + w2
 
 --------------------------------------------------------------------------------
 -- Instances: Sum Natural
@@ -169,7 +185,7 @@ instance ExactBalancedApportion (Sum (Ratio Natural))
 
 instance Apportion (Sum Natural) where
 
-    type Weight (Sum Natural) = Natural
+    type Weight (Sum Natural) = Sum Natural
 
     apportion = undefined
     apportionMaybe = undefined
@@ -387,6 +403,12 @@ apportionEqualNatural = apportionEqual-}
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
+
+splits :: Monoid a => NonEmpty a -> NonEmpty (a, a, a)
+splits as = zip3 ls as rs
+  where
+    ls = NE.scanl (<>) mempty as
+    rs = NE.scanr (<>) mempty (NE.tail as)
 
 zipAll :: (Foldable t, Zip t) => (a -> b -> Bool) -> t a -> t b -> Bool
 zipAll f xs ys = all (uncurry f) (zip xs ys)
