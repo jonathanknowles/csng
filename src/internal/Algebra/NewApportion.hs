@@ -4,8 +4,8 @@
 module Algebra.NewApportion
     where
 
-import Control.Arrow
-    ( (&&&) )
+{-import Control.Arrow
+    ( (&&&) )-}
 import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Maybe
@@ -90,6 +90,48 @@ apportionLaw_sum a ws =
     fold1 (apportion a ws) == a
 
 --------------------------------------------------------------------------------
+-- BalancedApportion
+--------------------------------------------------------------------------------
+
+class Apportion a => BalancedApportion a where
+
+    apportionBalanced
+        :: a -> NonEmpty (Weight a) -> Apportionment a
+    apportionBalancedMaybe
+        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+
+balancedApportionLaw_identity
+    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+balancedApportionLaw_identity a ws =
+    apportionBalanced a ws == apportion a ws
+
+balancedApportionLaw_identity_maybe
+    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+balancedApportionLaw_identity_maybe a ws =
+    apportionBalancedMaybe a ws == apportionMaybe a ws
+
+--------------------------------------------------------------------------------
+-- ExactBalancedApportion
+--------------------------------------------------------------------------------
+
+class BalancedApportion a => ExactBalancedApportion a where
+
+    apportionExactBalanced
+        :: a -> NonEmpty (Weight a) -> Apportionment a
+    apportionExactBalancedMaybe
+        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+
+exactBalancedApportionLaw_identity
+    :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+exactBalancedApportionLaw_identity a ws =
+    apportionExactBalanced a ws == apportion a ws
+
+exactBalancedApportionLaw_identity_maybe
+    :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+exactBalancedApportionLaw_identity_maybe a ws =
+    apportionExactBalancedMaybe a ws == apportionMaybe a ws
+
+--------------------------------------------------------------------------------
 -- Roundable
 --------------------------------------------------------------------------------
 
@@ -108,7 +150,7 @@ instance Roundable (Sum (Ratio Natural)) (Sum Natural) where
 --------------------------------------------------------------------------------
 -- BalancedApportion
 --------------------------------------------------------------------------------
-
+{-
 class
     ( Apportion a
     , Roundable (Fraction a) a
@@ -144,7 +186,7 @@ balancedApportionLaw_sum_roundU
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 balancedApportionLaw_sum_roundU a ws =
     roundU (fold1 (apportionExact a ws)) == a
-
+-}
 --------------------------------------------------------------------------------
 -- Instances: Sum Natural
 --------------------------------------------------------------------------------
@@ -152,7 +194,7 @@ balancedApportionLaw_sum_roundU a ws =
 instance Apportion (Sum Natural) where
     type Weight (Sum Natural) = Natural
     apportionMaybe (Sum n) = fmap (fmap Sum) . Natural.apportion n
-
+{-
 instance BalancedApportion (Sum Natural) where
     type Fraction (Sum Natural) = Sum (Ratio Natural)
     apportionExact (Sum n) ws
@@ -161,7 +203,7 @@ instance BalancedApportion (Sum Natural) where
       where
         total = sum ws
     apportionOrder = (<=)
-
+-}
 --------------------------------------------------------------------------------
 -- Instances: List
 --------------------------------------------------------------------------------
@@ -249,7 +291,7 @@ instance (Ord k, Eq v, BalancedApportion v) =>
 --------------------------------------------------------------------------------
 -- Apportioning with equal weights
 --------------------------------------------------------------------------------
-
+{-
 apportionEqual
     :: (BalancedApportion a, Integral (Weight a))
     => a
@@ -267,7 +309,7 @@ apportionEqualN a n =
 
 bipartition :: (BalancedApportion a, Integral (Weight a)) => a -> (a, a)
 bipartition = (NE.head &&& NE.last) . flip apportionEqual (() :| [()])
-
+-}
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
