@@ -161,13 +161,7 @@ instance BalancedApportion (Sum (Ratio Natural)) where
 
     type Exact (Sum (Ratio Natural)) = Sum (Ratio Natural)
 
-    apportionBalanced = apportion
-    apportionBalancedMaybe = apportionMaybe
-
-instance ExactBalancedApportion (Sum (Ratio Natural)) where
-
-    apportionExactBalanced = apportion
-    apportionExactBalancedMaybe = apportionMaybe
+instance ExactBalancedApportion (Sum (Ratio Natural))
 
 --------------------------------------------------------------------------------
 -- Instances: Sum Natural
@@ -183,9 +177,6 @@ instance Apportion (Sum Natural) where
 instance BalancedApportion (Sum Natural) where
 
     type Exact (Sum Natural) = Sum (Ratio Natural)
-
-    apportionBalanced = apportion
-    apportionBalancedMaybe = apportionMaybe
 
 --------------------------------------------------------------------------------
 -- Roundable
