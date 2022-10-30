@@ -8,6 +8,8 @@ import Control.Arrow
     ( (&&&) )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
+import Data.Maybe
+    ( isJust )
 import Data.Monoid
     ( Sum (..) )
 import Data.Ratio
@@ -70,16 +72,22 @@ class (Eq a, Semigroup a) => Apportion a where
     apportionMaybe :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
 
     default apportionMaybe
-        :: (Eq a, Monoid a) => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+        :: Monoid a => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     apportionMaybe a as = case apportion a as of
        Apportionment b bs | b == mempty -> Just bs
        _ -> Nothing
 
+apportionLaw_leftover :: Apportion a => a -> NonEmpty (Weight a) -> Bool
+apportionLaw_leftover a ws =
+    isJust (apportionMaybe a ws) == (fold1 (portions (apportion a ws)) == a)
+
 apportionLaw_length :: Apportion a => a -> NonEmpty (Weight a) -> Bool
-apportionLaw_length a ws = length (portions (apportion a ws)) == length ws
+apportionLaw_length a ws =
+    length (portions (apportion a ws)) == length ws
 
 apportionLaw_sum :: Apportion a => a -> NonEmpty (Weight a) -> Bool
-apportionLaw_sum a ws = fold1 (apportion a ws) == a
+apportionLaw_sum a ws =
+    fold1 (apportion a ws) == a
 
 --------------------------------------------------------------------------------
 -- Roundable
