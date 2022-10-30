@@ -194,7 +194,7 @@ instance BalancedApportion (Sum (Ratio Natural)) where
 
     type Exact (Sum (Ratio Natural)) = Sum (Ratio Natural)
 
-instance ExactBalancedApportion (Sum (Ratio Natural)) where
+instance ExactBalancedApportion (Sum (Ratio Natural))
 
 --------------------------------------------------------------------------------
 -- Instances: Sum Natural
