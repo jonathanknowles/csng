@@ -56,18 +56,18 @@ class (Eq a, Semigroup a) => Apportion a where
 
     type Weight a
 
-    apportion :: a -> NonEmpty (Weight a) -> Apportionment a
-
-    default apportion
-        :: Monoid a => a -> NonEmpty (Weight a) -> Apportionment a
+    apportion
+        :: a -> NonEmpty (Weight a) -> Apportionment a
+    default apportion :: Monoid a
+        => a -> NonEmpty (Weight a) -> Apportionment a
     apportion a as = case apportionMaybe a as of
         Nothing -> Apportionment a (mempty <$ as)
         Just bs -> Apportionment mempty bs
 
-    apportionMaybe :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-
-    default apportionMaybe
-        :: Monoid a => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    apportionMaybe
+        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    default apportionMaybe :: Monoid a
+        => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     apportionMaybe a as = case apportion a as of
        Apportionment b bs | b == mempty -> Just bs
        _ -> Nothing
