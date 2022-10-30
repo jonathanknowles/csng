@@ -1,11 +1,10 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 {- HLINT ignore "Use camelCase" -}
 
 module Algebra.NewApportion
     where
 
-{-import Control.Arrow
-    ( (&&&) )-}
 import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Maybe
@@ -25,10 +24,6 @@ import Numeric.Natural
 
 import Prelude hiding
     ( zip, zipWith )
-
-import qualified Algebra.Apportion.Natural as Natural
-import qualified Data.List as L
-import qualified Data.List.NonEmpty as NE
 
 --------------------------------------------------------------------------------
 -- Apportionment
@@ -93,12 +88,21 @@ apportionLaw_sum a ws =
 -- BalancedApportion
 --------------------------------------------------------------------------------
 
-class Apportion a => BalancedApportion a where
+class (Apportion a, ExactBalancedApportion (Exact a)) => BalancedApportion a
+  where
+    type Exact a
 
     apportionBalanced
         :: a -> NonEmpty (Weight a) -> Apportionment a
+    default apportionBalanced
+        :: a -> NonEmpty (Weight a) -> Apportionment a
+    apportionBalanced = apportion
+
     apportionBalancedMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    default apportionBalancedMaybe
+        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    apportionBalancedMaybe = apportionMaybe
 
 balancedApportionLaw_identity
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -118,8 +122,15 @@ class BalancedApportion a => ExactBalancedApportion a where
 
     apportionExactBalanced
         :: a -> NonEmpty (Weight a) -> Apportionment a
+    default apportionExactBalanced
+        :: a -> NonEmpty (Weight a) -> Apportionment a
+    apportionExactBalanced = apportion
+
     apportionExactBalancedMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    default apportionExactBalancedMaybe
+        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    apportionExactBalancedMaybe = apportionMaybe
 
 exactBalancedApportionLaw_identity
     :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -130,6 +141,51 @@ exactBalancedApportionLaw_identity_maybe
     :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 exactBalancedApportionLaw_identity_maybe a ws =
     apportionExactBalancedMaybe a ws == apportionMaybe a ws
+
+--------------------------------------------------------------------------------
+-- Instances: Sum (Ratio Natural)
+--------------------------------------------------------------------------------
+
+instance Apportion (Sum (Ratio Natural)) where
+
+    type Weight (Sum (Ratio Natural)) = Sum (Ratio Natural)
+
+    apportionMaybe a ws
+        | weightSum == mempty = Nothing
+        | otherwise = Just (mkPortion <$> ws)
+      where
+        weightSum = fold1 ws
+        mkPortion w = Sum (getSum a * getSum w / getSum weightSum)
+
+instance BalancedApportion (Sum (Ratio Natural)) where
+
+    type Exact (Sum (Ratio Natural)) = Sum (Ratio Natural)
+
+    apportionBalanced = apportion
+    apportionBalancedMaybe = apportionMaybe
+
+instance ExactBalancedApportion (Sum (Ratio Natural)) where
+
+    apportionExactBalanced = apportion
+    apportionExactBalancedMaybe = apportionMaybe
+
+--------------------------------------------------------------------------------
+-- Instances: Sum Natural
+--------------------------------------------------------------------------------
+
+instance Apportion (Sum Natural) where
+
+    type Weight (Sum Natural) = Natural
+
+    apportion = undefined
+    apportionMaybe = undefined
+
+instance BalancedApportion (Sum Natural) where
+
+    type Exact (Sum Natural) = Sum (Ratio Natural)
+
+    apportionBalanced = apportion
+    apportionBalancedMaybe = apportionMaybe
 
 --------------------------------------------------------------------------------
 -- Roundable
@@ -147,6 +203,7 @@ instance Roundable (Sum (Ratio Natural)) (Sum Natural) where
     roundD = fmap floor
     roundU = fmap ceiling
 
+{-
 --------------------------------------------------------------------------------
 -- BalancedApportion
 --------------------------------------------------------------------------------
@@ -190,10 +247,10 @@ balancedApportionLaw_sum_roundU a ws =
 --------------------------------------------------------------------------------
 -- Instances: Sum Natural
 --------------------------------------------------------------------------------
-
+{-
 instance Apportion (Sum Natural) where
     type Weight (Sum Natural) = Natural
-    apportionMaybe (Sum n) = fmap (fmap Sum) . Natural.apportion n
+    apportionMaybe (Sum n) = fmap (fmap Sum) . Natural.apportion n-}
 {-
 instance BalancedApportion (Sum Natural) where
     type Fraction (Sum Natural) = Sum (Ratio Natural)
@@ -207,7 +264,7 @@ instance BalancedApportion (Sum Natural) where
 --------------------------------------------------------------------------------
 -- Instances: List
 --------------------------------------------------------------------------------
-
+{-
 instance Eq a => Apportion [a] where
     type Weight [a] = Int
     apportionMaybe as ws = do
@@ -227,7 +284,7 @@ instance Eq a => Apportion [a] where
             Nothing -> (bs, Nothing)
           where
             (prefix, suffix) = L.splitAt c bs
-{-
+
 instance Eq a => Apportion [a] where
     type Weight [a] = Natural
     apportion = undefined
@@ -335,7 +392,7 @@ apportionEqualMapValues m ws = unValues <$> apportionEqual (Values m) ws
 {-apportionEqualNatural
     :: Sum Natural -> NonEmpty void -> NonEmpty (Sum Natural)
 apportionEqualNatural = apportionEqual-}
-
+-}
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
