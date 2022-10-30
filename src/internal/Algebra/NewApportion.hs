@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 {- HLINT ignore "Use camelCase" -}
 
@@ -74,6 +75,26 @@ class (Eq a, Monoid a, Monoid (Weight a)) => Apportion a where
        Apportionment b bs | b == mempty -> Just bs
        _ -> Nothing
 
+apportionMaybe2
+    :: Apportion a
+    => a
+    -> (Weight a, Weight a)
+    -> Maybe (a, a)
+apportionMaybe2 a (w1, w2) =
+    apportionMaybe a [w1, w2] >>= \case
+        [a1, a2] -> Just (a1, a2)
+        _ -> Nothing
+
+apportionMaybe3
+    :: Apportion a
+    => a
+    -> (Weight a, Weight a, Weight a)
+    -> Maybe (a, a, a)
+apportionMaybe3 a (w1, w2, w3) =
+    apportionMaybe a [w1, w2, w3] >>= \case
+        [a1, a2, a3] -> Just (a1, a2, a3)
+        _ -> Nothing
+
 apportionLaw_leftover :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_leftover a ws =
     isJust (apportionMaybe a ws) == (fold1 (portions (apportion a ws)) == a)
@@ -122,9 +143,6 @@ balancedApportionLaw_identity_maybe a ws =
 
 class BalancedApportion a => ExactBalancedApportion a where
 
-    exactBalancedApportionPart
-        :: a -> (Weight a, Weight a, Weight a) -> Maybe a
-
     exactBalancedApportion
         :: a -> NonEmpty (Weight a) -> Apportionment a
     default exactBalancedApportion
@@ -147,10 +165,15 @@ exactBalancedApportionLaw_identity_maybe
 exactBalancedApportionLaw_identity_maybe a ws =
     exactBalancedApportionMaybe a ws == apportionMaybe a ws
 
-exactBalancedApportionLaw_parts
+exactBalancedApportionLaw_folds
     :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-exactBalancedApportionLaw_parts a ws =
-    traverse (exactBalancedApportionPart a) (splits ws) == apportionMaybe a ws
+exactBalancedApportionLaw_folds a ws =
+    folds (portions (apportion a ws)) == (portions . apportion a <$> folds ws)
+
+exactBalancedApportionLaw_splits
+    :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+exactBalancedApportionLaw_splits a ws =
+    traverse (fmap mid . apportionMaybe3 a) (splits ws) == apportionMaybe a ws
 
 --------------------------------------------------------------------------------
 -- Instances: Sum (Ratio Natural)
@@ -172,12 +195,6 @@ instance BalancedApportion (Sum (Ratio Natural)) where
     type Exact (Sum (Ratio Natural)) = Sum (Ratio Natural)
 
 instance ExactBalancedApportion (Sum (Ratio Natural)) where
-
-    exactBalancedApportionPart (Sum a) (Sum w0, Sum w1, Sum w2)
-        | weightSum == 0 = Nothing
-        | otherwise = Just (Sum $ a * w1 / weightSum)
-      where
-        weightSum = w0 + w1 + w2
 
 --------------------------------------------------------------------------------
 -- Instances: Sum Natural
@@ -404,8 +421,14 @@ apportionEqualNatural = apportionEqual-}
 -- Utilities
 --------------------------------------------------------------------------------
 
+mid :: (l, m, r) -> m
+mid (_, m, _) = m
+
+folds :: Semigroup a => NonEmpty a -> [NonEmpty a]
+folds = undefined
+
 splits :: Monoid a => NonEmpty a -> NonEmpty (a, a, a)
-splits as = zip3 ls as rs
+splits as = NE.zip3 ls as rs
   where
     ls = NE.scanl (<>) mempty as
     rs = NE.scanr (<>) mempty (NE.tail as)
