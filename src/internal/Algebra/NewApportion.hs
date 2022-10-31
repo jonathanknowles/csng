@@ -237,13 +237,11 @@ newtype Sublist a = Sublist
 
 newtype SublistLength = SublistLength
     {getSublistLength :: Natural}
-    deriving newtype (Eq, Ord)
-    deriving Semigroup via Sum Natural
+    deriving (Eq, Ord, Semigroup) via Sum Natural
 
 newtype SublistLengthIdeal = SublistLengthIdeal
     {getSublistLengthIdeal :: Ratio Natural}
-    deriving newtype (Eq, Ord)
-    deriving (Apportion, ExactApportion, Roundable, Semigroup)
+    deriving (Apportion, Eq, ExactApportion, Roundable, Semigroup)
         via Sum (Ratio Natural)
 
 instance Eq a => Apportion (Sublist a) where
