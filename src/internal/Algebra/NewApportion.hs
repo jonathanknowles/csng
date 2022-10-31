@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
 {- HLINT ignore "Use camelCase" -}
 
 module Algebra.NewApportion
@@ -26,6 +26,8 @@ import Data.Semialign
     ( Semialign (..), Zip (..) )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
+import Data.Strict.Set
+    ( Set )
 import Data.These
     ( These (..) )
 import Numeric.Natural
@@ -260,10 +262,24 @@ instance Eq a => Apportion [a] where
             (prefix, suffix) = L.splitAt c bs
 
 instance (Eq a, Ord a) => BalancedApportion [a] where
-
     type Exact [a] = Sum (Ratio Natural)
     type Rounded [a] = Sum Natural
+    balancedApportionOrder = (<=)
+    balancedApportionToExact = fromIntegral . length
+    balancedApportionToExactWeight = fromIntegral . length
+    balancedApportionToRounded = fromIntegral . length
 
+--------------------------------------------------------------------------------
+-- Instances: Set a
+--------------------------------------------------------------------------------
+
+instance Ord a => Apportion (Set a) where
+    type Weight (Set a) = Sum Natural
+    apportion as ws = fromList <$> apportion (toList as) ws
+
+instance Ord a => BalancedApportion (Set a) where
+    type Exact (Set a) = Sum (Ratio Natural)
+    type Rounded (Set a) = Sum Natural
     balancedApportionOrder = (<=)
     balancedApportionToExact = fromIntegral . length
     balancedApportionToExactWeight = fromIntegral . length
