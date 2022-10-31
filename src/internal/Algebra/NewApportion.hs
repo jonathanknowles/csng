@@ -26,8 +26,6 @@ import Data.Semialign
     ( Semialign (..), Zip (..) )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
-import Data.Strict.Set
-    ( Set )
 import Data.These
     ( These (..) )
 import Numeric.Natural
@@ -239,51 +237,59 @@ instance BalancedApportion (Sum Natural) where
 -- Instances: [a]
 --------------------------------------------------------------------------------
 
-instance Eq a => Apportion [a] where
+newtype Sublist a = Sublist
+    {getSublist :: [a]}
+    deriving newtype (Eq, Monoid, Semigroup, Show)
 
-    type Weight [a] = Sum Natural
+newtype SublistLength = SublistLength
+    {getSublistLength :: Natural}
+    deriving newtype (Eq, Ord)
+    deriving Semigroup via Sum Natural
 
-    apportionMaybe as ws = do
+newtype SublistLengthIdeal = SublistLengthIdeal
+    {getSublistLengthIdeal :: Ratio Natural}
+    deriving newtype (Eq, Ord)
+    deriving Semigroup via Sum (Ratio Natural)
+    deriving (Apportion, ExactApportion) via Sum (Ratio Natural)
+
+instance Roundable SublistLengthIdeal SublistLength where
+    roundUp   (SublistLengthIdeal a) = SublistLength (roundUp   a)
+    roundDown (SublistLengthIdeal a) = SublistLength (roundDown a)
+
+instance Eq a => Apportion (Sublist a) where
+
+    type Weight (Sublist a) = SublistLength
+
+    apportionMaybe (Sublist as) ws = do
         chunkLengths <- maybeChunkLengths
-        Just $ NE.unfoldr makeChunk (chunkLengths, as)
+        Just $ NE.unfoldr makeChunk (chunkLengths, Sublist as)
       where
         maybeChunkLengths :: Maybe (NonEmpty Int)
         maybeChunkLengths =
             fmap (fromIntegral @Natural @Int . getSum) <$>
             apportionMaybe
                 (Sum $ fromIntegral @Int @Natural $ length as)
-                (fromIntegral . getSum <$> ws)
+                (fromIntegral . getSublistLength <$> ws)
 
-        makeChunk :: (NonEmpty Int, [a]) -> ([a], Maybe (NonEmpty Int, [a]))
-        makeChunk (c :| mcs, bs) = case NE.nonEmpty mcs of
-            Just cs -> (prefix, Just (cs, suffix))
-            Nothing -> (bs, Nothing)
+        makeChunk
+            :: (NonEmpty Int, Sublist a)
+            -> (Sublist a, Maybe (NonEmpty Int, Sublist a))
+        makeChunk (c :| mcs, Sublist bs) = case NE.nonEmpty mcs of
+            Just cs -> (Sublist prefix, Just (cs, Sublist suffix))
+            Nothing -> (Sublist bs, Nothing)
           where
             (prefix, suffix) = L.splitAt c bs
 
-instance (Eq a, Ord a) => BalancedApportion [a] where
-    type Exact [a] = Sum (Ratio Natural)
-    type Rounded [a] = Sum Natural
+instance (Eq a, Ord a) => BalancedApportion (Sublist a) where
+    type Exact (Sublist a) = SublistLengthIdeal
+    type Rounded (Sublist a) = SublistLength
     balancedApportionOrder = (<=)
-    balancedApportionToExact = fromIntegral . length
-    balancedApportionToExactWeight = fromIntegral . length
-    balancedApportionToRounded = fromIntegral . length
-
---------------------------------------------------------------------------------
--- Instances: Set a
---------------------------------------------------------------------------------
-
-instance Ord a => Apportion (Set a) where
-    type Weight (Set a) = Sum Natural
-    apportion as ws = fromList <$> apportion (toList as) ws
-
-instance Ord a => BalancedApportion (Set a) where
-    type Exact (Set a) = Sum (Ratio Natural)
-    type Rounded (Set a) = Sum Natural
-    balancedApportionOrder = (<=)
-    balancedApportionToExact = fromIntegral . length
-    balancedApportionToExactWeight = fromIntegral . length
-    balancedApportionToRounded = fromIntegral . length
+    balancedApportionToExact (Sublist a) =
+        SublistLengthIdeal $ fromIntegral $ length a
+    balancedApportionToExactWeight (SublistLength a) =
+        fromIntegral a
+    balancedApportionToRounded (Sublist a) =
+        SublistLength $ fromIntegral $ length a
 
 --------------------------------------------------------------------------------
 -- Roundable
