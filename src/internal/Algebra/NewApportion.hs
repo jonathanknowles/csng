@@ -26,6 +26,8 @@ import Data.Semialign
     ( Semialign (..), Zip (..) )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
+import Data.Strict.Set
+    ( Set )
 import Data.These
     ( These (..) )
 import Numeric.Natural
@@ -34,9 +36,10 @@ import Numeric.Natural
 import Prelude hiding
     ( last, zip, zipWith )
 
+import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.List as L
 import qualified Data.List.NonEmpty.Extended as NE
-import qualified Algebra.Apportion.Natural as Natural
+import qualified Data.Strict.Set as Set
 
 --------------------------------------------------------------------------------
 -- Partition
@@ -245,9 +248,7 @@ newtype SublistLengthIdeal = SublistLengthIdeal
         via Sum (Ratio Natural)
 
 instance Eq a => Apportion (Sublist a) where
-
     type Weight (Sublist a) = SublistLength
-
     apportionMaybe (Sublist as) ws = do
         chunkLengths <- maybeChunkLengths
         Just $ NE.unfoldr makeChunk (chunkLengths, Sublist as)
@@ -268,7 +269,7 @@ instance Eq a => Apportion (Sublist a) where
           where
             (prefix, suffix) = L.splitAt c bs
 
-instance (Eq a, Ord a) => BalancedApportion (Sublist a) where
+instance Ord a => BalancedApportion (Sublist a) where
     type Exact (Sublist a) = SublistLengthIdeal
     balancedApportionOrder = (<=)
     balancedApportionToExact (Sublist a) =
@@ -276,6 +277,39 @@ instance (Eq a, Ord a) => BalancedApportion (Sublist a) where
     balancedApportionToExactWeight (SublistLength a) =
         fromIntegral a
     balancedApportionToRounded (Sublist a) =
+        fromIntegral $ length a
+
+--------------------------------------------------------------------------------
+-- Instances: Subset
+--------------------------------------------------------------------------------
+
+newtype Subset a = Subset
+    {getSubset :: Set a}
+    deriving newtype (Eq, Monoid, Semigroup, Show)
+
+newtype SubsetSize = SubsetSize
+    {getSubsetSize :: Natural}
+    deriving (Eq, Ord, Semigroup) via Sum Natural
+
+newtype SubsetSizeIdeal = SubsetSizeIdeal
+    {getSubsetSizeIdeal :: Ratio Natural}
+    deriving (Apportion, Eq, ExactApportion, Roundable, Semigroup)
+        via Sum (Ratio Natural)
+
+instance Ord a => Apportion (Subset a) where
+    type Weight (Subset a) = SubsetSize
+    apportion as ws = Subset . Set.fromList . getSublist <$> apportion
+        (Sublist $ Set.toList $ getSubset as)
+        (SublistLength . getSubsetSize <$> ws)
+
+instance Ord a => BalancedApportion (Subset a) where
+    type Exact (Subset a) = SubsetSizeIdeal
+    balancedApportionOrder = (<=)
+    balancedApportionToExact (Subset a) =
+        SubsetSizeIdeal $ fromIntegral $ length a
+    balancedApportionToExactWeight (SubsetSize a) =
+        fromIntegral a
+    balancedApportionToRounded (Subset a) =
         fromIntegral $ length a
 
 --------------------------------------------------------------------------------
