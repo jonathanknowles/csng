@@ -99,12 +99,8 @@ apportionLaw_sum a ws =
 -- BalancedApportion
 --------------------------------------------------------------------------------
 
-class
-    ( Apportion a
-    , ExactBalancedApportion (Exact a)
-    , Roundable (Exact a) (Rounded a)
-    ) =>
-    BalancedApportion a
+class (Apportion a, ExactApportion (Exact a), Roundable (Exact a) (Rounded a))
+    => BalancedApportion a
   where
     type Exact a
     type Rounded a
@@ -135,7 +131,7 @@ balancedApportionLowerBound
     => a
     -> NonEmpty (Weight a)
     -> Partition (Rounded a)
-balancedApportionLowerBound a ws = roundD <$> exactBalancedApportion
+balancedApportionLowerBound a ws = roundD <$> exactApportion
     (balancedApportionToExact a)
     (balancedApportionToExactWeight @a <$> ws)
 
@@ -144,7 +140,7 @@ balancedApportionUpperBound
     => a
     -> NonEmpty (Weight a)
     -> Partition (Rounded a)
-balancedApportionUpperBound a ws = roundU <$> exactBalancedApportion
+balancedApportionUpperBound a ws = roundU <$> exactApportion
     (balancedApportionToExact a)
     (balancedApportionToExactWeight @a <$> ws)
 
@@ -180,36 +176,36 @@ balancedApportionLaw_identity_maybe a ws =
     balancedApportionMaybe a ws == apportionMaybe a ws
 
 --------------------------------------------------------------------------------
--- ExactBalancedApportion
+-- ExactApportion
 --------------------------------------------------------------------------------
 
-class Apportion a => ExactBalancedApportion a where
+class Apportion a => ExactApportion a where
 
-    exactBalancedApportion
+    exactApportion
         :: a -> NonEmpty (Weight a) -> Partition a
-    default exactBalancedApportion
+    default exactApportion
         :: a -> NonEmpty (Weight a) -> Partition a
-    exactBalancedApportion = apportion
+    exactApportion = apportion
 
-    exactBalancedApportionMaybe
+    exactApportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    default exactBalancedApportionMaybe
+    default exactApportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    exactBalancedApportionMaybe = apportionMaybe
+    exactApportionMaybe = apportionMaybe
 
-exactBalancedApportionLaw_identity
-    :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-exactBalancedApportionLaw_identity a ws =
-    exactBalancedApportion a ws == apportion a ws
+exactApportionLaw_identity
+    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
+exactApportionLaw_identity a ws =
+    exactApportion a ws == apportion a ws
 
-exactBalancedApportionLaw_identity_maybe
-    :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-exactBalancedApportionLaw_identity_maybe a ws =
-    exactBalancedApportionMaybe a ws == apportionMaybe a ws
+exactApportionLaw_identity_maybe
+    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
+exactApportionLaw_identity_maybe a ws =
+    exactApportionMaybe a ws == apportionMaybe a ws
 
-exactBalancedApportionLaw_folds
-    :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-exactBalancedApportionLaw_folds a ws =
+exactApportionLaw_folds
+    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
+exactApportionLaw_folds a ws =
     folds (partition (apportion a ws)) == (partition . apportion a <$> folds ws)
 
 --------------------------------------------------------------------------------
@@ -227,7 +223,7 @@ instance Apportion (Sum (Ratio Natural)) where
         weightSum = fold1 ws
         mkPortion w = Sum (getSum a * getSum w / getSum weightSum)
 
-instance ExactBalancedApportion (Sum (Ratio Natural))
+instance ExactApportion (Sum (Ratio Natural))
 
 --------------------------------------------------------------------------------
 -- Instances: Sum Natural
@@ -238,6 +234,16 @@ instance Apportion (Sum Natural) where
     type Weight (Sum Natural) = Sum Natural
 
     apportionMaybe = coerce Natural.apportion
+
+instance BalancedApportion (Sum Natural) where
+
+    type Exact (Sum Natural) = Sum (Ratio Natural)
+    type Rounded (Sum Natural) = Sum Natural
+
+    balancedApportionOrdered = (<=)
+    balancedApportionToExact (Sum a) = fromIntegral a
+    balancedApportionToExactWeight (Sum a) = fromIntegral a
+    balancedApportionToRounded (Sum a) = Sum a
 
 --------------------------------------------------------------------------------
 -- Instances: [a]
