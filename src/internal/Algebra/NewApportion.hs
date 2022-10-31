@@ -104,21 +104,20 @@ apportionLaw_sum a ws =
 class
     ( Apportion a
     , ExactApportion (Exact a)
-    , Roundable (Exact a) (Rounded a)
+    , Roundable (Exact a)
     ) =>
     BalancedApportion a
   where
     type Exact a
-    type Rounded a
 
     balancedApportionOrder
-        :: Rounded a -> Rounded a -> Bool
+        :: Rounded (Exact a) -> Rounded (Exact a) -> Bool
     balancedApportionToExact
         :: a -> Exact a
     balancedApportionToExactWeight
         :: Weight a -> Weight (Exact a)
     balancedApportionToRounded
-        :: a -> Rounded a
+        :: a -> Rounded (Exact a)
 
     balancedApportion
         :: a -> NonEmpty (Weight a) -> Partition a
@@ -218,16 +217,11 @@ instance ExactApportion (Sum (Ratio Natural))
 --------------------------------------------------------------------------------
 
 instance Apportion (Sum Natural) where
-
     type Weight (Sum Natural) = Sum Natural
-
     apportionMaybe = coerce Natural.apportion
 
 instance BalancedApportion (Sum Natural) where
-
     type Exact (Sum Natural) = Sum (Ratio Natural)
-    type Rounded (Sum Natural) = Sum Natural
-
     balancedApportionOrder = (<=)
     balancedApportionToExact (Sum a) = fromIntegral a
     balancedApportionToExactWeight (Sum a) = fromIntegral a
@@ -249,12 +243,8 @@ newtype SublistLength = SublistLength
 newtype SublistLengthIdeal = SublistLengthIdeal
     {getSublistLengthIdeal :: Ratio Natural}
     deriving newtype (Eq, Ord)
-    deriving Semigroup via Sum (Ratio Natural)
-    deriving (Apportion, ExactApportion) via Sum (Ratio Natural)
-
-instance Roundable SublistLengthIdeal SublistLength where
-    roundUp   (SublistLengthIdeal a) = SublistLength (roundUp   a)
-    roundDown (SublistLengthIdeal a) = SublistLength (roundDown a)
+    deriving (Apportion, ExactApportion, Roundable, Semigroup)
+        via Sum (Ratio Natural)
 
 instance Eq a => Apportion (Sublist a) where
 
@@ -282,28 +272,30 @@ instance Eq a => Apportion (Sublist a) where
 
 instance (Eq a, Ord a) => BalancedApportion (Sublist a) where
     type Exact (Sublist a) = SublistLengthIdeal
-    type Rounded (Sublist a) = SublistLength
     balancedApportionOrder = (<=)
     balancedApportionToExact (Sublist a) =
         SublistLengthIdeal $ fromIntegral $ length a
     balancedApportionToExactWeight (SublistLength a) =
         fromIntegral a
     balancedApportionToRounded (Sublist a) =
-        SublistLength $ fromIntegral $ length a
+        fromIntegral $ length a
 
 --------------------------------------------------------------------------------
 -- Roundable
 --------------------------------------------------------------------------------
 
-class Roundable a b where
-    roundDown :: a -> b
-    roundUp :: a -> b
+class Roundable a where
+    type Rounded a
+    roundDown :: a -> Rounded a
+    roundUp :: a -> Rounded a
 
-instance Roundable (Ratio Natural) Natural where
+instance Roundable (Ratio Natural) where
+    type Rounded (Ratio Natural) = Natural
     roundDown = floor
     roundUp = ceiling
 
-instance Roundable (Sum (Ratio Natural)) (Sum Natural) where
+instance Roundable (Sum (Ratio Natural)) where
+    type Rounded (Sum (Ratio Natural)) = Sum Natural
     roundDown = fmap floor
     roundUp = fmap ceiling
 

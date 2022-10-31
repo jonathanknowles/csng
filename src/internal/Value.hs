@@ -263,11 +263,13 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         , Semigroup
         )
 
-instance Roundable FractionalCoinValue CoinValue where
+instance Roundable FractionalCoinValue where
+    type Rounded FractionalCoinValue = CoinValue
     roundUp = unpacked ceiling
     roundDown = unpacked floor
 
-instance Ord a => Roundable (FractionalCoin a) (Coin a) where
+instance Ord a => Roundable (FractionalCoin a) where
+    type Rounded (FractionalCoin a) = Coin a
     roundUp = unpacked $ MonoidMap.mapValues roundUp
     roundDown = unpacked $ MonoidMap.mapValues roundDown
 
