@@ -63,22 +63,22 @@ instance Zip Partition where
 -- Apportion
 --------------------------------------------------------------------------------
 
-class (Eq a, Monoid a, Monoid (Weight a)) => Apportion a where
+class (Eq a, Semigroup a, Semigroup (Weight a)) => Apportion a where
 
     type Weight a
 
     apportion
         :: a -> NonEmpty (Weight a) -> Partition a
-    default apportion
-        :: a -> NonEmpty (Weight a) -> Partition a
+    default apportion :: Monoid a
+        => a -> NonEmpty (Weight a) -> Partition a
     apportion a as = case apportionMaybe a as of
         Nothing -> Partition a (mempty <$ as)
         Just bs -> Partition mempty bs
 
     apportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    default apportionMaybe
-        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    default apportionMaybe :: Monoid a
+        => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     apportionMaybe a as = case apportion a as of
        Partition b bs | b == mempty -> Just bs
        _ -> Nothing
