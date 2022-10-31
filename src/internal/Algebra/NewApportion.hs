@@ -131,7 +131,7 @@ balancedApportionLowerBound
     => a
     -> NonEmpty (Weight a)
     -> Partition (Rounded a)
-balancedApportionLowerBound a ws = roundD <$> exactApportion
+balancedApportionLowerBound a ws = roundDown <$> exactApportion
     (balancedApportionToExact a)
     (balancedApportionToExactWeight @a <$> ws)
 
@@ -140,7 +140,7 @@ balancedApportionUpperBound
     => a
     -> NonEmpty (Weight a)
     -> Partition (Rounded a)
-balancedApportionUpperBound a ws = roundU <$> exactApportion
+balancedApportionUpperBound a ws = roundUp <$> exactApportion
     (balancedApportionToExact a)
     (balancedApportionToExactWeight @a <$> ws)
 
@@ -286,16 +286,16 @@ instance (Eq a, Ord a) => BalancedApportion [a] where
 --------------------------------------------------------------------------------
 
 class Roundable a b where
-    roundD :: a -> b
-    roundU :: a -> b
+    roundDown :: a -> b
+    roundUp :: a -> b
 
 instance Roundable (Ratio Natural) Natural where
-    roundD = floor
-    roundU = ceiling
+    roundDown = floor
+    roundUp = ceiling
 
 instance Roundable (Sum (Ratio Natural)) (Sum Natural) where
-    roundD = fmap floor
-    roundU = fmap ceiling
+    roundDown = fmap floor
+    roundUp = fmap ceiling
 
 {-
 --------------------------------------------------------------------------------
