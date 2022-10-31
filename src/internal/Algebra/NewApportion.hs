@@ -1,11 +1,15 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 {- HLINT ignore "Use camelCase" -}
 
 module Algebra.NewApportion
     where
 
+import Data.Coerce
+    ( coerce )
 import Data.Foldable
     ( foldrM )
 import Data.List.NonEmpty.Extended
@@ -28,7 +32,9 @@ import Numeric.Natural
 import Prelude hiding
     ( last, zip, zipWith )
 
+import qualified Data.List as L
 import qualified Data.List.NonEmpty.Extended as NE
+import qualified Algebra.Apportion.Natural as Natural
 
 --------------------------------------------------------------------------------
 -- Partition
@@ -93,9 +99,24 @@ apportionLaw_sum a ws =
 -- BalancedApportion
 --------------------------------------------------------------------------------
 
-class (Apportion a, ExactBalancedApportion (Exact a)) => BalancedApportion a
+class
+    ( Apportion a
+    , ExactBalancedApportion (Exact a)
+    , Roundable (Exact a) (Rounded a)
+    ) =>
+    BalancedApportion a
   where
     type Exact a
+    type Rounded a
+
+    balancedApportionOrdered
+        :: Rounded a -> Rounded a -> Bool
+    balancedApportionToExact
+        :: a -> Exact a
+    balancedApportionToExactWeight
+        :: Weight a -> Weight (Exact a)
+    balancedApportionToRounded
+        :: a -> Rounded a
 
     balancedApportion
         :: a -> NonEmpty (Weight a) -> Partition a
@@ -108,6 +129,45 @@ class (Apportion a, ExactBalancedApportion (Exact a)) => BalancedApportion a
     default balancedApportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     balancedApportionMaybe = apportionMaybe
+
+balancedApportionLowerBound
+    :: forall a. BalancedApportion a
+    => a
+    -> NonEmpty (Weight a)
+    -> Partition (Rounded a)
+balancedApportionLowerBound a ws = roundD <$> exactBalancedApportion
+    (balancedApportionToExact a)
+    (balancedApportionToExactWeight @a <$> ws)
+
+balancedApportionUpperBound
+    :: forall a. BalancedApportion a
+    => a
+    -> NonEmpty (Weight a)
+    -> Partition (Rounded a)
+balancedApportionUpperBound a ws = roundU <$> exactBalancedApportion
+    (balancedApportionToExact a)
+    (balancedApportionToExactWeight @a <$> ws)
+
+balancedApportionRounded
+    :: forall a. BalancedApportion a
+    => a
+    -> NonEmpty (Weight a)
+    -> Partition (Rounded a)
+balancedApportionRounded a ws = balancedApportionToRounded <$> apportion a ws
+
+balancedApportionLaw_lowerBound
+    :: forall a. BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+balancedApportionLaw_lowerBound a ws =
+    and $ zipWith (balancedApportionOrdered @a)
+        (balancedApportionLowerBound a ws)
+        (balancedApportionRounded a ws)
+
+balancedApportionLaw_upperBound
+    :: forall a. BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
+balancedApportionLaw_upperBound a ws =
+    and $ zipWith (balancedApportionOrdered @a)
+        (balancedApportionRounded a ws)
+        (balancedApportionUpperBound a ws)
 
 balancedApportionLaw_identity
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -123,7 +183,7 @@ balancedApportionLaw_identity_maybe a ws =
 -- ExactBalancedApportion
 --------------------------------------------------------------------------------
 
-class BalancedApportion a => ExactBalancedApportion a where
+class Apportion a => ExactBalancedApportion a where
 
     exactBalancedApportion
         :: a -> NonEmpty (Weight a) -> Partition a
@@ -167,10 +227,6 @@ instance Apportion (Sum (Ratio Natural)) where
         weightSum = fold1 ws
         mkPortion w = Sum (getSum a * getSum w / getSum weightSum)
 
-instance BalancedApportion (Sum (Ratio Natural)) where
-
-    type Exact (Sum (Ratio Natural)) = Sum (Ratio Natural)
-
 instance ExactBalancedApportion (Sum (Ratio Natural))
 
 --------------------------------------------------------------------------------
@@ -181,12 +237,43 @@ instance Apportion (Sum Natural) where
 
     type Weight (Sum Natural) = Sum Natural
 
-    apportion = undefined
-    apportionMaybe = undefined
+    apportionMaybe = coerce Natural.apportion
 
-instance BalancedApportion (Sum Natural) where
+--------------------------------------------------------------------------------
+-- Instances: [a]
+--------------------------------------------------------------------------------
 
-    type Exact (Sum Natural) = Sum (Ratio Natural)
+instance Eq a => Apportion [a] where
+
+    type Weight [a] = Sum Natural
+
+    apportionMaybe as ws = do
+        chunkLengths <- maybeChunkLengths
+        Just $ NE.unfoldr makeChunk (chunkLengths, as)
+      where
+        maybeChunkLengths :: Maybe (NonEmpty Int)
+        maybeChunkLengths =
+            fmap (fromIntegral @Natural @Int . getSum) <$>
+            apportionMaybe
+                (Sum $ fromIntegral @Int @Natural $ length as)
+                (fromIntegral . getSum <$> ws)
+
+        makeChunk :: (NonEmpty Int, [a]) -> ([a], Maybe (NonEmpty Int, [a]))
+        makeChunk (c :| mcs, bs) = case NE.nonEmpty mcs of
+            Just cs -> (prefix, Just (cs, suffix))
+            Nothing -> (bs, Nothing)
+          where
+            (prefix, suffix) = L.splitAt c bs
+
+instance (Eq a, Ord a) => BalancedApportion [a] where
+
+    type Exact [a] = Sum (Ratio Natural)
+    type Rounded [a] = Sum Natural
+
+    balancedApportionOrdered = (<=)
+    balancedApportionToExact = fromIntegral . length
+    balancedApportionToExactWeight = fromIntegral . length
+    balancedApportionToRounded = fromIntegral . length
 
 --------------------------------------------------------------------------------
 -- Roundable
