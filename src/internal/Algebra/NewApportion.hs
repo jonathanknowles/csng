@@ -131,12 +131,12 @@ class
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     balancedApportionMaybe = apportionMaybe
 
-balancedApportionBalanced
+balancedApportionIsBalanced
     :: forall a. BalancedApportion a
     => a
     -> NonEmpty (Weight a)
     -> Bool
-balancedApportionBalanced a ws = (&&)
+balancedApportionIsBalanced a ws = (&&)
     (and $ zipWith (balancedApportionOrder @a) lowerBound rounded)
     (and $ zipWith (balancedApportionOrder @a) rounded upperBound)
   where
@@ -150,7 +150,7 @@ balancedApportionBalanced a ws = (&&)
 balancedApportionLaw_balanced
     :: forall a. BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 balancedApportionLaw_balanced =
-    balancedApportionBalanced
+    balancedApportionIsBalanced
 
 balancedApportionLaw_identity
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -228,7 +228,7 @@ instance BalancedApportion (Sum Natural) where
     balancedApportionToRounded (Sum a) = Sum a
 
 --------------------------------------------------------------------------------
--- Instances: [a]
+-- Instances: Sublist
 --------------------------------------------------------------------------------
 
 newtype Sublist a = Sublist
@@ -297,196 +297,6 @@ instance Roundable (Sum (Ratio Natural)) where
     roundDown = fmap floor
     roundUp = fmap ceiling
 
-{-
---------------------------------------------------------------------------------
--- BalancedApportion
---------------------------------------------------------------------------------
-{-
-class
-    ( Apportion a
-    , Roundable (Fraction a) a
-    , Semigroup (Fraction a)
-    ) =>
-    BalancedApportion a
-  where
-    type Fraction a
-    apportionExact :: a -> NonEmpty (Weight a) -> Partition (Fraction a)
-    apportionOrder :: a -> a -> Bool
-
-balancedApportionLaw_length
-    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_length a ws =
-    length (partition (apportionExact a ws)) == length ws
-
-balancedApportionLaw_order_roundD
-    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_order_roundD a ws =
-    zipAll apportionOrder (roundD <$> apportionExact a ws) (apportion a ws)
-
-balancedApportionLaw_order_roundU
-    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_order_roundU a ws =
-    zipAll apportionOrder (apportion a ws) (roundU <$> apportionExact a ws)
-
-balancedApportionLaw_sum_roundD
-    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_sum_roundD a ws =
-    roundD (fold1 (apportionExact a ws)) == a
-
-balancedApportionLaw_sum_roundU
-    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_sum_roundU a ws =
-    roundU (fold1 (apportionExact a ws)) == a
--}
---------------------------------------------------------------------------------
--- Instances: Sum Natural
---------------------------------------------------------------------------------
-{-
-instance Apportion (Sum Natural) where
-    type Weight (Sum Natural) = Natural
-    apportionMaybe (Sum n) = fmap (fmap Sum) . Natural.apportion n-}
-{-
-instance BalancedApportion (Sum Natural) where
-    type Fraction (Sum Natural) = Sum (Ratio Natural)
-    apportionExact (Sum n) ws
-        | total == 0 = Partition (Sum (n % 1)) (Sum (0 % 1)     <$  ws)
-        | otherwise  = Partition (Sum (0 % 1)) (Sum . (% total) <$> ws)
-      where
-        total = sum ws
-    apportionOrder = (<=)
--}
---------------------------------------------------------------------------------
--- Instances: List
---------------------------------------------------------------------------------
-{-
-instance Eq a => Apportion [a] where
-    type Weight [a] = Int
-    apportionMaybe as ws = do
-        chunkLengths <- maybeChunkLengths
-        Just $ NE.unfoldr makeChunk (chunkLengths, as)
-      where
-        maybeChunkLengths :: Maybe (NonEmpty Int)
-        maybeChunkLengths =
-            fmap (fromIntegral @Natural @Int . getSum) <$>
-            apportionMaybe
-                (Sum $ fromIntegral $ length as)
-                (fromIntegral <$> ws)
-
-        makeChunk :: (NonEmpty Int, [a]) -> ([a], Maybe (NonEmpty Int, [a]))
-        makeChunk (c :| mcs, bs) = case NE.nonEmpty mcs of
-            Just cs -> (prefix, Just (cs, suffix))
-            Nothing -> (bs, Nothing)
-          where
-            (prefix, suffix) = L.splitAt c bs
-
-instance Eq a => Apportion [a] where
-    type Weight [a] = Natural
-    apportion = undefined
-    apportionMaybe = undefined
-
-instance Eq a => BalancedApportion [a] where
-    type Fraction [a] = Ratio Natural
-    apportionExact = undefined
--}
---------------------------------------------------------------------------------
--- Instances: Map
---------------------------------------------------------------------------------
-{-
-instance (Ord k, Eq v) => Apportion (Map k v) where
-    type Weight (Map k v) = Map k v
-    apportion = undefined
-    apportionMaybe = undefined
-
-instance (Ord k, Eq v, Roundable (Fraction v)) => BalancedApportion (Map k v) where
-    type Fraction (Map k v) = Fraction v
-    apportionExact = undefined
--}
---------------------------------------------------------------------------------
--- Instances: Map Keys
---------------------------------------------------------------------------------
-{-
-newtype Keys a = Keys
-    { unKeys :: a }
-    deriving newtype (Eq, Monoid, Semigroup, Show)
-
-instance (Ord k, Eq v) => Apportion (Keys (Map k v)) where
-    type Weight (Keys (Map k v)) = Natural
-    apportion = undefined
-    apportionMaybe = undefined
-
-instance (Ord k, Eq v) => BalancedApportion (Keys (Map k v)) where
-    type Fraction (Keys (Map k v)) = Ratio Natural
-    apportionExact = undefined
--}
---------------------------------------------------------------------------------
--- Instances: Map Values
---------------------------------------------------------------------------------
-{-
-newtype Values a = Values
-    { unValues :: a }
-    deriving newtype (Eq, Monoid, Semigroup, Show)
-
-instance (Ord k, Eq v, Apportion v) =>
-    Apportion (Values (Map k v))
-  where
-    type Weight (Values (Map k v)) = Weight v
-    apportion = undefined
-    apportionMaybe = undefined
-
-instance (Ord k, Eq v, BalancedApportion v) =>
-    BalancedApportion (Values (Map k v))
-  where
-    type Fraction (Values (Map k v)) = Fraction v
-    apportionExact = undefined
--}
---------------------------------------------------------------------------------
--- Apportioning with equal weights
---------------------------------------------------------------------------------
-{-
-apportionEqual
-    :: (BalancedApportion a, Integral (Weight a))
-    => a
-    -> NonEmpty void
-    -> NonEmpty a
-apportionEqual _a _ws = undefined -- snd (apportion a (1 <$ ws))
-
-apportionEqualN
-    :: (BalancedApportion a, Integral (Weight a))
-    => a
-    -> Int
-    -> NonEmpty a
-apportionEqualN a n =
-    apportionEqual a (() :| replicate (max 0 (n - 1)) ())
-
-bipartition :: (BalancedApportion a, Integral (Weight a)) => a -> (a, a)
-bipartition = (NE.head &&& NE.last) . flip apportionEqual (() :| [()])
--}
---------------------------------------------------------------------------------
--- Utilities
---------------------------------------------------------------------------------
-
-distanceRatioNatural :: Ratio Natural -> Ratio Natural -> Ratio Natural
-distanceRatioNatural = undefined
-
-naturalToRatio :: Natural -> Ratio Natural
-naturalToRatio = fromIntegral
-
-naturalLength :: Foldable f => f a -> Natural
-naturalLength = fromIntegral @Int @Natural . length
-{-
-apportionEqualMapKeys
-    :: (Ord k, Eq v) => Map k v -> NonEmpty void -> NonEmpty (Map k v)
-apportionEqualMapKeys m ws = unKeys <$> apportionEqual (Keys m) ws
-
-apportionEqualMapValues
-    :: (Ord k, Eq v, BalancedApportion v, Integral (Weight v))
-    => Map k v -> NonEmpty void -> NonEmpty (Map k v)
-apportionEqualMapValues m ws = unValues <$> apportionEqual (Values m) ws
--}
-{-apportionEqualNatural
-    :: Sum Natural -> NonEmpty void -> NonEmpty (Sum Natural)
-apportionEqualNatural = apportionEqual-}
--}
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
