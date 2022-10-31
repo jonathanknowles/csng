@@ -264,12 +264,12 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         )
 
 instance Roundable FractionalCoinValue CoinValue where
-    roundU = unpacked ceiling
-    roundD = unpacked floor
+    roundUp = unpacked ceiling
+    roundDown = unpacked floor
 
 instance Ord a => Roundable (FractionalCoin a) (Coin a) where
-    roundU = unpacked $ MonoidMap.mapValues roundU
-    roundD = unpacked $ MonoidMap.mapValues roundD
+    roundUp = unpacked $ MonoidMap.mapValues roundUp
+    roundDown = unpacked $ MonoidMap.mapValues roundDown
 
 --------------------------------------------------------------------------------
 -- Conversions
