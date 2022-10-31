@@ -85,6 +85,10 @@ class (Eq a, Semigroup a, Semigroup (Weight a)) => Apportion a where
        Partition b bs | b == mempty -> Just bs
        _ -> Nothing
 
+apportionLaw_fold :: Apportion a => a -> NonEmpty (Weight a) -> Bool
+apportionLaw_fold a ws =
+    fold1 (apportion a ws) == a
+
 apportionLaw_length :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_length a ws =
     length (partition (apportion a ws)) == length ws
@@ -92,10 +96,6 @@ apportionLaw_length a ws =
 apportionLaw_maybe :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_maybe a ws =
     isJust (apportionMaybe a ws) == (fold1 (partition (apportion a ws)) == a)
-
-apportionLaw_sum :: Apportion a => a -> NonEmpty (Weight a) -> Bool
-apportionLaw_sum a ws =
-    fold1 (apportion a ws) == a
 
 --------------------------------------------------------------------------------
 -- BalancedApportion
