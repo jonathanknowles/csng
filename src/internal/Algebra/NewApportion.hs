@@ -12,6 +12,8 @@ import Data.Coerce
     ( coerce )
 import Data.Foldable
     ( foldrM )
+import Data.Functor
+    ( (<&>) )
 import Data.List.NonEmpty.Extended
     ( NonEmpty (..) )
 import Data.Maybe
@@ -99,8 +101,12 @@ apportionLaw_sum a ws =
 -- BalancedApportion
 --------------------------------------------------------------------------------
 
-class (Apportion a, ExactApportion (Exact a), Roundable (Exact a) (Rounded a))
-    => BalancedApportion a
+class
+    ( Apportion a
+    , ExactApportion (Exact a)
+    , Roundable (Exact a) (Rounded a)
+    ) =>
+    BalancedApportion a
   where
     type Exact a
     type Rounded a
@@ -126,60 +132,26 @@ class (Apportion a, ExactApportion (Exact a), Roundable (Exact a) (Rounded a))
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     balancedApportionMaybe = apportionMaybe
 
-balancedApportionLowerBound
-    :: forall a. BalancedApportion a
-    => a
-    -> NonEmpty (Weight a)
-    -> Partition (Rounded a)
-balancedApportionLowerBound a ws = roundDown <$> exactApportion
-    (balancedApportionToExact a)
-    (balancedApportionToExactWeight @a <$> ws)
-
-balancedApportionUpperBound
-    :: forall a. BalancedApportion a
-    => a
-    -> NonEmpty (Weight a)
-    -> Partition (Rounded a)
-balancedApportionUpperBound a ws = roundUp <$> exactApportion
-    (balancedApportionToExact a)
-    (balancedApportionToExactWeight @a <$> ws)
-
-balancedApportionLowerBounded
+balancedApportionBalanced
     :: forall a. BalancedApportion a
     => a
     -> NonEmpty (Weight a)
     -> Bool
-balancedApportionLowerBounded a ws =
-    and $ zipWith (balancedApportionOrder @a)
-        (balancedApportionLowerBound a ws)
-        (balancedApportionRounded a ws)
+balancedApportionBalanced a ws = (&&)
+    (and $ zipWith (balancedApportionOrder @a) lowerBound rounded)
+    (and $ zipWith (balancedApportionOrder @a) rounded upperBound)
+  where
+    lowerBound = exact <&> roundDown
+    upperBound = exact <&> roundUp
+    rounded = balancedApportionToRounded <$> apportion a ws
+    exact = exactApportion
+        (balancedApportionToExact a)
+        (balancedApportionToExactWeight @a <$> ws)
 
-balancedApportionUpperBounded
-    :: forall a. BalancedApportion a
-    => a
-    -> NonEmpty (Weight a)
-    -> Bool
-balancedApportionUpperBounded a ws =
-    and $ zipWith (balancedApportionOrder @a)
-        (balancedApportionRounded a ws)
-        (balancedApportionUpperBound a ws)
-
-balancedApportionRounded
-    :: forall a. BalancedApportion a
-    => a
-    -> NonEmpty (Weight a)
-    -> Partition (Rounded a)
-balancedApportionRounded a ws = balancedApportionToRounded <$> apportion a ws
-
-balancedApportionLaw_lowerBounded
+balancedApportionLaw_balanced
     :: forall a. BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_lowerBounded =
-    balancedApportionLowerBounded
-
-balancedApportionLaw_upperBounded
-    :: forall a. BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_upperBounded =
-    balancedApportionUpperBounded
+balancedApportionLaw_balanced =
+    balancedApportionBalanced
 
 balancedApportionLaw_identity
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
