@@ -105,7 +105,7 @@ class (Apportion a, ExactApportion (Exact a), Roundable (Exact a) (Rounded a))
     type Exact a
     type Rounded a
 
-    balancedApportionOrdered
+    balancedApportionOrder
         :: Rounded a -> Rounded a -> Bool
     balancedApportionToExact
         :: a -> Exact a
@@ -144,6 +144,26 @@ balancedApportionUpperBound a ws = roundUp <$> exactApportion
     (balancedApportionToExact a)
     (balancedApportionToExactWeight @a <$> ws)
 
+balancedApportionLowerBounded
+    :: forall a. BalancedApportion a
+    => a
+    -> NonEmpty (Weight a)
+    -> Bool
+balancedApportionLowerBounded a ws =
+    and $ zipWith (balancedApportionOrder @a)
+        (balancedApportionLowerBound a ws)
+        (balancedApportionRounded a ws)
+
+balancedApportionUpperBounded
+    :: forall a. BalancedApportion a
+    => a
+    -> NonEmpty (Weight a)
+    -> Bool
+balancedApportionUpperBounded a ws =
+    and $ zipWith (balancedApportionOrder @a)
+        (balancedApportionRounded a ws)
+        (balancedApportionUpperBound a ws)
+
 balancedApportionRounded
     :: forall a. BalancedApportion a
     => a
@@ -151,19 +171,15 @@ balancedApportionRounded
     -> Partition (Rounded a)
 balancedApportionRounded a ws = balancedApportionToRounded <$> apportion a ws
 
-balancedApportionLaw_lowerBound
+balancedApportionLaw_lowerBounded
     :: forall a. BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_lowerBound a ws =
-    and $ zipWith (balancedApportionOrdered @a)
-        (balancedApportionLowerBound a ws)
-        (balancedApportionRounded a ws)
+balancedApportionLaw_lowerBounded =
+    balancedApportionLowerBounded
 
-balancedApportionLaw_upperBound
+balancedApportionLaw_upperBounded
     :: forall a. BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_upperBound a ws =
-    and $ zipWith (balancedApportionOrdered @a)
-        (balancedApportionRounded a ws)
-        (balancedApportionUpperBound a ws)
+balancedApportionLaw_upperBounded =
+    balancedApportionUpperBounded
 
 balancedApportionLaw_identity
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -240,7 +256,7 @@ instance BalancedApportion (Sum Natural) where
     type Exact (Sum Natural) = Sum (Ratio Natural)
     type Rounded (Sum Natural) = Sum Natural
 
-    balancedApportionOrdered = (<=)
+    balancedApportionOrder = (<=)
     balancedApportionToExact (Sum a) = fromIntegral a
     balancedApportionToExactWeight (Sum a) = fromIntegral a
     balancedApportionToRounded (Sum a) = Sum a
@@ -276,7 +292,7 @@ instance (Eq a, Ord a) => BalancedApportion [a] where
     type Exact [a] = Sum (Ratio Natural)
     type Rounded [a] = Sum Natural
 
-    balancedApportionOrdered = (<=)
+    balancedApportionOrder = (<=)
     balancedApportionToExact = fromIntegral . length
     balancedApportionToExactWeight = fromIntegral . length
     balancedApportionToRounded = fromIntegral . length
