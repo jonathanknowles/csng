@@ -6,6 +6,8 @@
 module Algebra.NewApportion
     where
 
+import Data.Foldable
+    ( foldrM )
 import Data.List.NonEmpty.Extended
     ( NonEmpty (..) )
 import Data.Maybe
@@ -24,31 +26,31 @@ import Numeric.Natural
     ( Natural )
 
 import Prelude hiding
-    ( zip, zipWith )
+    ( last, zip, zipWith )
 
 import qualified Data.List.NonEmpty.Extended as NE
 
 --------------------------------------------------------------------------------
--- Apportionment
+-- Partition
 --------------------------------------------------------------------------------
 
-data Apportionment a = Apportionment
-    { leftover :: a
-    , portions :: NonEmpty a
+data Partition a = Partition
+    { remainder :: a
+    , partition :: NonEmpty a
     }
     deriving stock (Eq, Foldable, Functor, Show)
     deriving anyclass Foldable1
 
-instance Semialign Apportionment where
-    alignWith f a0 a1 = Apportionment
-        { leftover =           f $ These (leftover a0) (leftover a1)
-        , portions = alignWith f         (portions a0) (portions a1)
+instance Semialign Partition where
+    alignWith f a0 a1 = Partition
+        { remainder =           f $ These (remainder a0) (remainder a1)
+        , partition = alignWith f         (partition a0) (partition a1)
         }
 
-instance Zip Apportionment where
-    zipWith f a0 a1 = Apportionment
-        { leftover =         f (leftover a0) (leftover a1)
-        , portions = zipWith f (portions a0) (portions a1)
+instance Zip Partition where
+    zipWith f a0 a1 = Partition
+        { remainder =         f (remainder a0) (remainder a1)
+        , partition = zipWith f (partition a0) (partition a1)
         }
 
 --------------------------------------------------------------------------------
@@ -60,48 +62,28 @@ class (Eq a, Monoid a, Monoid (Weight a)) => Apportion a where
     type Weight a
 
     apportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: a -> NonEmpty (Weight a) -> Partition a
     default apportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: a -> NonEmpty (Weight a) -> Partition a
     apportion a as = case apportionMaybe a as of
-        Nothing -> Apportionment a (mempty <$ as)
-        Just bs -> Apportionment mempty bs
+        Nothing -> Partition a (mempty <$ as)
+        Just bs -> Partition mempty bs
 
     apportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     default apportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     apportionMaybe a as = case apportion a as of
-       Apportionment b bs | b == mempty -> Just bs
+       Partition b bs | b == mempty -> Just bs
        _ -> Nothing
-
-apportionMaybe2
-    :: Apportion a
-    => a
-    -> (Weight a, Weight a)
-    -> Maybe (a, a)
-apportionMaybe2 a (w1, w2) =
-    apportionMaybe a [w1, w2] >>= \case
-        [a1, a2] -> Just (a1, a2)
-        _ -> Nothing
-
-apportionMaybe3
-    :: Apportion a
-    => a
-    -> (Weight a, Weight a, Weight a)
-    -> Maybe (a, a, a)
-apportionMaybe3 a (w1, w2, w3) =
-    apportionMaybe a [w1, w2, w3] >>= \case
-        [a1, a2, a3] -> Just (a1, a2, a3)
-        _ -> Nothing
-
-apportionLaw_leftover :: Apportion a => a -> NonEmpty (Weight a) -> Bool
-apportionLaw_leftover a ws =
-    isJust (apportionMaybe a ws) == (fold1 (portions (apportion a ws)) == a)
 
 apportionLaw_length :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_length a ws =
-    length (portions (apportion a ws)) == length ws
+    length (partition (apportion a ws)) == length ws
+
+apportionLaw_maybe :: Apportion a => a -> NonEmpty (Weight a) -> Bool
+apportionLaw_maybe a ws =
+    isJust (apportionMaybe a ws) == (fold1 (partition (apportion a ws)) == a)
 
 apportionLaw_sum :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_sum a ws =
@@ -116,9 +98,9 @@ class (Apportion a, ExactBalancedApportion (Exact a)) => BalancedApportion a
     type Exact a
 
     balancedApportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: a -> NonEmpty (Weight a) -> Partition a
     default balancedApportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: a -> NonEmpty (Weight a) -> Partition a
     balancedApportion = apportion
 
     balancedApportionMaybe
@@ -144,9 +126,9 @@ balancedApportionLaw_identity_maybe a ws =
 class BalancedApportion a => ExactBalancedApportion a where
 
     exactBalancedApportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: a -> NonEmpty (Weight a) -> Partition a
     default exactBalancedApportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: a -> NonEmpty (Weight a) -> Partition a
     exactBalancedApportion = apportion
 
     exactBalancedApportionMaybe
@@ -168,12 +150,7 @@ exactBalancedApportionLaw_identity_maybe a ws =
 exactBalancedApportionLaw_folds
     :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 exactBalancedApportionLaw_folds a ws =
-    folds (portions (apportion a ws)) == (portions . apportion a <$> folds ws)
-
-exactBalancedApportionLaw_splits
-    :: ExactBalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-exactBalancedApportionLaw_splits a ws =
-    traverse (fmap mid . apportionMaybe3 a) (splits ws) == apportionMaybe a ws
+    folds (partition (apportion a ws)) == (partition . apportion a <$> folds ws)
 
 --------------------------------------------------------------------------------
 -- Instances: Sum (Ratio Natural)
@@ -240,13 +217,13 @@ class
     BalancedApportion a
   where
     type Fraction a
-    apportionExact :: a -> NonEmpty (Weight a) -> Apportionment (Fraction a)
+    apportionExact :: a -> NonEmpty (Weight a) -> Partition (Fraction a)
     apportionOrder :: a -> a -> Bool
 
 balancedApportionLaw_length
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
 balancedApportionLaw_length a ws =
-    length (portions (apportionExact a ws)) == length ws
+    length (partition (apportionExact a ws)) == length ws
 
 balancedApportionLaw_order_roundD
     :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -279,8 +256,8 @@ instance Apportion (Sum Natural) where
 instance BalancedApportion (Sum Natural) where
     type Fraction (Sum Natural) = Sum (Ratio Natural)
     apportionExact (Sum n) ws
-        | total == 0 = Apportionment (Sum (n % 1)) (Sum (0 % 1)     <$  ws)
-        | otherwise  = Apportionment (Sum (0 % 1)) (Sum . (% total) <$> ws)
+        | total == 0 = Partition (Sum (n % 1)) (Sum (0 % 1)     <$  ws)
+        | otherwise  = Partition (Sum (0 % 1)) (Sum . (% total) <$> ws)
       where
         total = sum ws
     apportionOrder = (<=)
@@ -421,17 +398,14 @@ apportionEqualNatural = apportionEqual-}
 -- Utilities
 --------------------------------------------------------------------------------
 
-mid :: (l, m, r) -> m
-mid (_, m, _) = m
-
 folds :: Semigroup a => NonEmpty a -> [NonEmpty a]
-folds = undefined
-
-splits :: Monoid a => NonEmpty a -> NonEmpty (a, a, a)
-splits as = NE.zip3 ls as rs
+folds ws = case NE.splitLast ws of
+    Just (prefix, last) ->
+        foldrM acc (NE.singleton last) prefix
+    Nothing ->
+        [ws]
   where
-    ls = NE.scanl (<>) mempty as
-    rs = NE.scanr (<>) mempty (NE.tail as)
+    acc a (x :| xs) = [a <> x :| xs, a :| x : xs]
 
 zipAll :: (Foldable t, Zip t) => (a -> b -> Bool) -> t a -> t b -> Bool
 zipAll f xs ys = all (uncurry f) (zip xs ys)
