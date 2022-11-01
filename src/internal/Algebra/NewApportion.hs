@@ -1,6 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {- HLINT ignore "Use camelCase" -}
@@ -14,6 +13,8 @@ import Data.Coerce
     ( coerce )
 import Data.Foldable
     ( foldrM )
+import Data.List.Fraction
+    ( ListFraction )
 import Data.List.NonEmpty.Extended
     ( NonEmpty (..) )
 import Data.Maybe
@@ -26,8 +27,6 @@ import Data.Semialign
     ( Semialign (..), Zip (..) )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
-import Data.Strict.Set
-    ( Set )
 import Data.These
     ( These (..) )
 import Numeric.Natural
@@ -37,9 +36,7 @@ import Prelude hiding
     ( last, zip, zipWith )
 
 import qualified Algebra.Apportion.Natural as Natural
-import qualified Data.List as L
 import qualified Data.List.NonEmpty.Extended as NE
-import qualified Data.Strict.Set as Set
 
 --------------------------------------------------------------------------------
 -- Partition
@@ -108,13 +105,14 @@ class
     ( Apportion a
     , ExactApportion (Exact a)
     , ExactBounded (Exact a) a
+    , ExactBounded (Weight (Exact a)) (Weight a)
     ) =>
     BoundedApportion a
   where
     type Exact a
 
     boundedApportionOrder
-        :: Exact a -> Exact a -> Bool
+        :: a -> a -> Bool
 
     boundedApportion
         :: a -> NonEmpty (Weight a) -> Partition a
@@ -128,27 +126,46 @@ class
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     boundedApportionMaybe = apportionMaybe
 
-boundedApportionIsBalanced
+boundedApportionIsBounded
     :: forall a. BoundedApportion a
     => a
     -> NonEmpty (Weight a)
     -> Bool
-boundedApportionIsBalanced = undefined {-a ws = (&&)
-    (and $ zipWith (boundedApportionOrder @a) toLowerBound' rounded)
-    (and $ zipWith (boundedApportionOrder @a) rounded toUpperBound')
+boundedApportionIsBounded a ws = (&&)
+    isLowerBounded
+    isUpperBounded
   where
-    toLowerBound' = exact <&> toLowerBound
-    toUpperBound' = exact <&> toUpperBound
-    rounded = boundedApportionToRounded <$> apportion a ws
-    exact = exactApportion
-        (boundedApportionToExact a)
-        (boundedApportionToExactWeight @a <$> ws)
--}
+    isLowerBounded = and $ zipWith boundedApportionOrder
+        (boundedApportionLowerBound a ws)
+        (boundedApportion a ws)
+    isUpperBounded = and $ zipWith boundedApportionOrder
+        (boundedApportion a ws)
+        (boundedApportionUpperBound a ws)
 
-boundedApportionLaw_balanced
-    :: forall a. BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
-boundedApportionLaw_balanced =
-    boundedApportionIsBalanced
+boundedApportionIsExact
+    :: forall a. BoundedApportion a
+    => a
+    -> NonEmpty (Weight a)
+    -> Bool
+boundedApportionIsExact a ws = (==)
+    (boundedApportionLowerBound a ws)
+    (boundedApportionUpperBound a ws)
+
+boundedApportionLowerBound
+    :: forall a. BoundedApportion a
+    => a
+    -> NonEmpty (Weight a)
+    -> Partition a
+boundedApportionLowerBound a ws =
+    toLowerBound <$> exactApportion (toExact a) (toExact <$> ws)
+
+boundedApportionUpperBound
+    :: forall a. BoundedApportion a
+    => a
+    -> NonEmpty (Weight a)
+    -> Partition a
+boundedApportionUpperBound a ws =
+    toUpperBound <$> exactApportion (toExact a) (toExact <$> ws)
 
 boundedApportionLaw_identity
     :: BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -159,6 +176,11 @@ boundedApportionLaw_identity_maybe
     :: BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
 boundedApportionLaw_identity_maybe a ws =
     boundedApportionMaybe a ws == apportionMaybe a ws
+
+boundedApportionLaw_isBounded
+    :: forall a. BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
+boundedApportionLaw_isBounded =
+    boundedApportionIsBounded
 
 --------------------------------------------------------------------------------
 -- ExactApportion
@@ -198,9 +220,7 @@ exactApportionLaw_folds a ws =
 --------------------------------------------------------------------------------
 
 instance Apportion (Sum (Ratio Natural)) where
-
     type Weight (Sum (Ratio Natural)) = Sum (Ratio Natural)
-
     apportionMaybe a ws
         | weightSum == mempty = Nothing
         | otherwise = Just (mkPortion <$> ws)
@@ -218,27 +238,23 @@ instance Apportion (Sum Natural) where
     type Weight (Sum Natural) = Sum Natural
     apportionMaybe = coerce Natural.apportion
 
-{-instance BoundedApportion (Sum Natural) where
+instance BoundedApportion (Sum Natural) where
+    type Exact (Sum Natural) = Sum (Ratio Natural)
     boundedApportionOrder = (<=)
--}
+
 --------------------------------------------------------------------------------
 -- Instances: Sublist
 --------------------------------------------------------------------------------
 
-newtype Sublist a = Sublist
-    {getSublist :: [a]}
-    deriving newtype (Eq, Monoid, Semigroup, Show)
+newtype Length a = Length
+    {getLength :: a}
+    deriving stock (Eq, Show)
 
-newtype SublistLength = SublistLength
-    {getSublistLength :: Natural}
-    deriving (Eq, Ord, Semigroup) via Sum Natural
+deriving newtype instance Eq a => Semigroup (Length (ListFraction a))
+deriving newtype instance Eq a => Monoid (Length (ListFraction a))
 
-newtype SublistLengthIdeal = SublistLengthIdeal
-    {getSublistLengthIdeal :: Ratio Natural}
-    deriving (Apportion, Eq, ExactApportion, Semigroup)
-        via Sum (Ratio Natural)
-
-instance Eq a => Apportion (Sublist a) where
+{-
+instance Eq a => Apportion (SublistLength [a]) where
     type Weight (Sublist a) = SublistLength
     apportionMaybe (Sublist as) ws = do
         chunkLengths <- maybeChunkLengths
@@ -259,36 +275,11 @@ instance Eq a => Apportion (Sublist a) where
             Nothing -> (Sublist bs, Nothing)
           where
             (prefix, suffix) = L.splitAt c bs
-
+-}
 {-instance Ord a => BoundedApportion (Sublist a) where
     boundedApportionOrder = (<=)
 -}
---------------------------------------------------------------------------------
--- Instances: Subset
---------------------------------------------------------------------------------
 
-newtype Subset a = Subset
-    {getSubset :: Set a}
-    deriving newtype (Eq, Monoid, Semigroup, Show)
-
-newtype SubsetSize = SubsetSize
-    {getSubsetSize :: Natural}
-    deriving (Eq, Ord, Semigroup) via Sum Natural
-
-newtype SubsetSizeIdeal = SubsetSizeIdeal
-    {getSubsetSizeIdeal :: Ratio Natural}
-    deriving (Apportion, Eq, ExactApportion, Semigroup)
-        via Sum (Ratio Natural)
-
-instance Ord a => Apportion (Subset a) where
-    type Weight (Subset a) = SubsetSize
-    apportion as ws = Subset . Set.fromList . getSublist <$> apportion
-        (Sublist $ Set.toList $ getSubset as)
-        (SublistLength . getSubsetSize <$> ws)
-{-
-instance Ord a => BoundedApportion (Subset a) where
-    boundedApportionOrder = (<=)
--}
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
