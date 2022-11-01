@@ -31,10 +31,10 @@ import Data.These
 import Numeric.Natural
     ( Natural )
 import Roundable
-    ( HasFraction (..) )
+    ( Fractional (..) )
 
 import Prelude hiding
-    ( last, zip, zipWith )
+    ( Fractional, last, zip, zipWith )
 
 import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.List as L
@@ -106,14 +106,15 @@ apportionLaw_maybe a ws =
 
 class
     ( Apportion a
-    , ExactApportion (Fraction a)
-    , HasFraction a
-    , HasFraction (Weight a)
+    , ExactApportion (Exact a)
+    , Fractional a (Exact a)
     ) =>
     BalancedApportion a
   where
+    type Exact a
+
     balancedApportionOrder
-        :: Fraction a -> Fraction a -> Bool
+        :: Exact a -> Exact a -> Bool
 
     balancedApportion
         :: a -> NonEmpty (Weight a) -> Partition a
@@ -217,9 +218,9 @@ instance Apportion (Sum Natural) where
     type Weight (Sum Natural) = Sum Natural
     apportionMaybe = coerce Natural.apportion
 
-instance BalancedApportion (Sum Natural) where
+{-instance BalancedApportion (Sum Natural) where
     balancedApportionOrder = (<=)
-
+-}
 --------------------------------------------------------------------------------
 -- Instances: Sublist
 --------------------------------------------------------------------------------
@@ -230,7 +231,7 @@ newtype Sublist a = Sublist
 
 newtype SublistLength = SublistLength
     {getSublistLength :: Natural}
-    deriving (Eq, HasFraction, Ord, Semigroup) via Sum Natural
+    deriving (Eq, Ord, Semigroup) via Sum Natural
 
 newtype SublistLengthIdeal = SublistLengthIdeal
     {getSublistLengthIdeal :: Ratio Natural}
@@ -272,7 +273,7 @@ newtype Subset a = Subset
 
 newtype SubsetSize = SubsetSize
     {getSubsetSize :: Natural}
-    deriving (Eq, HasFraction, Ord, Semigroup) via Sum Natural
+    deriving (Eq, Ord, Semigroup) via Sum Natural
 
 newtype SubsetSizeIdeal = SubsetSizeIdeal
     {getSubsetSizeIdeal :: Ratio Natural}
