@@ -98,6 +98,39 @@ apportionLaw_maybe a ws =
     isJust (apportionMaybe a ws) == (fold1 (partition (apportion a ws)) == a)
 
 --------------------------------------------------------------------------------
+-- ExactApportion
+--------------------------------------------------------------------------------
+
+class Apportion a => ExactApportion a where
+
+    exactApportion
+        :: a -> NonEmpty (Weight a) -> Partition a
+    default exactApportion
+        :: a -> NonEmpty (Weight a) -> Partition a
+    exactApportion = apportion
+
+    exactApportionMaybe
+        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    default exactApportionMaybe
+        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    exactApportionMaybe = apportionMaybe
+
+exactApportionLaw_identity
+    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
+exactApportionLaw_identity a ws =
+    exactApportion a ws == apportion a ws
+
+exactApportionLaw_identity_maybe
+    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
+exactApportionLaw_identity_maybe a ws =
+    exactApportionMaybe a ws == apportionMaybe a ws
+
+exactApportionLaw_folds
+    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
+exactApportionLaw_folds a ws =
+    folds (partition (apportion a ws)) == (partition . apportion a <$> folds ws)
+
+--------------------------------------------------------------------------------
 -- BoundedApportion
 --------------------------------------------------------------------------------
 
@@ -181,39 +214,6 @@ boundedApportionLaw_isBounded
     :: forall a. BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
 boundedApportionLaw_isBounded =
     boundedApportionIsBounded
-
---------------------------------------------------------------------------------
--- ExactApportion
---------------------------------------------------------------------------------
-
-class Apportion a => ExactApportion a where
-
-    exactApportion
-        :: a -> NonEmpty (Weight a) -> Partition a
-    default exactApportion
-        :: a -> NonEmpty (Weight a) -> Partition a
-    exactApportion = apportion
-
-    exactApportionMaybe
-        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    default exactApportionMaybe
-        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    exactApportionMaybe = apportionMaybe
-
-exactApportionLaw_identity
-    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
-exactApportionLaw_identity a ws =
-    exactApportion a ws == apportion a ws
-
-exactApportionLaw_identity_maybe
-    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
-exactApportionLaw_identity_maybe a ws =
-    exactApportionMaybe a ws == apportionMaybe a ws
-
-exactApportionLaw_folds
-    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
-exactApportionLaw_folds a ws =
-    folds (partition (apportion a ws)) == (partition . apportion a <$> folds ws)
 
 --------------------------------------------------------------------------------
 -- Instances: Sum (Ratio Natural)
