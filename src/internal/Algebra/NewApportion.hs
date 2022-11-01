@@ -233,6 +233,16 @@ instance BalancedApportion (Sum Natural) where
     balancedApportionToRounded (Sum a) = Sum a
 
 --------------------------------------------------------------------------------
+-- Instances: ListFraction
+--------------------------------------------------------------------------------
+
+newtype ListFractionLength = ListFractionLength
+    {getListFractionLength :: Ratio Natural}
+    deriving stock (Eq, Ord)
+    deriving (Apportion, ExactApportion, Roundable, Semigroup)
+        via Sum (Ratio Natural)
+
+--------------------------------------------------------------------------------
 -- Instances: Sublist
 --------------------------------------------------------------------------------
 
