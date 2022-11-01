@@ -58,14 +58,11 @@ import GHC.Generics
 import Numeric.Natural
     ( Natural )
 import Roundable
-    ( Fractional (..) )
+    ( ExactBounded (..) )
 import Test.QuickCheck
     ( Arbitrary )
 import Test.QuickCheck.Instances.Natural
     ()
-
-import Prelude hiding
-    ( Fractional )
 
 import qualified Algebra.Apportion.Balanced as BalancedApportion
 import qualified Data.MonoidMap as MonoidMap
@@ -266,15 +263,15 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         , Semigroup
         )
 
-instance Fractional CoinValue FractionalCoinValue where
-    lowerBound = unpacked floor
-    upperBound = unpacked ceiling
-    toFraction = unpacked (% 1)
+instance ExactBounded FractionalCoinValue CoinValue where
+    toExact = unpacked (% 1)
+    toLowerBound = unpacked floor
+    toUpperBound = unpacked ceiling
 
-instance Ord a => Fractional (Coin a) (FractionalCoin a) where
-    lowerBound = unpacked $ MonoidMap.map lowerBound
-    upperBound = unpacked $ MonoidMap.map upperBound
-    toFraction = unpacked $ MonoidMap.map toFraction
+instance Ord a => ExactBounded (FractionalCoin a) (Coin a) where
+    toExact = unpacked $ MonoidMap.map toExact
+    toLowerBound = unpacked $ MonoidMap.map toLowerBound
+    toUpperBound = unpacked $ MonoidMap.map toUpperBound
 
 --------------------------------------------------------------------------------
 -- Conversions

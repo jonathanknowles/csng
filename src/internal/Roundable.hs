@@ -7,19 +7,17 @@ import Data.Ratio
 import Numeric.Natural
     ( Natural )
 
-import Prelude hiding (Fractional)
+class ExactBounded e b | b -> e, e -> b where
+    toExact :: b -> e
+    toLowerBound :: e -> b
+    toUpperBound :: e -> b
 
-class Fractional a f | a -> f, f -> a where
-    toFraction :: a -> f
-    lowerBound :: f -> a
-    upperBound :: f -> a
+instance ExactBounded (Ratio Natural) Natural where
+    toExact = (% 1)
+    toLowerBound = floor
+    toUpperBound = ceiling
 
-instance Fractional Natural (Ratio Natural) where
-    toFraction = (% 1)
-    lowerBound = floor
-    upperBound = ceiling
-
-instance Fractional (Sum Natural) (Sum (Ratio Natural)) where
-    toFraction = fmap (% 1)
-    lowerBound = fmap floor
-    upperBound = fmap ceiling
+instance ExactBounded (Sum (Ratio Natural)) (Sum Natural) where
+    toExact = fmap (% 1)
+    toLowerBound = fmap floor
+    toUpperBound = fmap ceiling
