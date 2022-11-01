@@ -1,3 +1,6 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{- HLINT ignore "Use camelCase" -}
+
 module Roundable where
 
 import Data.Monoid
@@ -21,3 +24,37 @@ instance ExactBounded (Sum (Ratio Natural)) (Sum Natural) where
     toExact = fmap (% 1)
     toLowerBound = fmap floor
     toUpperBound = fmap ceiling
+
+exactBoundedLaw_toExact_toLowerBound :: (ExactBounded e b, Eq b) => b -> Bool
+exactBoundedLaw_toExact_toLowerBound b =
+    toLowerBound (toExact b) == b
+
+exactBoundedLaw_toExact_toUpperBound :: (ExactBounded e b, Eq b) => b -> Bool
+exactBoundedLaw_toExact_toUpperBound b =
+    toUpperBound (toExact b) == b
+
+exactBoundedLaw_toLowerBound_toUpperBound_equivalence_1
+    :: (ExactBounded e b, Eq e) => e -> Bool
+exactBoundedLaw_toLowerBound_toUpperBound_equivalence_1 e =
+    toExact (toLowerBound e) == e ≡ toExact (toUpperBound e) == e
+
+exactBoundedLaw_toLowerBound_toUpperBound_equivalence_2
+    :: (ExactBounded e b, Eq e) => e -> Bool
+exactBoundedLaw_toLowerBound_toUpperBound_equivalence_2 e =
+    toExact (toLowerBound e) /= e ≡ toExact (toUpperBound e) /= e
+
+--------------------------------------------------------------------------------
+-- Utilities
+--------------------------------------------------------------------------------
+
+-- | Logical implication.
+--
+infixr 0 ⇒
+(⇒) :: Bool -> Bool -> Bool
+a ⇒ b = not a || b
+
+-- | Logical equivalence.
+--
+infixr 0 ≡
+(≡) :: Bool -> Bool -> Bool
+a ≡ b = (a ⇒ b) || (b ⇒ a)
