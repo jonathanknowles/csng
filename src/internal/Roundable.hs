@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilyDependencies #-}
+
 module Roundable where
 
 import Data.Monoid
@@ -7,17 +9,20 @@ import Data.Ratio
 import Numeric.Natural
     ( Natural )
 
-class Roundable a where
-    type Rounded a
-    roundDown :: a -> Rounded a
-    roundUp :: a -> Rounded a
+class HasFraction a where
+    type Fraction a = f | f -> a
+    toFraction :: a -> Fraction a
+    lowerBound :: Fraction a -> a
+    upperBound :: Fraction a -> a
 
-instance Roundable (Ratio Natural) where
-    type Rounded (Ratio Natural) = Natural
-    roundDown = floor
-    roundUp = ceiling
+instance HasFraction Natural where
+    type Fraction Natural = Ratio Natural
+    toFraction = (% 1)
+    lowerBound = floor
+    upperBound = ceiling
 
-instance Roundable (Sum (Ratio Natural)) where
-    type Rounded (Sum (Ratio Natural)) = Sum Natural
-    roundDown = fmap floor
-    roundUp = fmap ceiling
+instance HasFraction (Sum Natural) where
+    type Fraction (Sum Natural) = Sum (Ratio Natural)
+    toFraction = fmap (% 1)
+    lowerBound = fmap floor
+    upperBound = fmap ceiling

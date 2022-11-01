@@ -12,8 +12,6 @@ import Data.Coerce
     ( coerce )
 import Data.Foldable
     ( foldrM )
-import Data.Functor
-    ( (<&>) )
 import Data.List.NonEmpty.Extended
     ( NonEmpty (..) )
 import Data.Maybe
@@ -33,7 +31,7 @@ import Data.These
 import Numeric.Natural
     ( Natural )
 import Roundable
-    ( Roundable (..) )
+    ( HasFraction (..) )
 
 import Prelude hiding
     ( last, zip, zipWith )
@@ -108,21 +106,14 @@ apportionLaw_maybe a ws =
 
 class
     ( Apportion a
-    , ExactApportion (Exact a)
-    , Roundable (Exact a)
+    , ExactApportion (Fraction a)
+    , HasFraction a
+    , HasFraction (Weight a)
     ) =>
     BalancedApportion a
   where
-    type Exact a
-
     balancedApportionOrder
-        :: Rounded (Exact a) -> Rounded (Exact a) -> Bool
-    balancedApportionToExact
-        :: a -> Exact a
-    balancedApportionToExactWeight
-        :: Weight a -> Weight (Exact a)
-    balancedApportionToRounded
-        :: a -> Rounded (Exact a)
+        :: Fraction a -> Fraction a -> Bool
 
     balancedApportion
         :: a -> NonEmpty (Weight a) -> Partition a
@@ -141,16 +132,17 @@ balancedApportionIsBalanced
     => a
     -> NonEmpty (Weight a)
     -> Bool
-balancedApportionIsBalanced a ws = (&&)
-    (and $ zipWith (balancedApportionOrder @a) lowerBound rounded)
-    (and $ zipWith (balancedApportionOrder @a) rounded upperBound)
+balancedApportionIsBalanced = undefined {-a ws = (&&)
+    (and $ zipWith (balancedApportionOrder @a) lowerBound' rounded)
+    (and $ zipWith (balancedApportionOrder @a) rounded upperBound')
   where
-    lowerBound = exact <&> roundDown
-    upperBound = exact <&> roundUp
+    lowerBound' = exact <&> lowerBound
+    upperBound' = exact <&> upperBound
     rounded = balancedApportionToRounded <$> apportion a ws
     exact = exactApportion
         (balancedApportionToExact a)
         (balancedApportionToExactWeight @a <$> ws)
+-}
 
 balancedApportionLaw_balanced
     :: forall a. BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -226,21 +218,7 @@ instance Apportion (Sum Natural) where
     apportionMaybe = coerce Natural.apportion
 
 instance BalancedApportion (Sum Natural) where
-    type Exact (Sum Natural) = Sum (Ratio Natural)
     balancedApportionOrder = (<=)
-    balancedApportionToExact (Sum a) = fromIntegral a
-    balancedApportionToExactWeight (Sum a) = fromIntegral a
-    balancedApportionToRounded (Sum a) = Sum a
-
---------------------------------------------------------------------------------
--- Instances: ListFraction
---------------------------------------------------------------------------------
-
-newtype ListFractionLength = ListFractionLength
-    {getListFractionLength :: Ratio Natural}
-    deriving stock (Eq, Ord)
-    deriving (Apportion, ExactApportion, Roundable, Semigroup)
-        via Sum (Ratio Natural)
 
 --------------------------------------------------------------------------------
 -- Instances: Sublist
@@ -252,11 +230,11 @@ newtype Sublist a = Sublist
 
 newtype SublistLength = SublistLength
     {getSublistLength :: Natural}
-    deriving (Eq, Ord, Semigroup) via Sum Natural
+    deriving (Eq, HasFraction, Ord, Semigroup) via Sum Natural
 
 newtype SublistLengthIdeal = SublistLengthIdeal
     {getSublistLengthIdeal :: Ratio Natural}
-    deriving (Apportion, Eq, ExactApportion, Roundable, Semigroup)
+    deriving (Apportion, Eq, ExactApportion, Semigroup)
         via Sum (Ratio Natural)
 
 instance Eq a => Apportion (Sublist a) where
@@ -281,16 +259,9 @@ instance Eq a => Apportion (Sublist a) where
           where
             (prefix, suffix) = L.splitAt c bs
 
-instance Ord a => BalancedApportion (Sublist a) where
-    type Exact (Sublist a) = SublistLengthIdeal
+{-instance Ord a => BalancedApportion (Sublist a) where
     balancedApportionOrder = (<=)
-    balancedApportionToExact (Sublist a) =
-        SublistLengthIdeal $ fromIntegral $ length a
-    balancedApportionToExactWeight (SublistLength a) =
-        fromIntegral a
-    balancedApportionToRounded (Sublist a) =
-        fromIntegral $ length a
-
+-}
 --------------------------------------------------------------------------------
 -- Instances: Subset
 --------------------------------------------------------------------------------
@@ -301,11 +272,11 @@ newtype Subset a = Subset
 
 newtype SubsetSize = SubsetSize
     {getSubsetSize :: Natural}
-    deriving (Eq, Ord, Semigroup) via Sum Natural
+    deriving (Eq, HasFraction, Ord, Semigroup) via Sum Natural
 
 newtype SubsetSizeIdeal = SubsetSizeIdeal
     {getSubsetSizeIdeal :: Ratio Natural}
-    deriving (Apportion, Eq, ExactApportion, Roundable, Semigroup)
+    deriving (Apportion, Eq, ExactApportion, Semigroup)
         via Sum (Ratio Natural)
 
 instance Ord a => Apportion (Subset a) where
@@ -313,17 +284,10 @@ instance Ord a => Apportion (Subset a) where
     apportion as ws = Subset . Set.fromList . getSublist <$> apportion
         (Sublist $ Set.toList $ getSubset as)
         (SublistLength . getSubsetSize <$> ws)
-
+{-
 instance Ord a => BalancedApportion (Subset a) where
-    type Exact (Subset a) = SubsetSizeIdeal
     balancedApportionOrder = (<=)
-    balancedApportionToExact (Subset a) =
-        SubsetSizeIdeal $ fromIntegral $ length a
-    balancedApportionToExactWeight (SubsetSize a) =
-        fromIntegral a
-    balancedApportionToRounded (Subset a) =
-        fromIntegral $ length a
-
+-}
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------

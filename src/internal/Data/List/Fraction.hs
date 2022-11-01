@@ -1,9 +1,9 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Data.List.Fraction
     ( ListFraction
     , fromList
     , length
-    , roundDown
-    , roundUp
     , drop
     , take
     , splitAt
@@ -21,7 +21,7 @@ import Data.Ratio
 import Numeric.Natural
     ( Natural )
 import Roundable
-    ( Roundable (..) )
+    ( HasFraction (..) )
 
 import Prelude hiding
     ( drop, fromList, length, splitAt, take )
@@ -35,13 +35,14 @@ instance Eq a => Semigroup (ListFraction a) where
 instance Eq a => Monoid (ListFraction a) where
     mempty = ListFraction mempty
 
-instance Roundable (ListFraction a) where
-    type Rounded (ListFraction a) = [a]
-    roundUp (ListFraction as) = do
-        (a, n) <- fmap roundUp <$> as
+instance Eq a => HasFraction [a] where
+    type Fraction [a] = ListFraction a
+    toFraction = fromList
+    lowerBound (ListFraction as) = do
+        (a, n) <- fmap lowerBound <$> as
         replicate (fromIntegral n) a
-    roundDown (ListFraction as) = do
-        (a, n) <- fmap roundDown <$> as
+    upperBound (ListFraction as) = do
+        (a, n) <- fmap upperBound <$> as
         replicate (fromIntegral n) a
 
 coalesce :: forall a. Eq a => ListFraction a -> ListFraction a
