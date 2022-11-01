@@ -21,10 +21,10 @@ import Data.Ratio
 import Numeric.Natural
     ( Natural )
 import Roundable
-    ( Fractional (..) )
+    ( ExactBounded (..) )
 
 import Prelude hiding
-    ( Fractional, drop, fromList, length, splitAt, take )
+    ( drop, fromList, length, splitAt, take )
 
 newtype ListFraction a = ListFraction [(a, Ratio Natural)]
     deriving (Eq, Show)
@@ -35,13 +35,13 @@ instance Eq a => Semigroup (ListFraction a) where
 instance Eq a => Monoid (ListFraction a) where
     mempty = ListFraction mempty
 
-instance Eq a => Fractional [a] (ListFraction a) where
-    toFraction = fromList
-    lowerBound (ListFraction as) = do
-        (a, n) <- fmap lowerBound <$> as
+instance Eq a => ExactBounded (ListFraction a) [a] where
+    toExact = fromList
+    toLowerBound (ListFraction as) = do
+        (a, n) <- fmap toLowerBound <$> as
         replicate (fromIntegral n) a
-    upperBound (ListFraction as) = do
-        (a, n) <- fmap upperBound <$> as
+    toUpperBound (ListFraction as) = do
+        (a, n) <- fmap toUpperBound <$> as
         replicate (fromIntegral n) a
 
 coalesce :: forall a. Eq a => ListFraction a -> ListFraction a

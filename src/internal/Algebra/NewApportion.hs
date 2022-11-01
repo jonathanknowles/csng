@@ -31,10 +31,10 @@ import Data.These
 import Numeric.Natural
     ( Natural )
 import Roundable
-    ( Fractional (..) )
+    ( ExactBounded (..) )
 
 import Prelude hiding
-    ( Fractional, last, zip, zipWith )
+    ( last, zip, zipWith )
 
 import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.List as L
@@ -101,64 +101,64 @@ apportionLaw_maybe a ws =
     isJust (apportionMaybe a ws) == (fold1 (partition (apportion a ws)) == a)
 
 --------------------------------------------------------------------------------
--- BalancedApportion
+-- BoundedApportion
 --------------------------------------------------------------------------------
 
 class
     ( Apportion a
     , ExactApportion (Exact a)
-    , Fractional a (Exact a)
+    , ExactBounded (Exact a) a
     ) =>
-    BalancedApportion a
+    BoundedApportion a
   where
     type Exact a
 
-    balancedApportionOrder
+    boundedApportionOrder
         :: Exact a -> Exact a -> Bool
 
-    balancedApportion
+    boundedApportion
         :: a -> NonEmpty (Weight a) -> Partition a
-    default balancedApportion
+    default boundedApportion
         :: a -> NonEmpty (Weight a) -> Partition a
-    balancedApportion = apportion
+    boundedApportion = apportion
 
-    balancedApportionMaybe
+    boundedApportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    default balancedApportionMaybe
+    default boundedApportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    balancedApportionMaybe = apportionMaybe
+    boundedApportionMaybe = apportionMaybe
 
-balancedApportionIsBalanced
-    :: forall a. BalancedApportion a
+boundedApportionIsBalanced
+    :: forall a. BoundedApportion a
     => a
     -> NonEmpty (Weight a)
     -> Bool
-balancedApportionIsBalanced = undefined {-a ws = (&&)
-    (and $ zipWith (balancedApportionOrder @a) lowerBound' rounded)
-    (and $ zipWith (balancedApportionOrder @a) rounded upperBound')
+boundedApportionIsBalanced = undefined {-a ws = (&&)
+    (and $ zipWith (boundedApportionOrder @a) toLowerBound' rounded)
+    (and $ zipWith (boundedApportionOrder @a) rounded toUpperBound')
   where
-    lowerBound' = exact <&> lowerBound
-    upperBound' = exact <&> upperBound
-    rounded = balancedApportionToRounded <$> apportion a ws
+    toLowerBound' = exact <&> toLowerBound
+    toUpperBound' = exact <&> toUpperBound
+    rounded = boundedApportionToRounded <$> apportion a ws
     exact = exactApportion
-        (balancedApportionToExact a)
-        (balancedApportionToExactWeight @a <$> ws)
+        (boundedApportionToExact a)
+        (boundedApportionToExactWeight @a <$> ws)
 -}
 
-balancedApportionLaw_balanced
-    :: forall a. BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_balanced =
-    balancedApportionIsBalanced
+boundedApportionLaw_balanced
+    :: forall a. BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
+boundedApportionLaw_balanced =
+    boundedApportionIsBalanced
 
-balancedApportionLaw_identity
-    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_identity a ws =
-    balancedApportion a ws == apportion a ws
+boundedApportionLaw_identity
+    :: BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
+boundedApportionLaw_identity a ws =
+    boundedApportion a ws == apportion a ws
 
-balancedApportionLaw_identity_maybe
-    :: BalancedApportion a => a -> NonEmpty (Weight a) -> Bool
-balancedApportionLaw_identity_maybe a ws =
-    balancedApportionMaybe a ws == apportionMaybe a ws
+boundedApportionLaw_identity_maybe
+    :: BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
+boundedApportionLaw_identity_maybe a ws =
+    boundedApportionMaybe a ws == apportionMaybe a ws
 
 --------------------------------------------------------------------------------
 -- ExactApportion
@@ -218,8 +218,8 @@ instance Apportion (Sum Natural) where
     type Weight (Sum Natural) = Sum Natural
     apportionMaybe = coerce Natural.apportion
 
-{-instance BalancedApportion (Sum Natural) where
-    balancedApportionOrder = (<=)
+{-instance BoundedApportion (Sum Natural) where
+    boundedApportionOrder = (<=)
 -}
 --------------------------------------------------------------------------------
 -- Instances: Sublist
@@ -260,8 +260,8 @@ instance Eq a => Apportion (Sublist a) where
           where
             (prefix, suffix) = L.splitAt c bs
 
-{-instance Ord a => BalancedApportion (Sublist a) where
-    balancedApportionOrder = (<=)
+{-instance Ord a => BoundedApportion (Sublist a) where
+    boundedApportionOrder = (<=)
 -}
 --------------------------------------------------------------------------------
 -- Instances: Subset
@@ -286,8 +286,8 @@ instance Ord a => Apportion (Subset a) where
         (Sublist $ Set.toList $ getSubset as)
         (SublistLength . getSubsetSize <$> ws)
 {-
-instance Ord a => BalancedApportion (Subset a) where
-    balancedApportionOrder = (<=)
+instance Ord a => BoundedApportion (Subset a) where
+    boundedApportionOrder = (<=)
 -}
 --------------------------------------------------------------------------------
 -- Utilities
