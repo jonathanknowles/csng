@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {- HLINT ignore "Use camelCase" -}
 
-module Roundable where
+module Algebra.ExactBounded where
 
 import Data.Monoid
     ( Sum )
@@ -25,11 +25,13 @@ instance ExactBounded (Sum (Ratio Natural)) (Sum Natural) where
     toLowerBound = fmap floor
     toUpperBound = fmap ceiling
 
-exactBoundedLaw_toExact_toLowerBound :: (ExactBounded e b, Eq b) => b -> Bool
+exactBoundedLaw_toExact_toLowerBound
+    :: (ExactBounded e b, Eq b) => b -> Bool
 exactBoundedLaw_toExact_toLowerBound b =
     toLowerBound (toExact b) == b
 
-exactBoundedLaw_toExact_toUpperBound :: (ExactBounded e b, Eq b) => b -> Bool
+exactBoundedLaw_toExact_toUpperBound
+    :: (ExactBounded e b, Eq b) => b -> Bool
 exactBoundedLaw_toExact_toUpperBound b =
     toUpperBound (toExact b) == b
 

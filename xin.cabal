@@ -118,6 +118,7 @@ library internal
         Algebra.Apportion
         Algebra.Apportion.Balanced
         Algebra.Apportion.Natural
+        Algebra.ExactBounded
         Algebra.NewApportion
         AsList
         Change
@@ -127,7 +128,6 @@ library internal
         Data.List.NonEmpty.Extended
         Data.Monoid.Monus.Extended
         Value
-        Roundable
         Wrapped
     default-language:
         Haskell2010

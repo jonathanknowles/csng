@@ -20,6 +20,8 @@ import Algebra.Apportion
     ( Apportion (..) )
 import Algebra.Apportion.Balanced
     ( BalancedApportion (..) )
+import Algebra.ExactBounded
+    ( ExactBounded (..) )
 import AsList
     ( AsList (..), asList )
 import Generic.Data
@@ -57,8 +59,6 @@ import GHC.Generics
     ( Generic )
 import Numeric.Natural
     ( Natural )
-import Roundable
-    ( ExactBounded (..) )
 import Test.QuickCheck
     ( Arbitrary )
 import Test.QuickCheck.Instances.Natural
