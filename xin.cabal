@@ -123,9 +123,11 @@ library internal
         Change
         Data.Foldable.Extended
         Data.Function.Extended
+        Data.List.Fraction
         Data.List.NonEmpty.Extended
         Data.Monoid.Monus.Extended
         Value
+        Roundable
         Wrapped
     default-language:
         Haskell2010
