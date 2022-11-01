@@ -1,8 +1,12 @@
 module Data.List.Fraction
     ( ListFraction
     , fromList
+    , length
     , roundDown
     , roundUp
+    , drop
+    , take
+    , splitAt
     )
     where
 
@@ -20,7 +24,7 @@ import Roundable
     ( Roundable (..) )
 
 import Prelude hiding
-    ( fromList )
+    ( drop, fromList, length, splitAt, take )
 
 newtype ListFraction a = ListFraction [(a, Ratio Natural)]
     deriving (Eq, Show)
@@ -54,3 +58,25 @@ coalesce (ListFraction as) = ListFraction (labels `zip` totals)
 
 fromList :: Eq a => [a] -> ListFraction a
 fromList = coalesce . ListFraction . fmap (, 1)
+
+length :: ListFraction a -> Ratio Natural
+length (ListFraction as) = getSum $ foldMap (Sum . snd) as
+
+drop :: Ratio Natural -> ListFraction a -> ListFraction a
+drop r0 (ListFraction f0) = ListFraction (dropInner r0 f0)
+  where
+    dropInner r ((a, s) : as)
+        | r > s = dropInner (r - s) as
+        | otherwise = (a, s - r) : as
+    dropInner _ [] = []
+
+take :: Ratio Natural -> ListFraction a -> ListFraction a
+take r0 (ListFraction f0) = ListFraction (takeInner r0 f0)
+  where
+    takeInner r ((a, s) : as)
+        | r > s = (a, s) : takeInner (r - s) as
+        | otherwise = [(a, r)]
+    takeInner _ [] = []
+
+splitAt :: Ratio Natural -> ListFraction a -> (ListFraction a, ListFraction a)
+splitAt r f = (take r f, drop r f)
