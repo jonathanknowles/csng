@@ -10,6 +10,8 @@ module Data.List.Fraction
     )
     where
 
+import Algebra.ExactBounded
+    ( ExactBounded (..) )
 import Data.Function
     ( on )
 import Data.List
@@ -20,8 +22,6 @@ import Data.Ratio
     ( Ratio )
 import Numeric.Natural
     ( Natural )
-import Roundable
-    ( ExactBounded (..) )
 
 import Prelude hiding
     ( drop, fromList, length, splitAt, take )

@@ -8,6 +8,8 @@
 module Algebra.NewApportion
     where
 
+import Algebra.ExactBounded
+    ( ExactBounded (..) )
 import Data.Coerce
     ( coerce )
 import Data.Foldable
@@ -30,8 +32,6 @@ import Data.These
     ( These (..) )
 import Numeric.Natural
     ( Natural )
-import Roundable
-    ( ExactBounded (..) )
 
 import Prelude hiding
     ( last, zip, zipWith )
