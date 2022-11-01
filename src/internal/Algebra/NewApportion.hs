@@ -39,24 +39,24 @@ import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.List.NonEmpty.Extended as NE
 
 --------------------------------------------------------------------------------
--- Partition
+-- Apportionment
 --------------------------------------------------------------------------------
 
-data Partition a = Partition
+data Apportionment a = Apportionment
     { remainder :: a
     , partition :: NonEmpty a
     }
     deriving stock (Eq, Foldable, Functor, Show)
     deriving anyclass Foldable1
 
-instance Semialign Partition where
-    alignWith f a0 a1 = Partition
+instance Semialign Apportionment where
+    alignWith f a0 a1 = Apportionment
         { remainder =           f $ These (remainder a0) (remainder a1)
         , partition = alignWith f         (partition a0) (partition a1)
         }
 
-instance Zip Partition where
-    zipWith f a0 a1 = Partition
+instance Zip Apportionment where
+    zipWith f a0 a1 = Apportionment
         { remainder =         f (remainder a0) (remainder a1)
         , partition = zipWith f (partition a0) (partition a1)
         }
@@ -70,19 +70,19 @@ class (Eq a, Semigroup a, Semigroup (Weight a)) => Apportion a where
     type Weight a
 
     apportion
-        :: a -> NonEmpty (Weight a) -> Partition a
+        :: a -> NonEmpty (Weight a) -> Apportionment a
     default apportion :: Monoid a
-        => a -> NonEmpty (Weight a) -> Partition a
+        => a -> NonEmpty (Weight a) -> Apportionment a
     apportion a as = case apportionMaybe a as of
-        Nothing -> Partition a (mempty <$ as)
-        Just bs -> Partition mempty bs
+        Nothing -> Apportionment a (mempty <$ as)
+        Just bs -> Apportionment mempty bs
 
     apportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     default apportionMaybe :: Monoid a
         => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     apportionMaybe a as = case apportion a as of
-       Partition b bs | b == mempty -> Just bs
+       Apportionment b bs | b == mempty -> Just bs
        _ -> Nothing
 
 apportionLaw_fold :: Apportion a => a -> NonEmpty (Weight a) -> Bool
@@ -104,9 +104,9 @@ apportionLaw_maybe a ws =
 class Apportion a => ExactApportion a where
 
     exactApportion
-        :: a -> NonEmpty (Weight a) -> Partition a
+        :: a -> NonEmpty (Weight a) -> Apportionment a
     default exactApportion
-        :: a -> NonEmpty (Weight a) -> Partition a
+        :: a -> NonEmpty (Weight a) -> Apportionment a
     exactApportion = apportion
 
     exactApportionMaybe
@@ -148,9 +148,9 @@ class
         :: a -> a -> Bool
 
     boundedApportion
-        :: a -> NonEmpty (Weight a) -> Partition a
+        :: a -> NonEmpty (Weight a) -> Apportionment a
     default boundedApportion
-        :: a -> NonEmpty (Weight a) -> Partition a
+        :: a -> NonEmpty (Weight a) -> Apportionment a
     boundedApportion = apportion
 
     boundedApportionMaybe
@@ -188,7 +188,7 @@ boundedApportionLowerBound
     :: forall a. BoundedApportion a
     => a
     -> NonEmpty (Weight a)
-    -> Partition a
+    -> Apportionment a
 boundedApportionLowerBound a ws =
     toLowerBound <$> exactApportion (toExact a) (toExact <$> ws)
 
@@ -196,7 +196,7 @@ boundedApportionUpperBound
     :: forall a. BoundedApportion a
     => a
     -> NonEmpty (Weight a)
-    -> Partition a
+    -> Apportionment a
 boundedApportionUpperBound a ws =
     toUpperBound <$> exactApportion (toExact a) (toExact <$> ws)
 
