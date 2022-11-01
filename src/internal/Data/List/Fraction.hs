@@ -21,10 +21,10 @@ import Data.Ratio
 import Numeric.Natural
     ( Natural )
 import Roundable
-    ( HasFraction (..) )
+    ( Fractional (..) )
 
 import Prelude hiding
-    ( drop, fromList, length, splitAt, take )
+    ( Fractional, drop, fromList, length, splitAt, take )
 
 newtype ListFraction a = ListFraction [(a, Ratio Natural)]
     deriving (Eq, Show)
@@ -35,8 +35,7 @@ instance Eq a => Semigroup (ListFraction a) where
 instance Eq a => Monoid (ListFraction a) where
     mempty = ListFraction mempty
 
-instance Eq a => HasFraction [a] where
-    type Fraction [a] = ListFraction a
+instance Eq a => Fractional [a] (ListFraction a) where
     toFraction = fromList
     lowerBound (ListFraction as) = do
         (a, n) <- fmap lowerBound <$> as
