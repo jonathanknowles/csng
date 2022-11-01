@@ -85,6 +85,8 @@ class (Eq a, Semigroup a, Semigroup (Weight a)) => Apportion a where
        Apportionment b bs | b == mempty -> Just bs
        _ -> Nothing
 
+    {-# MINIMAL apportion | apportionMaybe #-}
+
 apportionLaw_fold :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_fold a ws =
     fold1 (apportion a ws) == a
