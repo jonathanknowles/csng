@@ -58,7 +58,7 @@ import GHC.Generics
 import Numeric.Natural
     ( Natural )
 import Roundable
-    ( Roundable (..) )
+    ( HasFraction (..) )
 import Test.QuickCheck
     ( Arbitrary )
 import Test.QuickCheck.Instances.Natural
@@ -263,15 +263,17 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         , Semigroup
         )
 
-instance Roundable FractionalCoinValue where
-    type Rounded FractionalCoinValue = CoinValue
-    roundUp = unpacked ceiling
-    roundDown = unpacked floor
+instance HasFraction CoinValue where
+    type Fraction CoinValue = FractionalCoinValue
+    lowerBound = unpacked floor
+    upperBound = unpacked ceiling
+    toFraction = unpacked (% 1)
 
-instance Ord a => Roundable (FractionalCoin a) where
-    type Rounded (FractionalCoin a) = Coin a
-    roundUp = unpacked $ MonoidMap.mapValues roundUp
-    roundDown = unpacked $ MonoidMap.mapValues roundDown
+instance Ord a => HasFraction (Coin a) where
+    type Fraction (Coin a) = FractionalCoin a
+    lowerBound = unpacked $ MonoidMap.mapValues lowerBound
+    upperBound = unpacked $ MonoidMap.mapValues upperBound
+    toFraction = unpacked $ MonoidMap.mapValues toFraction
 
 --------------------------------------------------------------------------------
 -- Conversions
