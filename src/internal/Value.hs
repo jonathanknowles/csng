@@ -22,6 +22,8 @@ import Algebra.Apportion.Balanced
     ( BalancedApportion (..) )
 import Algebra.ExactBounded
     ( ExactBounded (..) )
+import Algebra.PartialOrd
+    ( PartialOrd )
 import AsList
     ( AsList (..), asList )
 import Generic.Data
@@ -99,6 +101,7 @@ newtype CoinValue = CoinValue Natural
         , Monoid
         , MonoidNull
         , Monus
+        , PartialOrd
         , OverlappingGCDMonoid
         , PositiveMonoid
         , Reductive
@@ -117,6 +120,7 @@ newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
         , Eq
         , FromFractional
         , FromInteger
+        , PartialOrd
         , Ord
         , Read
         , Show
@@ -226,6 +230,7 @@ newtype Coin a = Coin (MonoidMap a CoinValue)
         , MonoidNull
         , Monus
         , OverlappingGCDMonoid
+        , PartialOrd
         , PositiveMonoid
         , Reductive
         , RightCancellative
@@ -259,6 +264,7 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         , MonoidNull
         , Monus
         , OverlappingGCDMonoid
+        , PartialOrd
         , RightReductive
         , Semigroup
         )

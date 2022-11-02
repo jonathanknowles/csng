@@ -120,6 +120,7 @@ library internal
         Algebra.Apportion.Natural
         Algebra.ExactBounded
         Algebra.NewApportion
+        Algebra.PartialOrd.Extended
         AsList
         Change
         Data.Foldable.Extended
@@ -137,6 +138,7 @@ library internal
       , generic-data
       , groups
       , int-cast
+      , lattices
       , monoid-subclasses
       , monoidmap
       , QuickCheck
