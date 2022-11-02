@@ -9,7 +9,7 @@ module Algebra.NewApportion
 
 import Algebra.ExactBounded
     ( ExactBounded (..) )
-import Algebra.PartialOrd
+import Algebra.PartialOrd.Extended
     ( PartialOrd (..) )
 import Data.Coerce
     ( coerce )
@@ -146,6 +146,7 @@ class
     , ExactApportion (Exact a)
     , ExactBounded (Exact a) a
     , ExactBounded (Weight (Exact a)) (Weight a)
+    , PartialOrd a
     ) =>
     BoundedApportion a
   where

@@ -22,7 +22,7 @@ import Algebra.Apportion.Balanced
     ( BalancedApportion (..) )
 import Algebra.ExactBounded
     ( ExactBounded (..) )
-import Algebra.PartialOrd
+import Algebra.PartialOrd.Extended
     ( PartialOrd )
 import AsList
     ( AsList (..), asList )
