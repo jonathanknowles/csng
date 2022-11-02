@@ -38,6 +38,8 @@ import Prelude hiding
     ( last, zip, zipWith )
 
 import qualified Algebra.Apportion.Natural as Natural
+import qualified Data.List as L
+import qualified Data.List.Fraction as LF
 import qualified Data.List.NonEmpty.Extended as NE
 
 --------------------------------------------------------------------------------
@@ -214,11 +216,48 @@ boundedApportionLaw_isBounded =
     boundedApportionIsBounded
 
 --------------------------------------------------------------------------------
--- Instances: Sum (Ratio Natural)
+-- Type synonyms
 --------------------------------------------------------------------------------
 
-instance Apportion (Sum (Ratio Natural)) where
-    type Weight (Sum (Ratio Natural)) = Sum (Ratio Natural)
+type NaturalRatio = Ratio Natural
+type NaturalRatioSum = Sum NaturalRatio
+type NaturalSum = Sum Natural
+
+--------------------------------------------------------------------------------
+-- Combinators
+--------------------------------------------------------------------------------
+
+newtype Length a = Length {getLength :: a}
+    deriving stock (Eq, Show)
+
+deriving via NaturalSum instance Semigroup (Length Natural)
+deriving via NaturalSum instance Monoid    (Length Natural)
+
+deriving via NaturalRatioSum instance Semigroup (Length NaturalRatio)
+deriving via NaturalRatioSum instance Monoid    (Length NaturalRatio)
+
+instance ExactBounded (Length NaturalRatio) (Length Natural) where
+    toExact (Length n) = Length (toExact n)
+    toLowerBound (Length r) = Length (toLowerBound r)
+    toUpperBound (Length r) = Length (toUpperBound r)
+
+--------------------------------------------------------------------------------
+-- Instances: NaturalSum
+--------------------------------------------------------------------------------
+
+instance Apportion NaturalSum where
+    type Weight NaturalSum = NaturalSum
+    apportionMaybe = coerce Natural.apportion
+
+instance BoundedApportion NaturalSum where
+    type Exact NaturalSum = NaturalRatioSum
+
+--------------------------------------------------------------------------------
+-- Instances: NaturalRatioSum
+--------------------------------------------------------------------------------
+
+instance Apportion NaturalRatioSum where
+    type Weight NaturalRatioSum = NaturalRatioSum
     apportionMaybe a ws
         | weightSum == mempty = Nothing
         | otherwise = Just (mkPortion <$> ws)
@@ -226,29 +265,73 @@ instance Apportion (Sum (Ratio Natural)) where
         weightSum = fold1 ws
         mkPortion w = Sum (getSum a * getSum w / getSum weightSum)
 
-instance ExactApportion (Sum (Ratio Natural))
+instance ExactApportion NaturalRatioSum
 
 --------------------------------------------------------------------------------
--- Instances: Sum Natural
+-- Instances: []
 --------------------------------------------------------------------------------
 
-instance Apportion (Sum Natural) where
-    type Weight (Sum Natural) = Sum Natural
-    apportionMaybe = coerce Natural.apportion
+deriving newtype instance Eq a => Semigroup  (Length [a])
+deriving newtype instance Eq a => Monoid     (Length [a])
+deriving newtype instance Eq a => PartialOrd (Length [a])
 
-instance BoundedApportion (Sum Natural) where
-    type Exact (Sum Natural) = Sum (Ratio Natural)
+instance Eq a => ExactBounded (Length (ListFraction a)) (Length [a]) where
+    toExact (Length n) = Length (toExact n)
+    toLowerBound (Length r) = Length (toLowerBound r)
+    toUpperBound (Length r) = Length (toUpperBound r)
+
+instance Eq a => Apportion (Length [a]) where
+    type Weight (Length [a]) = Length Natural
+    apportionMaybe (Length f) ws = do
+        chunkLengths <- maybeChunkLengths
+        Just $ Length <$> NE.unfoldr makeChunk (chunkLengths, f)
+      where
+        maybeChunkLengths :: Maybe (NonEmpty Int)
+        maybeChunkLengths = fmap (fromIntegral @Natural @Int . getSum)
+            <$> apportionMaybe
+                (Sum $ fromIntegral @Int @Natural $ L.length f)
+                (Sum . getLength <$> ws)
+
+        makeChunk :: (NonEmpty Int, [a]) -> ([a], Maybe (NonEmpty Int, [a]))
+        makeChunk (l :| mls, r) = case NE.nonEmpty mls of
+            Just ls -> (prefix, Just (ls, suffix))
+            Nothing -> (r, Nothing)
+          where
+            (prefix, suffix) = L.splitAt l r
+
+instance Eq a => BoundedApportion (Length [a]) where
+    type Exact (Length [a]) = Length (ListFraction a)
 
 --------------------------------------------------------------------------------
--- Instances: Sublist
+-- Instances: ListFraction
 --------------------------------------------------------------------------------
 
-newtype Length a = Length
-    {getLength :: a}
-    deriving stock (Eq, Show)
+deriving newtype instance Eq a => Semigroup  (Length (ListFraction a))
+deriving newtype instance Eq a => Monoid     (Length (ListFraction a))
 
-deriving newtype instance Eq a => Semigroup (Length (ListFraction a))
-deriving newtype instance Eq a => Monoid (Length (ListFraction a))
+instance Eq a => Apportion (Length (ListFraction a)) where
+    type Weight (Length (ListFraction a)) = Length NaturalRatio
+    apportionMaybe (Length f) ws = do
+        chunkLengths <- maybeChunkLengths
+        Just $ Length <$> NE.unfoldr makeChunk (chunkLengths, f)
+      where
+        maybeChunkLengths :: Maybe (NonEmpty NaturalRatio)
+        maybeChunkLengths = fmap getSum
+            <$> apportionMaybe
+                (Sum $ LF.length f)
+                (Sum . getLength <$> ws)
+
+        makeChunk
+            :: (NonEmpty NaturalRatio, ListFraction a)
+            -> (ListFraction a, Maybe (NonEmpty NaturalRatio, ListFraction a))
+        makeChunk (l :| mls, r) = case NE.nonEmpty mls of
+            Just ls -> (prefix, Just (ls, suffix))
+            Nothing -> (r, Nothing)
+          where
+            (prefix, suffix) = LF.splitAt l r
+
+instance Eq a => ExactApportion (Length (ListFraction a))
+
 
 {-
 instance Eq a => Apportion (SublistLength [a]) where
