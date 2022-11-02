@@ -9,6 +9,8 @@ module Algebra.NewApportion
 
 import Algebra.ExactBounded
     ( ExactBounded (..) )
+import Algebra.PartialOrd
+    ( PartialOrd (..) )
 import Data.Coerce
     ( coerce )
 import Data.Foldable
@@ -146,9 +148,6 @@ class
   where
     type Exact a
 
-    boundedApportionOrder
-        :: a -> a -> Bool
-
     boundedApportion
         :: a -> NonEmpty (Weight a) -> Apportionment a
     default boundedApportion
@@ -170,10 +169,10 @@ boundedApportionIsBounded a ws = (&&)
     isLowerBounded
     isUpperBounded
   where
-    isLowerBounded = and $ zipWith boundedApportionOrder
+    isLowerBounded = and $ zipWith leq
         (boundedApportionLowerBound a ws)
         (boundedApportion a ws)
-    isUpperBounded = and $ zipWith boundedApportionOrder
+    isUpperBounded = and $ zipWith leq
         (boundedApportion a ws)
         (boundedApportionUpperBound a ws)
 
@@ -242,7 +241,6 @@ instance Apportion (Sum Natural) where
 
 instance BoundedApportion (Sum Natural) where
     type Exact (Sum Natural) = Sum (Ratio Natural)
-    boundedApportionOrder = (<=)
 
 --------------------------------------------------------------------------------
 -- Instances: Sublist
