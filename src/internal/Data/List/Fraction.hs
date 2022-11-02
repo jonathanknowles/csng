@@ -3,7 +3,6 @@
 module Data.List.Fraction
     ( ListFraction
     , fromList
-    , isSubsequenceOf
     , length
     , drop
     , take
@@ -13,8 +12,6 @@ module Data.List.Fraction
 
 import Algebra.ExactBounded
     ( ExactBounded (..) )
-import Algebra.PartialOrd
-    ( PartialOrd (..) )
 import Data.Function
     ( on )
 import Data.List
@@ -39,9 +36,6 @@ instance Eq a => Semigroup (ListFraction a) where
 instance Eq a => Monoid (ListFraction a) where
     mempty = ListFraction mempty
 
-instance Eq a => PartialOrd (ListFraction a) where
-    leq = isSubsequenceOf
-
 instance Eq a => ExactBounded (ListFraction a) [a] where
     toExact = fromList
     toLowerBound (ListFraction as) = do
@@ -65,15 +59,6 @@ coalesce (ListFraction as) = ListFraction (labels `zip` totals)
 
 fromList :: Eq a => [a] -> ListFraction a
 fromList = coalesce . ListFraction . fmap (, 1)
-
-isSubsequenceOf :: Eq a => ListFraction a -> ListFraction a -> Bool
-isSubsequenceOf = f `on` getListFraction
-  where
-    f [] _ = True
-    f _ [] = False
-    f xs@((x, xv) : xs') ((y, yv) : ys')
-        | x == y && xv <= yv = f xs' ys'
-        | otherwise          = f xs  ys'
 
 length :: ListFraction a -> Ratio Natural
 length (ListFraction as) = getSum $ foldMap (Sum . snd) as
