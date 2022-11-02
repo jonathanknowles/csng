@@ -63,6 +63,9 @@ instance Zip Apportionment where
         , partition = zipWith f (partition a0) (partition a1)
         }
 
+instance PartialOrd a => PartialOrd (Apportionment a) where
+    leq a0 a1 = and $ zipWith leq a0 a1
+
 --------------------------------------------------------------------------------
 -- Apportion
 --------------------------------------------------------------------------------
@@ -166,15 +169,8 @@ boundedApportionIsBounded
     -> NonEmpty (Weight a)
     -> Bool
 boundedApportionIsBounded a ws = (&&)
-    isLowerBounded
-    isUpperBounded
-  where
-    isLowerBounded = and $ zipWith leq
-        (boundedApportionLowerBound a ws)
-        (boundedApportion a ws)
-    isUpperBounded = and $ zipWith leq
-        (boundedApportion a ws)
-        (boundedApportionUpperBound a ws)
+    (boundedApportionLowerBound a ws `leq` boundedApportion           a ws)
+    (boundedApportion           a ws `leq` boundedApportionUpperBound a ws)
 
 boundedApportionIsExact
     :: forall a. BoundedApportion a
