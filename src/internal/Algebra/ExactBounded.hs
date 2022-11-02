@@ -4,7 +4,7 @@
 module Algebra.ExactBounded where
 
 import Algebra.PartialOrd.Extended
-    ( PartialOrd )
+    ( PartialOrd (..) )
 import Data.Monoid
     ( Sum )
 import Data.Ratio
@@ -36,6 +36,11 @@ exactBoundedLaw_toLowerBound_toUpperBound_equivalence_2
     :: (ExactBounded e b, Eq e) => e -> Bool
 exactBoundedLaw_toLowerBound_toUpperBound_equivalence_2 e =
     toExact (toLowerBound e) /= e ≡ toExact (toUpperBound e) /= e
+
+exactBoundedLaw_toLowerBound_toUpperBound_leq
+    :: (ExactBounded e b, Eq e) => e -> Bool
+exactBoundedLaw_toLowerBound_toUpperBound_leq e =
+    toLowerBound e `leq` toUpperBound e
 
 --------------------------------------------------------------------------------
 -- Utilities
