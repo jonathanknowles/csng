@@ -271,6 +271,9 @@ instance ExactApportion NaturalRatioSum
 -- Instances: []
 --------------------------------------------------------------------------------
 
+-- make a HasLength type, with the ability to splitAt, and a variable length
+-- type.
+
 deriving newtype instance Eq a => Semigroup  (Length [a])
 deriving newtype instance Eq a => Monoid     (Length [a])
 deriving newtype instance Eq a => PartialOrd (Length [a])
