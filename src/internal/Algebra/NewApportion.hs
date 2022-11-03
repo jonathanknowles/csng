@@ -29,13 +29,15 @@ import Data.Semialign
     ( Semialign (..), Zip (..) )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
+import Data.SizeDivisible
+    ( splitAtMany )
 import Data.These
     ( These (..) )
 import Numeric.Natural
     ( Natural )
 
 import Prelude hiding
-    ( last, zip, zipWith )
+    ( last, splitAt, zip, zipWith )
 
 import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.List as L
@@ -271,9 +273,6 @@ instance ExactApportion NaturalRatioSum
 -- Instances: []
 --------------------------------------------------------------------------------
 
--- make a HasLength type, with the ability to splitAt, and a variable length
--- type.
-
 deriving newtype instance Eq a => Semigroup  (Size [a])
 deriving newtype instance Eq a => Monoid     (Size [a])
 deriving newtype instance Eq a => PartialOrd (Size [a])
@@ -287,20 +286,13 @@ instance Eq a => Apportion (Size [a]) where
     type Weight (Size [a]) = Size Natural
     apportionMaybe (Size f) ws = do
         chunkSizes <- maybeChunkSizes
-        Just $ Size <$> NE.unfoldr makeChunk (chunkSizes, f)
+        Just $ Size <$> splitAtMany chunkSizes f
       where
-        maybeChunkSizes :: Maybe (NonEmpty Int)
-        maybeChunkSizes = fmap (fromIntegral @Natural @Int . getSum)
+        maybeChunkSizes :: Maybe (NonEmpty Natural)
+        maybeChunkSizes = fmap getSum
             <$> apportionMaybe
                 (Sum $ fromIntegral @Int @Natural $ L.length f)
                 (Sum . getSize <$> ws)
-
-        makeChunk :: (NonEmpty Int, [a]) -> ([a], Maybe (NonEmpty Int, [a]))
-        makeChunk (l :| mls, r) = case NE.nonEmpty mls of
-            Just ls -> (prefix, Just (ls, suffix))
-            Nothing -> (r, Nothing)
-          where
-            (prefix, suffix) = L.splitAt l r
 
 instance Eq a => BoundedApportion (Size [a]) where
     type Exact (Size [a]) = Size (ListFraction a)
@@ -316,7 +308,7 @@ instance Eq a => Apportion (Size (ListFraction a)) where
     type Weight (Size (ListFraction a)) = Size NaturalRatio
     apportionMaybe (Size f) ws = do
         chunkSizes <- maybeChunkSizes
-        Just $ Size <$> NE.unfoldr makeChunk (chunkSizes, f)
+        Just $ Size <$> splitAtMany chunkSizes f
       where
         maybeChunkSizes :: Maybe (NonEmpty NaturalRatio)
         maybeChunkSizes = fmap getSum
@@ -324,44 +316,7 @@ instance Eq a => Apportion (Size (ListFraction a)) where
                 (Sum $ LF.length f)
                 (Sum . getSize <$> ws)
 
-        makeChunk
-            :: (NonEmpty NaturalRatio, ListFraction a)
-            -> (ListFraction a, Maybe (NonEmpty NaturalRatio, ListFraction a))
-        makeChunk (l :| mls, r) = case NE.nonEmpty mls of
-            Just ls -> (prefix, Just (ls, suffix))
-            Nothing -> (r, Nothing)
-          where
-            (prefix, suffix) = LF.splitAt l r
-
 instance Eq a => ExactApportion (Size (ListFraction a))
-
-
-{-
-instance Eq a => Apportion (SublistLength [a]) where
-    type Weight (Sublist a) = SublistLength
-    apportionMaybe (Sublist as) ws = do
-        chunkLengths <- maybeChunkLengths
-        Just $ NE.unfoldr makeChunk (chunkLengths, Sublist as)
-      where
-        maybeChunkLengths :: Maybe (NonEmpty Int)
-        maybeChunkLengths =
-            fmap (fromIntegral @Natural @Int . getSum) <$>
-            apportionMaybe
-                (Sum $ fromIntegral @Int @Natural $ length as)
-                (fromIntegral . getSublistLength <$> ws)
-
-        makeChunk
-            :: (NonEmpty Int, Sublist a)
-            -> (Sublist a, Maybe (NonEmpty Int, Sublist a))
-        makeChunk (c :| mcs, Sublist bs) = case NE.nonEmpty mcs of
-            Just cs -> (Sublist prefix, Just (cs, Sublist suffix))
-            Nothing -> (Sublist bs, Nothing)
-          where
-            (prefix, suffix) = L.splitAt c bs
--}
-{-instance Ord a => BoundedApportion (Sublist a) where
-    boundedApportionOrder = (<=)
--}
 
 --------------------------------------------------------------------------------
 -- Utilities
