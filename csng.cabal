@@ -128,6 +128,8 @@ library internal
         Data.List.Fraction
         Data.List.NonEmpty.Extended
         Data.Monoid.Monus.Extended
+        Data.Sized
+        Data.SizeDivisible
         Value
         Wrapped
     default-language:
