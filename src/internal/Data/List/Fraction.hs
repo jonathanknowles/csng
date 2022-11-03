@@ -20,11 +20,17 @@ import Data.Monoid
     ( Sum (..) )
 import Data.Ratio
     ( Ratio )
+import Data.Sized
+    ( Sized (..) )
+import Data.SizeDivisible
+    ( SizeDivisible )
 import Numeric.Natural
     ( Natural )
 
 import Prelude hiding
     ( drop, fromList, length, splitAt, take )
+
+import qualified Data.SizeDivisible as SD
 
 newtype ListFraction a = ListFraction
     {getListFraction :: [(a, Ratio Natural)]}
@@ -44,6 +50,15 @@ instance Eq a => ExactBounded (ListFraction a) [a] where
     toUpperBound (ListFraction as) = do
         (a, n) <- fmap toUpperBound <$> as
         replicate (fromIntegral n) a
+
+instance Sized (ListFraction a) where
+    type Size (ListFraction a) = Ratio Natural
+    size = length
+
+instance SizeDivisible (ListFraction a) where
+    drop = drop
+    take = take
+    splitAt = splitAt
 
 coalesce :: forall a. Eq a => ListFraction a -> ListFraction a
 coalesce (ListFraction as) = ListFraction (labels `zip` totals)
