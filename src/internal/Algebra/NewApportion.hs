@@ -227,19 +227,19 @@ type NaturalSum = Sum Natural
 -- Combinators
 --------------------------------------------------------------------------------
 
-newtype Length a = Length {getLength :: a}
+newtype Size a = Size {getSize :: a}
     deriving stock (Eq, Show)
 
-deriving via NaturalSum instance Semigroup (Length Natural)
-deriving via NaturalSum instance Monoid    (Length Natural)
+deriving via NaturalSum instance Semigroup (Size Natural)
+deriving via NaturalSum instance Monoid    (Size Natural)
 
-deriving via NaturalRatioSum instance Semigroup (Length NaturalRatio)
-deriving via NaturalRatioSum instance Monoid    (Length NaturalRatio)
+deriving via NaturalRatioSum instance Semigroup (Size NaturalRatio)
+deriving via NaturalRatioSum instance Monoid    (Size NaturalRatio)
 
-instance ExactBounded (Length NaturalRatio) (Length Natural) where
-    toExact (Length n) = Length (toExact n)
-    toLowerBound (Length r) = Length (toLowerBound r)
-    toUpperBound (Length r) = Length (toUpperBound r)
+instance ExactBounded (Size NaturalRatio) (Size Natural) where
+    toExact (Size n) = Size (toExact n)
+    toLowerBound (Size r) = Size (toLowerBound r)
+    toUpperBound (Size r) = Size (toUpperBound r)
 
 --------------------------------------------------------------------------------
 -- Instances: NaturalSum
@@ -274,26 +274,26 @@ instance ExactApportion NaturalRatioSum
 -- make a HasLength type, with the ability to splitAt, and a variable length
 -- type.
 
-deriving newtype instance Eq a => Semigroup  (Length [a])
-deriving newtype instance Eq a => Monoid     (Length [a])
-deriving newtype instance Eq a => PartialOrd (Length [a])
+deriving newtype instance Eq a => Semigroup  (Size [a])
+deriving newtype instance Eq a => Monoid     (Size [a])
+deriving newtype instance Eq a => PartialOrd (Size [a])
 
-instance Eq a => ExactBounded (Length (ListFraction a)) (Length [a]) where
-    toExact (Length n) = Length (toExact n)
-    toLowerBound (Length r) = Length (toLowerBound r)
-    toUpperBound (Length r) = Length (toUpperBound r)
+instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
+    toExact (Size n) = Size (toExact n)
+    toLowerBound (Size r) = Size (toLowerBound r)
+    toUpperBound (Size r) = Size (toUpperBound r)
 
-instance Eq a => Apportion (Length [a]) where
-    type Weight (Length [a]) = Length Natural
-    apportionMaybe (Length f) ws = do
-        chunkLengths <- maybeChunkLengths
-        Just $ Length <$> NE.unfoldr makeChunk (chunkLengths, f)
+instance Eq a => Apportion (Size [a]) where
+    type Weight (Size [a]) = Size Natural
+    apportionMaybe (Size f) ws = do
+        chunkSizes <- maybeChunkSizes
+        Just $ Size <$> NE.unfoldr makeChunk (chunkSizes, f)
       where
-        maybeChunkLengths :: Maybe (NonEmpty Int)
-        maybeChunkLengths = fmap (fromIntegral @Natural @Int . getSum)
+        maybeChunkSizes :: Maybe (NonEmpty Int)
+        maybeChunkSizes = fmap (fromIntegral @Natural @Int . getSum)
             <$> apportionMaybe
                 (Sum $ fromIntegral @Int @Natural $ L.length f)
-                (Sum . getLength <$> ws)
+                (Sum . getSize <$> ws)
 
         makeChunk :: (NonEmpty Int, [a]) -> ([a], Maybe (NonEmpty Int, [a]))
         makeChunk (l :| mls, r) = case NE.nonEmpty mls of
@@ -302,27 +302,27 @@ instance Eq a => Apportion (Length [a]) where
           where
             (prefix, suffix) = L.splitAt l r
 
-instance Eq a => BoundedApportion (Length [a]) where
-    type Exact (Length [a]) = Length (ListFraction a)
+instance Eq a => BoundedApportion (Size [a]) where
+    type Exact (Size [a]) = Size (ListFraction a)
 
 --------------------------------------------------------------------------------
 -- Instances: ListFraction
 --------------------------------------------------------------------------------
 
-deriving newtype instance Eq a => Semigroup  (Length (ListFraction a))
-deriving newtype instance Eq a => Monoid     (Length (ListFraction a))
+deriving newtype instance Eq a => Semigroup  (Size (ListFraction a))
+deriving newtype instance Eq a => Monoid     (Size (ListFraction a))
 
-instance Eq a => Apportion (Length (ListFraction a)) where
-    type Weight (Length (ListFraction a)) = Length NaturalRatio
-    apportionMaybe (Length f) ws = do
-        chunkLengths <- maybeChunkLengths
-        Just $ Length <$> NE.unfoldr makeChunk (chunkLengths, f)
+instance Eq a => Apportion (Size (ListFraction a)) where
+    type Weight (Size (ListFraction a)) = Size NaturalRatio
+    apportionMaybe (Size f) ws = do
+        chunkSizes <- maybeChunkSizes
+        Just $ Size <$> NE.unfoldr makeChunk (chunkSizes, f)
       where
-        maybeChunkLengths :: Maybe (NonEmpty NaturalRatio)
-        maybeChunkLengths = fmap getSum
+        maybeChunkSizes :: Maybe (NonEmpty NaturalRatio)
+        maybeChunkSizes = fmap getSum
             <$> apportionMaybe
                 (Sum $ LF.length f)
-                (Sum . getLength <$> ws)
+                (Sum . getSize <$> ws)
 
         makeChunk
             :: (NonEmpty NaturalRatio, ListFraction a)
@@ -333,7 +333,7 @@ instance Eq a => Apportion (Length (ListFraction a)) where
           where
             (prefix, suffix) = LF.splitAt l r
 
-instance Eq a => ExactApportion (Length (ListFraction a))
+instance Eq a => ExactApportion (Size (ListFraction a))
 
 
 {-
