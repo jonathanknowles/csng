@@ -23,12 +23,18 @@ import Data.Maybe
     ( isJust )
 import Data.Monoid
     ( Sum (..) )
+import Data.Monoid.Null
+    ( MonoidNull )
+import Data.MonoidMap
+    ( MonoidMap )
 import Data.Ratio
     ( Ratio )
 import Data.Semialign
-    ( Semialign (..), Zip (..) )
+    ( Semialign (..), Zip (..), salign )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
+import Data.Strict.Set
+    ( Set )
 import Data.Sized
     ( size )
 import Data.SizeDivisible
@@ -42,7 +48,9 @@ import Prelude hiding
     ( last, splitAt, zip, zipWith )
 
 import qualified Algebra.Apportion.Natural as Natural
+import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty.Extended as NE
+import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Sized as Sized
 
 --------------------------------------------------------------------------------
@@ -327,6 +335,27 @@ instance Eq a => Apportion (Size (ListFraction a)) where
     apportionMaybe = apportionSizeDivisibleMaybe
 
 instance Eq a => ExactApportion (Size (ListFraction a))
+
+--------------------------------------------------------------------------------
+-- Instances: MonoidMap
+--------------------------------------------------------------------------------
+
+instance (Ord k, Apportion v, MonoidNull v, Weight v ~ v) =>
+    Apportion (MonoidMap k v)
+  where
+    type Weight (MonoidMap k v) = MonoidMap k v
+    apportion m ms =
+        F.foldl' salign empty $ apportionForKey <$> F.toList allKeys
+      where
+        allKeys :: Set k
+        allKeys = F.foldMap MonoidMap.nonNullKeys (m : F.toList ms)
+
+        empty :: Apportionment (MonoidMap k v)
+        empty = Apportionment mempty (mempty <$ ms)
+
+        apportionForKey :: k -> Apportionment (MonoidMap k v)
+        apportionForKey k = MonoidMap.singleton k <$>
+            apportion (MonoidMap.get k m) (MonoidMap.get k <$> ms)
 
 --------------------------------------------------------------------------------
 -- Utilities
