@@ -29,8 +29,10 @@ import Data.Semialign
     ( Semialign (..), Zip (..) )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
+import Data.Sized
+    ( size )
 import Data.SizeDivisible
-    ( splitAtMany )
+    ( SizeDivisible (..), splitAtMany )
 import Data.These
     ( These (..) )
 import Numeric.Natural
@@ -40,9 +42,8 @@ import Prelude hiding
     ( last, splitAt, zip, zipWith )
 
 import qualified Algebra.Apportion.Natural as Natural
-import qualified Data.List as L
-import qualified Data.List.Fraction as LF
 import qualified Data.List.NonEmpty.Extended as NE
+import qualified Data.Sized as Sized
 
 --------------------------------------------------------------------------------
 -- Apportionment
@@ -231,6 +232,7 @@ type NaturalSum = Sum Natural
 
 newtype Size a = Size {getSize :: a}
     deriving stock (Eq, Show)
+    deriving newtype (Sized.Sized, SizeDivisible)
 
 deriving via NaturalSum instance Semigroup (Size Natural)
 deriving via NaturalSum instance Monoid    (Size Natural)
@@ -238,10 +240,28 @@ deriving via NaturalSum instance Monoid    (Size Natural)
 deriving via NaturalRatioSum instance Semigroup (Size NaturalRatio)
 deriving via NaturalRatioSum instance Monoid    (Size NaturalRatio)
 
+instance Apportion (Size Natural) where
+    type Weight (Size Natural) = Size Natural
+    apportion n ws = Size . getSum <$>
+        apportion (Sum $ getSize n) (Sum . getSize <$> ws)
+
+instance Apportion (Size NaturalRatio) where
+    type Weight (Size NaturalRatio) = Size NaturalRatio
+    apportion n ws = Size . getSum <$>
+        apportion (Sum $ getSize n) (Sum . getSize <$> ws)
+
 instance ExactBounded (Size NaturalRatio) (Size Natural) where
     toExact (Size n) = Size (toExact n)
     toLowerBound (Size r) = Size (toLowerBound r)
     toUpperBound (Size r) = Size (toUpperBound r)
+
+apportionMaybeSizeDivisible
+    :: (SizeDivisible a, Apportion (Size (Sized.Size a)))
+    => a
+    -> NonEmpty (Weight (Size (Sized.Size a)))
+    -> Maybe (NonEmpty a)
+apportionMaybeSizeDivisible f ws =
+    flip splitAtMany f . fmap getSize <$> apportionMaybe (Size $ size f) ws
 
 --------------------------------------------------------------------------------
 -- Instances: NaturalSum
@@ -284,15 +304,7 @@ instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
 
 instance Eq a => Apportion (Size [a]) where
     type Weight (Size [a]) = Size Natural
-    apportionMaybe (Size f) ws = do
-        chunkSizes <- maybeChunkSizes
-        Just $ Size <$> splitAtMany chunkSizes f
-      where
-        maybeChunkSizes :: Maybe (NonEmpty Natural)
-        maybeChunkSizes = fmap getSum
-            <$> apportionMaybe
-                (Sum $ fromIntegral @Int @Natural $ L.length f)
-                (Sum . getSize <$> ws)
+    apportionMaybe = apportionMaybeSizeDivisible
 
 instance Eq a => BoundedApportion (Size [a]) where
     type Exact (Size [a]) = Size (ListFraction a)
@@ -306,15 +318,7 @@ deriving newtype instance Eq a => Monoid     (Size (ListFraction a))
 
 instance Eq a => Apportion (Size (ListFraction a)) where
     type Weight (Size (ListFraction a)) = Size NaturalRatio
-    apportionMaybe (Size f) ws = do
-        chunkSizes <- maybeChunkSizes
-        Just $ Size <$> splitAtMany chunkSizes f
-      where
-        maybeChunkSizes :: Maybe (NonEmpty NaturalRatio)
-        maybeChunkSizes = fmap getSum
-            <$> apportionMaybe
-                (Sum $ LF.length f)
-                (Sum . getSize <$> ws)
+    apportionMaybe = apportionMaybeSizeDivisible
 
 instance Eq a => ExactApportion (Size (ListFraction a))
 
