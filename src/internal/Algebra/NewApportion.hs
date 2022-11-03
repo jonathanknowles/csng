@@ -258,16 +258,16 @@ apportionSize
     => Size a
     -> NonEmpty (Size a)
     -> Apportionment (Size a)
-apportionSize n ws =
-    Size . getSum <$> apportion (Sum $ getSize n) (Sum . getSize <$> ws)
+apportionSize a ws =
+    Size . getSum <$> apportion (Sum $ getSize a) (Sum . getSize <$> ws)
 
 apportionSizeDivisibleMaybe
     :: (SizeDivisible a, Apportion (Size (Sized.Size a)))
     => a
     -> NonEmpty (Weight (Size (Sized.Size a)))
     -> Maybe (NonEmpty a)
-apportionSizeDivisibleMaybe f ws =
-    flip splitAtMany f . fmap getSize <$> apportionMaybe (Size $ size f) ws
+apportionSizeDivisibleMaybe a ws =
+    flip splitAtMany a . fmap getSize <$> apportionMaybe (Size $ size a) ws
 
 --------------------------------------------------------------------------------
 -- Instances: NaturalSum
