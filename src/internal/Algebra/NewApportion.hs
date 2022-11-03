@@ -242,25 +242,31 @@ deriving via NaturalRatioSum instance Monoid    (Size NaturalRatio)
 
 instance Apportion (Size Natural) where
     type Weight (Size Natural) = Size Natural
-    apportion n ws = Size . getSum <$>
-        apportion (Sum $ getSize n) (Sum . getSize <$> ws)
+    apportion = apportionSize
 
 instance Apportion (Size NaturalRatio) where
     type Weight (Size NaturalRatio) = Size NaturalRatio
-    apportion n ws = Size . getSum <$>
-        apportion (Sum $ getSize n) (Sum . getSize <$> ws)
+    apportion = apportionSize
 
 instance ExactBounded (Size NaturalRatio) (Size Natural) where
     toExact (Size n) = Size (toExact n)
     toLowerBound (Size r) = Size (toLowerBound r)
     toUpperBound (Size r) = Size (toUpperBound r)
 
-apportionMaybeSizeDivisible
+apportionSize
+    :: (Weight (Sum a) ~ Sum a, Apportion (Sum a))
+    => Size a
+    -> NonEmpty (Size a)
+    -> Apportionment (Size a)
+apportionSize n ws =
+    Size . getSum <$> apportion (Sum $ getSize n) (Sum . getSize <$> ws)
+
+apportionSizeDivisibleMaybe
     :: (SizeDivisible a, Apportion (Size (Sized.Size a)))
     => a
     -> NonEmpty (Weight (Size (Sized.Size a)))
     -> Maybe (NonEmpty a)
-apportionMaybeSizeDivisible f ws =
+apportionSizeDivisibleMaybe f ws =
     flip splitAtMany f . fmap getSize <$> apportionMaybe (Size $ size f) ws
 
 --------------------------------------------------------------------------------
@@ -304,7 +310,7 @@ instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
 
 instance Eq a => Apportion (Size [a]) where
     type Weight (Size [a]) = Size Natural
-    apportionMaybe = apportionMaybeSizeDivisible
+    apportionMaybe = apportionSizeDivisibleMaybe
 
 instance Eq a => BoundedApportion (Size [a]) where
     type Exact (Size [a]) = Size (ListFraction a)
@@ -318,7 +324,7 @@ deriving newtype instance Eq a => Monoid     (Size (ListFraction a))
 
 instance Eq a => Apportion (Size (ListFraction a)) where
     type Weight (Size (ListFraction a)) = Size NaturalRatio
-    apportionMaybe = apportionMaybeSizeDivisible
+    apportionMaybe = apportionSizeDivisibleMaybe
 
 instance Eq a => ExactApportion (Size (ListFraction a))
 
