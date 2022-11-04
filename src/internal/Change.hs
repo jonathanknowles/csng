@@ -3,8 +3,8 @@ module Change where
 import Prelude hiding
     ( null )
 
-import Algebra.Apportion
-    ( Apportion (..) )
+import Algebra.NewApportion
+    ( Apportion (..), Apportionment (..) )
 import Data.Bifunctor
     ( bimap )
 import Data.Functor
@@ -84,7 +84,7 @@ makeChangeForAsset     (n,                       pws)
         . NE.sortWith (\((_, i), _) -> i)
         . NE.zip (fst <$> index)
         . alignWith (mergeThese (<>)) (mempty <$ pws)
-        . snd
+        . partition
         . apportion n
         . takeUntilSumIsNonNullAndMinimalDistanceToTarget n
         $ snd <$> index

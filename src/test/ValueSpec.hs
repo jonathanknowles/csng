@@ -2,10 +2,6 @@
 
 module ValueSpec where
 
-import Algebra.Apportion
-    ( apportionLaws )
-import Algebra.Apportion.Balanced
-    ( balancedApportionLaws )
 import Data.Group
     ( Group (..) )
 import Test.Hspec
@@ -71,15 +67,8 @@ spec = do
             , showLaws
             , showReadLaws
             ]
-        testLawsMany @(Assets TestCoin)
-            [ balancedApportionLaws
-            ]
-        testLawsMany @(Values TestCoin)
-            [ balancedApportionLaws
-            ]
         testLawsMany @TestCoin
-            [ apportionLaws
-            , cancellativeLaws
+            [ cancellativeLaws
             , commutativeLaws
             , eqLaws
             , isListLaws

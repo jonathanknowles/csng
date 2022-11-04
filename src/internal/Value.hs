@@ -16,12 +16,14 @@ module Value
     , balanceToCoins
     ) where
 
-import Algebra.Apportion
-    ( Apportion (..) )
-import Algebra.Apportion.Balanced
-    ( BalancedApportion (..) )
 import Algebra.ExactBounded
     ( ExactBounded (..) )
+import Algebra.NewApportion
+    ( Apportion (..)
+    , Apportionment (..)
+    , BoundedApportion (..)
+    , ExactApportion (..)
+    )
 import Algebra.PartialOrd.Extended
     ( PartialOrd )
 import AsList
@@ -32,6 +34,8 @@ import Data.Group
     ( Group (..) )
 import Data.IntCast
     ( intCast, intCastMaybe )
+import Data.List.NonEmpty
+    ( NonEmpty )
 import Data.Maybe
     ( fromMaybe )
 import Data.Monoid
@@ -66,7 +70,6 @@ import Test.QuickCheck
 import Test.QuickCheck.Instances.Natural
     ()
 
-import qualified Algebra.Apportion.Balanced as BalancedApportion
 import qualified Data.MonoidMap as MonoidMap
 
 --------------------------------------------------------------------------------
@@ -95,8 +98,7 @@ newtype CoinValue = CoinValue Natural
     deriving Generic
     deriving newtype (Arbitrary, Eq, FromInteger, Ord, Read, Show)
     deriving
-        ( Apportion
-        , Commutative
+        ( Commutative
         , LeftReductive
         , Monoid
         , MonoidNull
@@ -108,6 +110,13 @@ newtype CoinValue = CoinValue Natural
         , RightReductive
         , Semigroup
         ) via Sum Natural
+
+instance Apportion CoinValue where
+    type Weight CoinValue = CoinValue
+    apportion = apportionNewtypeSum
+
+instance BoundedApportion CoinValue where
+    type Exact CoinValue = FractionalCoinValue
 
 --------------------------------------------------------------------------------
 -- FractionalCoinValue
@@ -132,6 +141,17 @@ newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
         , PositiveMonoid
         , Semigroup
         ) via Sum (Ratio Natural)
+
+instance Apportion FractionalCoinValue where
+    type Weight FractionalCoinValue = FractionalCoinValue
+    apportion = apportionNewtypeSum
+
+instance ExactApportion FractionalCoinValue
+
+instance ExactBounded FractionalCoinValue CoinValue where
+    toExact = unpacked (% 1)
+    toLowerBound = unpacked floor
+    toUpperBound = unpacked ceiling
 
 instance Monus FractionalCoinValue where
    a <\> b = fromMaybe mempty (a </> b)
@@ -219,8 +239,7 @@ newtype Coin a = Coin (MonoidMap a CoinValue)
     deriving HasAssets via AssetValueMap a CoinValue
     deriving (Arbitrary, Read, Show) via AsList (Coin a)
     deriving newtype
-        ( Apportion
-        , Cancellative
+        ( Cancellative
         , Commutative
         , Eq
         , IsList
@@ -238,15 +257,12 @@ newtype Coin a = Coin (MonoidMap a CoinValue)
         , Semigroup
         )
 
-deriving via BalancedApportion.Keys
-    (MonoidMap a (Sum Natural))
-    instance Ord a =>
-    BalancedApportion (Assets (Coin a))
+instance Ord a => Apportion (Coin a) where
+    type Weight (Coin a) = Coin a
+    apportion = apportionNewtype
 
-deriving via BalancedApportion.Values
-    (MonoidMap a (Sum Natural))
-    instance Ord a =>
-    BalancedApportion (Values (Coin a))
+instance Ord a => BoundedApportion (Coin a) where
+    type Exact (Coin a) = FractionalCoin a
 
 --------------------------------------------------------------------------------
 -- FractionalCoin
@@ -269,10 +285,11 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         , Semigroup
         )
 
-instance ExactBounded FractionalCoinValue CoinValue where
-    toExact = unpacked (% 1)
-    toLowerBound = unpacked floor
-    toUpperBound = unpacked ceiling
+instance Ord a => Apportion (FractionalCoin a) where
+    type Weight (FractionalCoin a) = FractionalCoin a
+    apportion = apportionNewtype
+
+instance Ord a => ExactApportion (FractionalCoin a)
 
 instance Ord a => ExactBounded (FractionalCoin a) (Coin a) where
     toExact = unpacked $ MonoidMap.mapValues toExact
@@ -306,3 +323,22 @@ coinValueToBalanceValue = unpacked intCast
 
 coinValueToFractionalCoinValue :: CoinValue -> FractionalCoinValue
 coinValueToFractionalCoinValue = unpacked (% 1)
+
+--------------------------------------------------------------------------------
+-- Utilities
+--------------------------------------------------------------------------------
+
+apportionNewtype
+    :: (Newtype a, Apportion (Old a), Weight (Old a) ~ Old a)
+    => a
+    -> NonEmpty a
+    -> Apportionment a
+apportionNewtype a ws = pack <$> apportion (unpack a) (unpack <$> ws)
+
+apportionNewtypeSum
+    :: (Newtype a, Apportion (Sum (Old a)), Weight (Sum (Old a)) ~ Sum (Old a))
+    => a
+    -> NonEmpty a
+    -> Apportionment a
+apportionNewtypeSum a ws =
+    pack . getSum <$> apportion (Sum . unpack $ a) (Sum . unpack <$> ws)
