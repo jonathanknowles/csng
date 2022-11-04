@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -28,6 +29,8 @@ import Algebra.PartialOrd.Extended
     ( PartialOrd )
 import AsList
     ( AsList (..), asList )
+import Data.Coerce
+    ( Coercible, coerce )
 import Generic.Data
     ( Newtype, Old, pack, unpack )
 import Data.Group
@@ -328,17 +331,25 @@ coinValueToFractionalCoinValue = unpacked (% 1)
 -- Utilities
 --------------------------------------------------------------------------------
 
-apportionNewtype
-    :: (Newtype a, Apportion (Old a), Weight (Old a) ~ Old a)
+apportionCoerce
+    :: forall a b. (Coercible a b, Apportion b, Weight b ~ b)
     => a
     -> NonEmpty a
     -> Apportionment a
-apportionNewtype a ws = pack <$> apportion (unpack a) (unpack <$> ws)
+apportionCoerce a ws =
+    coerce @b @a <$> apportion (coerce @a @b a) (coerce @a @b <$> ws)
+
+apportionNewtype
+    :: forall a. (Newtype a, Apportion (Old a), Weight (Old a) ~ Old a)
+    => a
+    -> NonEmpty a
+    -> Apportionment a
+apportionNewtype = apportionCoerce @a @(Old a)
 
 apportionNewtypeSum
-    :: (Newtype a, Apportion (Sum (Old a)), Weight (Sum (Old a)) ~ Sum (Old a))
+    :: forall a.
+        (Newtype a, Apportion (Sum (Old a)), Weight (Sum (Old a)) ~ Sum (Old a))
     => a
     -> NonEmpty a
     -> Apportionment a
-apportionNewtypeSum a ws =
-    pack . getSum <$> apportion (Sum . unpack $ a) (Sum . unpack <$> ws)
+apportionNewtypeSum = apportionCoerce @a @(Sum (Old a))
