@@ -177,6 +177,13 @@ class
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     boundedApportionMaybe = apportionMaybe
 
+boundedApportionAsExact
+    :: forall a. BoundedApportion a
+    => a
+    -> NonEmpty (Weight a)
+    -> Apportionment (Exact a)
+boundedApportionAsExact a ws = exactApportion (toExact a) (toExact <$> ws)
+
 boundedApportionIsBounded
     :: forall a. BoundedApportion a
     => a
@@ -200,16 +207,14 @@ boundedApportionLowerBound
     => a
     -> NonEmpty (Weight a)
     -> Apportionment a
-boundedApportionLowerBound a ws =
-    toLowerBound <$> exactApportion (toExact a) (toExact <$> ws)
+boundedApportionLowerBound a ws = toLowerBound <$> boundedApportionAsExact a ws
 
 boundedApportionUpperBound
     :: forall a. BoundedApportion a
     => a
     -> NonEmpty (Weight a)
     -> Apportionment a
-boundedApportionUpperBound a ws =
-    toUpperBound <$> exactApportion (toExact a) (toExact <$> ws)
+boundedApportionUpperBound a ws = toUpperBound <$> boundedApportionAsExact a ws
 
 boundedApportionLaw_identity
     :: BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -356,6 +361,9 @@ instance (Ord k, Apportion v, MonoidNull v, Weight v ~ v) =>
         apportionForKey :: k -> Apportionment (MonoidMap k v)
         apportionForKey k = MonoidMap.singleton k <$>
             apportion (MonoidMap.get k m) (MonoidMap.get k <$> ms)
+
+instance (Ord k, Apportion v, MonoidNull v, Weight v ~ v) =>
+    ExactApportion (MonoidMap k v)
 
 --------------------------------------------------------------------------------
 -- Utilities
