@@ -284,6 +284,7 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         , Monus
         , OverlappingGCDMonoid
         , PartialOrd
+        , PositiveMonoid
         , RightReductive
         , Semigroup
         )

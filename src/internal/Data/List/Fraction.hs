@@ -25,6 +25,8 @@ import Data.List
     ( groupBy )
 import Data.Monoid
     ( Sum (..) )
+import Data.Monoid.Null
+    ( MonoidNull (..), PositiveMonoid )
 import Data.Monoid.Monus.Extended
     ( (<\>) )
 import Data.Ratio
@@ -43,13 +45,11 @@ import qualified Data.SizeDivisible as SD
 
 newtype ListFraction a = ListFraction
     {getListFraction :: [(a, Ratio Natural)]}
-    deriving (Eq, Show)
+    deriving stock (Eq, Show)
+    deriving newtype (Monoid, MonoidNull, PositiveMonoid)
 
 instance Eq a => Semigroup (ListFraction a) where
     ListFraction xs <> ListFraction ys = toCanonical (ListFraction (xs <> ys))
-
-instance Eq a => Monoid (ListFraction a) where
-    mempty = ListFraction mempty
 
 instance Eq a => ExactBounded (ListFraction a) [a] where
     toExact = fromList
