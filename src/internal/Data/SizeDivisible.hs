@@ -13,6 +13,8 @@ import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Maybe
     ( fromMaybe )
+import Data.MonoidMap
+    ( MonoidMap )
 import Data.Map.Strict
     ( Map )
 import Data.Set
@@ -27,6 +29,7 @@ import Prelude hiding
 
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
+import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
@@ -51,6 +54,9 @@ instance SizeDivisible [a] where
 
 instance SizeDivisible (Map k v) where
     splitAt = Map.splitAt . naturalToInt
+
+instance SizeDivisible (MonoidMap k v) where
+    splitAt = MonoidMap.splitAt . naturalToInt
 
 instance SizeDivisible (Set a) where
     splitAt = Set.splitAt . naturalToInt
