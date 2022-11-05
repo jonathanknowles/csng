@@ -152,9 +152,9 @@ instance Apportion FractionalCoinValue where
 instance ExactApportion FractionalCoinValue
 
 instance ExactBounded FractionalCoinValue CoinValue where
-    toExact = unpacked (% 1)
-    toLowerBound = unpacked floor
-    toUpperBound = unpacked ceiling
+    exact = unpacked (% 1)
+    lowerBound = unpacked floor
+    upperBound = unpacked ceiling
 
 instance Monus FractionalCoinValue where
    a <\> b = fromMaybe mempty (a </> b)
@@ -296,9 +296,9 @@ instance Ord a => Apportion (FractionalCoin a) where
 instance Ord a => ExactApportion (FractionalCoin a)
 
 instance Ord a => ExactBounded (FractionalCoin a) (Coin a) where
-    toExact = unpacked $ MonoidMap.map toExact
-    toLowerBound = unpacked $ MonoidMap.map toLowerBound
-    toUpperBound = unpacked $ MonoidMap.map toUpperBound
+    exact = unpacked $ MonoidMap.map exact
+    lowerBound = unpacked $ MonoidMap.map lowerBound
+    upperBound = unpacked $ MonoidMap.map upperBound
 
 --------------------------------------------------------------------------------
 -- Conversions

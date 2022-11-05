@@ -56,12 +56,12 @@ instance Eq a => Monoid (ListFraction a) where
     mempty = ListFraction mempty
 
 instance Eq a => ExactBounded (Infix (ListFraction a)) (Infix [a]) where
-    toExact (Infix f) = Infix (fromList f)
-    toLowerBound (Infix (ListFraction as)) = Infix $ do
-        (a, n) <- fmap toLowerBound <$> as
+    exact (Infix f) = Infix (fromList f)
+    lowerBound (Infix (ListFraction as)) = Infix $ do
+        (a, n) <- fmap lowerBound <$> as
         replicate (fromIntegral n) a
-    toUpperBound (Infix (ListFraction as)) = Infix $ do
-        (a, n) <- fmap toUpperBound <$> as
+    upperBound (Infix (ListFraction as)) = Infix $ do
+        (a, n) <- fmap upperBound <$> as
         replicate (fromIntegral n) a
 
 instance Sized (ListFraction a) where
