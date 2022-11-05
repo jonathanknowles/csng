@@ -4,7 +4,7 @@
 module Algebra.ExactBounded where
 
 import Algebra.PartialOrd.Extended
-    ( PartialOrd )
+    ( PartialOrd (..) )
 import Data.Monoid
     ( Sum )
 import Data.Ratio
@@ -30,12 +30,32 @@ exactBoundedLaw_toExact_toUpperBound b =
 exactBoundedLaw_toLowerBound_toUpperBound_equivalence_1
     :: (ExactBounded e b, Eq e) => e -> Bool
 exactBoundedLaw_toLowerBound_toUpperBound_equivalence_1 e =
-    toExact (toLowerBound e) == e ≡ toExact (toUpperBound e) == e
+    toExact (toLowerBound e) == e <=> toExact (toUpperBound e) == e
 
 exactBoundedLaw_toLowerBound_toUpperBound_equivalence_2
     :: (ExactBounded e b, Eq e) => e -> Bool
 exactBoundedLaw_toLowerBound_toUpperBound_equivalence_2 e =
-    toExact (toLowerBound e) /= e ≡ toExact (toUpperBound e) /= e
+    toExact (toLowerBound e) /= e <=> toExact (toUpperBound e) /= e
+
+exactBoundedLaw_toLowerBound_leq
+    :: (ExactBounded e b, Eq e) => e -> e -> Bool
+exactBoundedLaw_toLowerBound_leq e1 e2 =
+    e1 `leq` e2 <=> toLowerBound e1 `leq` toLowerBound e2
+
+exactBoundedLaw_toUpperBound_leq
+    :: (ExactBounded e b, Eq e) => e -> e -> Bool
+exactBoundedLaw_toUpperBound_leq e1 e2 =
+    e1 `leq` e2 <=> toUpperBound e1 `leq` toUpperBound e2
+
+exactBoundedLaw_toLowerBound_toExact_leq
+    :: (ExactBounded e b, Eq e) => e -> Bool
+exactBoundedLaw_toLowerBound_toExact_leq e =
+    toExact (toLowerBound e) `leq` e
+
+exactBoundedLaw_toUpperBound_toExact_leq
+    :: (ExactBounded e b, Eq e) => e -> Bool
+exactBoundedLaw_toUpperBound_toExact_leq e =
+    e `leq` toExact (toUpperBound e)
 
 --------------------------------------------------------------------------------
 -- Utilities
@@ -57,12 +77,12 @@ instance ExactBounded (Sum (Ratio Natural)) (Sum Natural) where
 
 -- | Logical implication.
 --
-infixr 0 ⇒
-(⇒) :: Bool -> Bool -> Bool
-a ⇒ b = not a || b
+infixr 0 ==>
+(==>) :: Bool -> Bool -> Bool
+a ==> b = not a || b
 
 -- | Logical equivalence.
 --
-infixr 0 ≡
-(≡) :: Bool -> Bool -> Bool
-a ≡ b = (a ⇒ b) || (b ⇒ a)
+infixr 0 <=>
+(<=>) :: Bool -> Bool -> Bool
+a <=> b = (a ==> b) || (b ==> a)
