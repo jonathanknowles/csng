@@ -3,6 +3,8 @@
 
 module Algebra.ExactBounded where
 
+import Algebra.PartialOrd.Extended
+    ( PartialOrd )
 import Data.Monoid
     ( Sum )
 import Data.Ratio
@@ -10,7 +12,7 @@ import Data.Ratio
 import Numeric.Natural
     ( Natural )
 
-class ExactBounded e b | b -> e, e -> b where
+class (PartialOrd e, PartialOrd b) => ExactBounded e b | b -> e, e -> b where
     toExact :: b -> e
     toLowerBound :: e -> b
     toUpperBound :: e -> b

@@ -161,7 +161,6 @@ class
     , ExactApportion (Exact a)
     , ExactBounded (Exact a) a
     , ExactBounded (Weight (Exact a)) (Weight a)
-    , PartialOrd a
     ) =>
     BoundedApportion a
   where
@@ -252,11 +251,13 @@ newtype Size a = Size {getSize :: a}
 deriving via NaturalSum instance Semigroup      (Size Natural)
 deriving via NaturalSum instance Monoid         (Size Natural)
 deriving via NaturalSum instance MonoidNull     (Size Natural)
+deriving via NaturalSum instance PartialOrd     (Size Natural)
 deriving via NaturalSum instance PositiveMonoid (Size Natural)
 
 deriving via NaturalRatioSum instance Semigroup      (Size NaturalRatio)
 deriving via NaturalRatioSum instance Monoid         (Size NaturalRatio)
 deriving via NaturalRatioSum instance MonoidNull     (Size NaturalRatio)
+deriving via NaturalRatioSum instance PartialOrd     (Size NaturalRatio)
 deriving via NaturalRatioSum instance PositiveMonoid (Size NaturalRatio)
 
 instance Apportion (Size Natural) where
@@ -322,7 +323,8 @@ deriving newtype instance Eq a => Semigroup      (Size [a])
 deriving newtype instance Eq a => Monoid         (Size [a])
 deriving newtype instance Eq a => MonoidNull     (Size [a])
 deriving newtype instance Eq a => PositiveMonoid (Size [a])
-deriving newtype instance Eq a => PartialOrd     (Size [a])
+
+deriving via Infix [a] instance Eq a => PartialOrd (Size [a])
 
 instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
     toExact (Size n) = Size (getInfix $ toExact $ Infix n)
@@ -344,6 +346,9 @@ deriving newtype instance Eq a => Semigroup      (Size (ListFraction a))
 deriving newtype instance Eq a => Monoid         (Size (ListFraction a))
 deriving newtype instance Eq a => MonoidNull     (Size (ListFraction a))
 deriving newtype instance Eq a => PositiveMonoid (Size (ListFraction a))
+
+deriving via Infix (ListFraction a) instance Eq a =>
+    PartialOrd (Size (ListFraction a))
 
 instance Eq a => Apportion (Size (ListFraction a)) where
     type Weight (Size (ListFraction a)) = Size NaturalRatio
