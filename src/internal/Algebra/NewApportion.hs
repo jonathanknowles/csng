@@ -355,8 +355,7 @@ instance Eq a => ExactApportion (Size (ListFraction a))
 -- Instances: MonoidMap
 --------------------------------------------------------------------------------
 
-instance (Ord k, Apportion v, MonoidNull v, Weight v ~ v) =>
-    Apportion (MonoidMap k v)
+instance (Ord k, Apportion v, Weight v ~ v) => Apportion (MonoidMap k v)
   where
     type Weight (MonoidMap k v) = MonoidMap k v
     apportion m ms =
@@ -372,8 +371,7 @@ instance (Ord k, Apportion v, MonoidNull v, Weight v ~ v) =>
         apportionForKey k = MonoidMap.singleton k <$>
             apportion (MonoidMap.get k m) (MonoidMap.get k <$> ms)
 
-instance (Ord k, Apportion v, MonoidNull v, Weight v ~ v) =>
-    ExactApportion (MonoidMap k v)
+instance (Ord k, Apportion v, Weight v ~ v) => ExactApportion (MonoidMap k v)
 
 --------------------------------------------------------------------------------
 -- Utilities
