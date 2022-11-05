@@ -6,7 +6,7 @@ allow-newer:
 source-repository-package
     type: git
     location: https://github.com/jonathanknowles/monoidmap.git
-    tag: cc1fc220445c8794c232341e5c07a477d036e018
+    tag: 35f98c1853d61eb79fb963bc976c6d1a525becc9
 
 source-repository-package
     type: git
