@@ -13,12 +13,10 @@ import Algebra.PartialOrd.Extended
     ( Infix (..), PartialOrd (..) )
 import Data.Coerce
     ( coerce )
-import Data.Foldable
-    ( foldrM )
 import Data.List.Fraction
     ( ListFraction )
 import Data.List.NonEmpty.Extended
-    ( NonEmpty (..) )
+    ( NonEmpty (..), folds, permutations )
 import Data.Maybe
     ( isJust )
 import Data.Monoid
@@ -33,6 +31,8 @@ import Data.Ratio
     ( Ratio )
 import Data.Semialign
     ( Semialign (..), Zip (..), salign )
+import Data.Semigroup.Cancellative
+    ( Commutative )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
 import Data.Strict.Set
@@ -51,7 +51,6 @@ import Prelude hiding
 
 import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.Foldable as F
-import qualified Data.List.NonEmpty.Extended as NE
 import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Sized as Sized
 
@@ -107,6 +106,9 @@ class (Eq a, PositiveMonoid a, PositiveMonoid (Weight a)) => Apportion a where
 
     {-# MINIMAL apportion | apportionMaybe #-}
 
+apportionJust :: Apportion a => a -> NonEmpty (Weight a) -> NonEmpty a
+apportionJust a ws = partition (apportion a ws)
+
 apportionLaw_fold :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_fold a ws =
     fold1 (apportion a ws) == a
@@ -150,7 +152,7 @@ exactApportionLaw_identity_maybe a ws =
 exactApportionLaw_folds
     :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
 exactApportionLaw_folds a ws =
-    folds (partition (apportion a ws)) == (partition . apportion a <$> folds ws)
+    folds (apportionJust a ws) == (apportionJust a <$> folds ws)
 
 --------------------------------------------------------------------------------
 -- BoundedApportion
@@ -231,6 +233,18 @@ boundedApportionLaw_isBounded
     :: forall a. BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
 boundedApportionLaw_isBounded =
     boundedApportionIsBounded
+
+--------------------------------------------------------------------------------
+-- CommutativeApportion
+--------------------------------------------------------------------------------
+
+class (Apportion a, Commutative a, Commutative (Weight a)) =>
+    CommutativeApportion a
+
+commutativeApportionLaw_permutations
+    :: CommutativeApportion a => a -> NonEmpty (Weight a) -> Bool
+commutativeApportionLaw_permutations a ws =
+    permutations (apportionJust a ws) == (apportionJust a <$> permutations ws)
 
 --------------------------------------------------------------------------------
 -- Type synonyms
@@ -314,6 +328,7 @@ instance Apportion NaturalRatioSum where
         mkPortion w = Sum (getSum a * getSum w / getSum weightSum)
 
 instance ExactApportion NaturalRatioSum
+instance CommutativeApportion NaturalRatioSum
 
 --------------------------------------------------------------------------------
 -- Instances: []
@@ -381,15 +396,6 @@ instance (Ord k, Apportion v, Weight v ~ v) => ExactApportion (MonoidMap k v)
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
-
-folds :: Semigroup a => NonEmpty a -> [NonEmpty a]
-folds ws = case NE.splitLast ws of
-    Just (prefix, last) ->
-        foldrM acc (NE.singleton last) prefix
-    Nothing ->
-        [ws]
-  where
-    acc a (x :| xs) = [a <> x :| xs, a :| x : xs]
 
 zipAll :: (Foldable t, Zip t) => (a -> b -> Bool) -> t a -> t b -> Bool
 zipAll f xs ys = all (uncurry f) (zip xs ys)
