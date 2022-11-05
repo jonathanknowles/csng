@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{- HLINT ignore "Redundant bracket" -}
 {- HLINT ignore "Use camelCase" -}
 
 module Algebra.NewApportion
@@ -27,6 +28,8 @@ import Data.Monoid.Null
     ( MonoidNull, PositiveMonoid )
 import Data.MonoidMap
     ( MonoidMap )
+import Data.Proxy
+    ( Proxy )
 import Data.Ratio
     ( Ratio )
 import Data.Semialign
@@ -45,6 +48,12 @@ import Data.These
     ( These (..) )
 import Numeric.Natural
     ( Natural )
+import Test.QuickCheck
+    ( Arbitrary (..), property )
+import Test.QuickCheck.Classes
+    ( Laws (..) )
+import Test.QuickCheck.Instances.NonEmpty
+    ()
 
 import Prelude hiding
     ( last, splitAt, zip, zipWith )
@@ -108,6 +117,28 @@ class (Eq a, PositiveMonoid a, PositiveMonoid (Weight a)) => Apportion a where
 
 apportionJust :: Apportion a => a -> NonEmpty (Weight a) -> NonEmpty a
 apportionJust a ws = partition (apportion a ws)
+
+apportionLaws
+    :: forall a.
+        ( Apportion a
+        , Arbitrary a
+        , Arbitrary (Weight a)
+        , Show a
+        , Show (Weight a)
+        )
+    => Proxy a
+    -> Laws
+apportionLaws _ = Laws "Apportion"
+    [ ( "apportionLaw_fold"
+      , (apportionLaw_fold @a & property)
+      )
+    , ( "apportionLaw_length"
+      , (apportionLaw_length @a & property)
+      )
+    , ( "apportionLaw_maybe"
+      , (apportionLaw_maybe @a & property)
+      )
+    ]
 
 apportionLaw_fold :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_fold a ws =

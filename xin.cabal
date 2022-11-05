@@ -130,6 +130,7 @@ library internal
         Data.Monoid.Monus.Extended
         Data.Sized
         Data.SizeDivisible
+        Test.QuickCheck.Instances.NonEmpty
         Value
         Wrapped
     default-language:
@@ -181,7 +182,6 @@ test-suite test
         Test.Hspec.Unit
         Test.QuickCheck.Classes.Hspec
         Test.QuickCheck.Extended
-        Test.QuickCheck.Instances.NonEmpty
         ValueSpec
     type: exitcode-stdio-1.0
     default-language:
