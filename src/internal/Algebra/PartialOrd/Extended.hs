@@ -42,7 +42,7 @@ instance (Ord k, PartialOrd v) => PartialOrd (MonoidMap k v) where
 -- Infix
 --------------------------------------------------------------------------------
 
-newtype Infix a = Infix a
+newtype Infix a = Infix {getInfix :: a}
     deriving (Eq, Show)
 
 instance Eq a => PartialOrd (Infix [a]) where
@@ -52,7 +52,7 @@ instance Eq a => PartialOrd (Infix [a]) where
 -- Prefix
 --------------------------------------------------------------------------------
 
-newtype Prefix a = Prefix a
+newtype Prefix a = Prefix {getPrefix :: a}
     deriving (Eq, Show)
 
 instance Eq a => PartialOrd (Prefix [a]) where
@@ -62,7 +62,7 @@ instance Eq a => PartialOrd (Prefix [a]) where
 -- Suffix
 --------------------------------------------------------------------------------
 
-newtype Suffix a = Suffix a
+newtype Suffix a = Suffix {getSuffix :: a}
     deriving (Eq, Show)
 
 instance Eq a => PartialOrd (Suffix [a]) where
