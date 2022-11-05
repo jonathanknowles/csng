@@ -2,6 +2,7 @@ module Data.List.NonEmpty.Extended
     ( module Data.List.NonEmpty
     , folds
     , permutations
+    , subsequences
     , splitLast
     , splitWhen
     , zip3
@@ -29,6 +30,10 @@ folds ws = case splitLast ws of
 
 permutations :: NonEmpty a -> NonEmpty (NonEmpty a)
 permutations as = NE.fromList <$> NE.fromList (L.permutations (NE.toList as))
+
+subsequences :: NonEmpty a -> NonEmpty (NonEmpty a)
+subsequences as = NE.fromList <$> NE.fromList
+    (L.filter (not . null) $ L.subsequences (NE.toList as))
 
 splitLast :: NonEmpty a -> Maybe (NonEmpty a, a)
 splitLast ps =
