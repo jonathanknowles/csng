@@ -115,11 +115,11 @@ apportionLaw_fold a ws =
 
 apportionLaw_length :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_length a ws =
-    length (partition (apportion a ws)) == length ws
+    length (apportionJust a ws) == length ws
 
 apportionLaw_maybe :: Apportion a => a -> NonEmpty (Weight a) -> Bool
 apportionLaw_maybe a ws =
-    isJust (apportionMaybe a ws) == (fold1 (partition (apportion a ws)) == a)
+    isJust (apportionMaybe a ws) == (fold1 (apportionJust a ws) == a)
 
 --------------------------------------------------------------------------------
 -- ExactApportion
