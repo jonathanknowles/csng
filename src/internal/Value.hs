@@ -23,6 +23,7 @@ import Algebra.NewApportion
     ( Apportion (..)
     , Apportionment (..)
     , BoundedApportion (..)
+    , CommutativeApportion
     , ExactApportion (..)
     )
 import Algebra.PartialOrd.Extended
@@ -149,6 +150,7 @@ instance Apportion FractionalCoinValue where
     type Weight FractionalCoinValue = FractionalCoinValue
     apportion = apportionNewtypeSum
 
+instance CommutativeApportion FractionalCoinValue
 instance ExactApportion FractionalCoinValue
 
 instance ExactBounded FractionalCoinValue CoinValue where
@@ -293,6 +295,7 @@ instance Ord a => Apportion (FractionalCoin a) where
     type Weight (FractionalCoin a) = FractionalCoin a
     apportion = apportionNewtype
 
+instance Ord a => CommutativeApportion (FractionalCoin a)
 instance Ord a => ExactApportion (FractionalCoin a)
 
 instance Ord a => ExactBounded (FractionalCoin a) (Coin a) where
