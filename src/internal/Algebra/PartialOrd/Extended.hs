@@ -22,8 +22,8 @@ import Numeric.Natural
     ( Natural )
 
 import qualified Data.List as L
-import qualified Data.Strict.Map as Map
 import qualified Data.MonoidMap as MonoidMap
+import qualified Data.Strict.Map as Map
 
 instance PartialOrd Natural where
     leq = (<=)

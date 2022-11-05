@@ -32,8 +32,6 @@ import AsList
     ( AsList (..), asList )
 import Data.Coerce
     ( Coercible, coerce )
-import Generic.Data
-    ( Newtype, Old, pack, unpack )
 import Data.Group
     ( Group (..) )
 import Data.IntCast
@@ -65,6 +63,8 @@ import Data.Ratio
     ( Ratio )
 import Data.Strict.Set
     ( Set )
+import Generic.Data
+    ( Newtype, Old, pack, unpack )
 import GHC.Generics
     ( Generic )
 import Numeric.Natural

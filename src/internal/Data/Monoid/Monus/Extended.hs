@@ -9,10 +9,10 @@ import Data.Monoid
     ( Sum (..) )
 import Data.Monoid.Null
     ( PositiveMonoid )
-import Data.Semigroup.Cancellative
-    ( SumCancellative (..) )
 import Data.Ratio
     ( Ratio )
+import Data.Semigroup.Cancellative
+    ( SumCancellative (..) )
 import Numeric.Natural
     ( Natural )
 

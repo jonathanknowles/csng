@@ -26,10 +26,10 @@ import Data.List
     ( groupBy )
 import Data.Monoid
     ( Sum (..) )
-import Data.Monoid.Null
-    ( MonoidNull (..), PositiveMonoid )
 import Data.Monoid.Monus.Extended
     ( (<\>) )
+import Data.Monoid.Null
+    ( MonoidNull (..), PositiveMonoid )
 import Data.Ratio
     ( Ratio )
 import Data.Sized

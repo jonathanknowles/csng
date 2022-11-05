@@ -15,12 +15,12 @@ import Data.Maybe
     ( fromMaybe )
 import Data.MonoidMap
     ( MonoidMap )
+import Data.Sized
+    ( Sized (..) )
 import Data.Strict.Map
     ( Map )
 import Data.Strict.Set
     ( Set )
-import Data.Sized
-    ( Sized (..) )
 import Numeric.Natural
     ( Natural )
 
