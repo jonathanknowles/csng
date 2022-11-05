@@ -2,6 +2,9 @@
 
 module Algebra.PartialOrd.Extended
     ( module Algebra.PartialOrd
+    , Infix (..)
+    , Prefix (..)
+    , Suffix (..)
     )
     where
 
@@ -18,6 +21,7 @@ import Data.Strict.Map
 import Numeric.Natural
     ( Natural )
 
+import qualified Data.List as L
 import qualified Data.Strict.Map as Map
 import qualified Data.MonoidMap as MonoidMap
 
@@ -38,3 +42,33 @@ instance (Ord k, PartialOrd v) => PartialOrd (Map k v) where
 
 instance (Ord k, PartialOrd v) => PartialOrd (MonoidMap k v) where
     leq a b = Map.isSubmapOfBy leq (MonoidMap.toMap a) (MonoidMap.toMap b)
+
+--------------------------------------------------------------------------------
+-- Infix
+--------------------------------------------------------------------------------
+
+newtype Infix a = Infix a
+    deriving (Eq, Show)
+
+instance Eq a => PartialOrd (Infix [a]) where
+    Infix as `leq` Infix bs = as `L.isInfixOf` bs
+
+--------------------------------------------------------------------------------
+-- Prefix
+--------------------------------------------------------------------------------
+
+newtype Prefix a = Prefix a
+    deriving (Eq, Show)
+
+instance Eq a => PartialOrd (Prefix [a]) where
+    Prefix as `leq` Prefix bs = as `L.isPrefixOf` bs
+
+--------------------------------------------------------------------------------
+-- Suffix
+--------------------------------------------------------------------------------
+
+newtype Suffix a = Suffix a
+    deriving (Eq, Show)
+
+instance Eq a => PartialOrd (Suffix [a]) where
+    Suffix as `leq` Suffix bs = as `L.isSuffixOf` bs

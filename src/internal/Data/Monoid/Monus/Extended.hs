@@ -1,7 +1,18 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Data.Monoid.Monus.Extended
     ( module Data.Monoid.Monus
     , distance
     ) where
+
+import Data.Monoid
+    ( Sum (..) )
+import Data.Semigroup.Cancellative
+    ( SumCancellative (..) )
+import Data.Ratio
+    ( Ratio )
+import Numeric.Natural
+    ( Natural )
 
 import Data.Monoid.Monus
 
@@ -37,3 +48,24 @@ import Data.Monoid.Monus
 --
 distance :: Monus a => a -> a -> a
 distance a b = (a <\> b) <> (b <\> a)
+
+--------------------------------------------------------------------------------
+-- Orphan instances for Ratio Natural
+--------------------------------------------------------------------------------
+
+instance SumCancellative (Ratio Natural) where
+   cancelAddition a b
+      | a < b = Nothing
+      | otherwise = Just (a - b)
+
+instance OverlappingGCDMonoid (Sum (Ratio Natural)) where
+   overlap (Sum a) (Sum b) = Sum (min a b)
+   stripOverlap (Sum a) (Sum b) = (Sum $ a - c, Sum c, Sum $ b - c)
+      where c = min a b
+   stripPrefixOverlap = flip (<\>)
+   stripSuffixOverlap = flip (<\>)
+
+instance Monus (Sum (Ratio Natural)) where
+   Sum a <\> Sum b
+      | a > b = Sum (a - b)
+      | otherwise = Sum 0
