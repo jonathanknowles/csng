@@ -35,12 +35,12 @@ import Data.Semigroup.Cancellative
     ( Commutative )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
-import Data.Set
-    ( Set )
 import Data.Sized
     ( size )
 import Data.SizeDivisible
     ( SizeDivisible (..), splitAtMany )
+import Data.Set
+    ( Set )
 import Data.These
     ( These (..) )
 import Numeric.Natural

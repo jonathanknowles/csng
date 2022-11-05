@@ -13,7 +13,7 @@ import Data.Foldable
 import Data.List.NonEmpty
 
 import Prelude hiding
-    ( zip3, unzip3 )
+    ( unzip3, zip3 )
 
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
