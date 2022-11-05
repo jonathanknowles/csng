@@ -7,6 +7,8 @@ module Data.Monoid.Monus.Extended
 
 import Data.Monoid
     ( Sum (..) )
+import Data.Monoid.Null
+    ( PositiveMonoid )
 import Data.Semigroup.Cancellative
     ( SumCancellative (..) )
 import Data.Ratio
@@ -52,6 +54,8 @@ distance a b = (a <\> b) <> (b <\> a)
 --------------------------------------------------------------------------------
 -- Orphan instances for Ratio Natural
 --------------------------------------------------------------------------------
+
+instance PositiveMonoid (Sum (Ratio Natural))
 
 instance SumCancellative (Ratio Natural) where
    cancelAddition a b

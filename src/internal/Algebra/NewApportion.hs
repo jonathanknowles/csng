@@ -23,8 +23,10 @@ import Data.Maybe
     ( isJust )
 import Data.Monoid
     ( Sum (..) )
+import Data.Monoid.Monus.Extended
+    ()
 import Data.Monoid.Null
-    ( MonoidNull )
+    ( MonoidNull, PositiveMonoid )
 import Data.MonoidMap
     ( MonoidMap )
 import Data.Ratio
@@ -83,22 +85,22 @@ instance PartialOrd a => PartialOrd (Apportionment a) where
 -- Apportion
 --------------------------------------------------------------------------------
 
-class (Eq a, Semigroup a, Semigroup (Weight a)) => Apportion a where
+class (Eq a, PositiveMonoid a, PositiveMonoid (Weight a)) => Apportion a where
 
     type Weight a
 
     apportion
         :: a -> NonEmpty (Weight a) -> Apportionment a
-    default apportion :: Monoid a
-        => a -> NonEmpty (Weight a) -> Apportionment a
+    default apportion
+        :: a -> NonEmpty (Weight a) -> Apportionment a
     apportion a as = case apportionMaybe a as of
         Nothing -> Apportionment a (mempty <$ as)
         Just bs -> Apportionment mempty bs
 
     apportionMaybe
         :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
-    default apportionMaybe :: Monoid a
-        => a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+    default apportionMaybe
+        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
     apportionMaybe a as = case apportion a as of
        Apportionment b bs | b == mempty -> Just bs
        _ -> Nothing
@@ -247,11 +249,15 @@ newtype Size a = Size {getSize :: a}
     deriving stock (Eq, Show)
     deriving newtype (Sized.Sized, SizeDivisible)
 
-deriving via NaturalSum instance Semigroup (Size Natural)
-deriving via NaturalSum instance Monoid    (Size Natural)
+deriving via NaturalSum instance Semigroup      (Size Natural)
+deriving via NaturalSum instance Monoid         (Size Natural)
+deriving via NaturalSum instance MonoidNull     (Size Natural)
+deriving via NaturalSum instance PositiveMonoid (Size Natural)
 
-deriving via NaturalRatioSum instance Semigroup (Size NaturalRatio)
-deriving via NaturalRatioSum instance Monoid    (Size NaturalRatio)
+deriving via NaturalRatioSum instance Semigroup      (Size NaturalRatio)
+deriving via NaturalRatioSum instance Monoid         (Size NaturalRatio)
+deriving via NaturalRatioSum instance MonoidNull     (Size NaturalRatio)
+deriving via NaturalRatioSum instance PositiveMonoid (Size NaturalRatio)
 
 instance Apportion (Size Natural) where
     type Weight (Size Natural) = Size Natural
@@ -312,9 +318,11 @@ instance ExactApportion NaturalRatioSum
 -- Instances: []
 --------------------------------------------------------------------------------
 
-deriving newtype instance Eq a => Semigroup  (Size [a])
-deriving newtype instance Eq a => Monoid     (Size [a])
-deriving newtype instance Eq a => PartialOrd (Size [a])
+deriving newtype instance Eq a => Semigroup      (Size [a])
+deriving newtype instance Eq a => Monoid         (Size [a])
+deriving newtype instance Eq a => MonoidNull     (Size [a])
+deriving newtype instance Eq a => PositiveMonoid (Size [a])
+deriving newtype instance Eq a => PartialOrd     (Size [a])
 
 instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
     toExact (Size n) = Size (toExact n)
@@ -332,8 +340,10 @@ instance Eq a => BoundedApportion (Size [a]) where
 -- Instances: ListFraction
 --------------------------------------------------------------------------------
 
-deriving newtype instance Eq a => Semigroup  (Size (ListFraction a))
-deriving newtype instance Eq a => Monoid     (Size (ListFraction a))
+deriving newtype instance Eq a => Semigroup      (Size (ListFraction a))
+deriving newtype instance Eq a => Monoid         (Size (ListFraction a))
+deriving newtype instance Eq a => MonoidNull     (Size (ListFraction a))
+deriving newtype instance Eq a => PositiveMonoid (Size (ListFraction a))
 
 instance Eq a => Apportion (Size (ListFraction a)) where
     type Weight (Size (ListFraction a)) = Size NaturalRatio
