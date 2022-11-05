@@ -3,6 +3,7 @@
 
 module Data.List.Fraction
     ( ListFraction
+    , fromFractions
     , fromList
     , length
     , drop
@@ -45,11 +46,14 @@ import qualified Data.SizeDivisible as SD
 
 newtype ListFraction a = ListFraction
     {getListFraction :: [(a, Ratio Natural)]}
-    deriving stock (Eq, Show)
-    deriving newtype (Monoid, MonoidNull, PositiveMonoid)
+    deriving stock (Eq, Show, Read)
+    deriving newtype (MonoidNull, PositiveMonoid)
 
 instance Eq a => Semigroup (ListFraction a) where
     ListFraction xs <> ListFraction ys = toCanonical (ListFraction (xs <> ys))
+
+instance Eq a => Monoid (ListFraction a) where
+    mempty = ListFraction mempty
 
 instance Eq a => ExactBounded (ListFraction a) [a] where
     toExact = fromList
@@ -78,6 +82,12 @@ instance Eq a => PartialOrd (Suffix (ListFraction a)) where
 instance Eq a => PartialOrd (Infix (ListFraction a)) where
     Infix f1 `leq` Infix f2 = f1 `isInfixOf` f2
 
+fromFractions :: Eq a => [(a, Ratio Natural)] -> ListFraction a
+fromFractions fs = toCanonical (ListFraction fs)
+
+fromList :: Eq a => [a] -> ListFraction a
+fromList = fromFractions . fmap (, 1)
+
 toCanonical :: forall a. Eq a => ListFraction a -> ListFraction a
 toCanonical (ListFraction as) =
     ListFraction (filter ((/= 0) . snd) $ labels `zip` totals)
@@ -90,9 +100,6 @@ toCanonical (ListFraction as) =
 
     totals :: [Ratio Natural]
     totals = getSum . foldMap (Sum . snd) <$> groups
-
-fromList :: Eq a => [a] -> ListFraction a
-fromList = toCanonical . ListFraction . fmap (, 1)
 
 length :: ListFraction a -> Ratio Natural
 length (ListFraction as) = getSum $ foldMap (Sum . snd) as
