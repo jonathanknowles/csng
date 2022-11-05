@@ -8,9 +8,9 @@ import Data.List.NonEmpty
     ( NonEmpty )
 import Data.MonoidMap
     ( MonoidMap )
-import Data.Strict.Map
+import Data.Map.Strict
     ( Map )
-import Data.Strict.Set
+import Data.Set
     ( Set )
 import Numeric.Natural
     ( Natural )

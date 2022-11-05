@@ -13,9 +13,9 @@ import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Maybe
     ( fromMaybe )
-import Data.Strict.Map
+import Data.Map.Strict
     ( Map )
-import Data.Strict.Set
+import Data.Set
     ( Set )
 import Data.Sized
     ( Sized (..) )
@@ -27,8 +27,8 @@ import Prelude hiding
 
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
-import qualified Data.Strict.Map as Map
-import qualified Data.Strict.Set as Set
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 
 class Sized a => SizeDivisible a where
 

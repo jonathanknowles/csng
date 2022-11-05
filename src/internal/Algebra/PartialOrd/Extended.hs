@@ -13,12 +13,10 @@ import Data.MonoidMap
     ( MonoidMap )
 import Data.Ratio
     ( Ratio )
-import Data.Strict.Map
-    ( Map )
 import Numeric.Natural
     ( Natural )
 
-import qualified Data.Strict.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.MonoidMap as MonoidMap
 
 instance PartialOrd Natural where
@@ -32,9 +30,6 @@ instance PartialOrd (Sum Natural) where
 
 instance PartialOrd (Sum (Ratio Natural)) where
     leq = (<=)
-
-instance (Ord k, PartialOrd v) => PartialOrd (Map k v) where
-    leq = Map.isSubmapOfBy leq
 
 instance (Ord k, PartialOrd v) => PartialOrd (MonoidMap k v) where
     leq a b = Map.isSubmapOfBy leq (MonoidMap.toMap a) (MonoidMap.toMap b)

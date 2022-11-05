@@ -33,7 +33,7 @@ import Data.Semialign
     ( Semialign (..), Zip (..), salign )
 import Data.Semigroup.Foldable
     ( Foldable1 (..) )
-import Data.Strict.Set
+import Data.Set
     ( Set )
 import Data.Sized
     ( size )
@@ -353,7 +353,7 @@ instance (Ord k, Apportion v, MonoidNull v, Weight v ~ v) =>
         F.foldl' salign empty $ apportionForKey <$> F.toList allKeys
       where
         allKeys :: Set k
-        allKeys = F.foldMap MonoidMap.nonNullKeys (m : F.toList ms)
+        allKeys = F.foldMap MonoidMap.keys (m : F.toList ms)
 
         empty :: Apportionment (MonoidMap k v)
         empty = Apportionment mempty (mempty <$ ms)
