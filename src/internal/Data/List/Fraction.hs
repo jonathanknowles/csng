@@ -55,12 +55,12 @@ instance Eq a => Semigroup (ListFraction a) where
 instance Eq a => Monoid (ListFraction a) where
     mempty = ListFraction mempty
 
-instance Eq a => ExactBounded (ListFraction a) [a] where
-    toExact = fromList
-    toLowerBound (ListFraction as) = do
+instance Eq a => ExactBounded (Infix (ListFraction a)) (Infix [a]) where
+    toExact (Infix f) = Infix (fromList f)
+    toLowerBound (Infix (ListFraction as)) = Infix $ do
         (a, n) <- fmap toLowerBound <$> as
         replicate (fromIntegral n) a
-    toUpperBound (ListFraction as) = do
+    toUpperBound (Infix (ListFraction as)) = Infix $ do
         (a, n) <- fmap toUpperBound <$> as
         replicate (fromIntegral n) a
 

@@ -10,7 +10,7 @@ module Algebra.NewApportion
 import Algebra.ExactBounded
     ( ExactBounded (..) )
 import Algebra.PartialOrd.Extended
-    ( PartialOrd (..) )
+    ( Infix (..), PartialOrd (..) )
 import Data.Coerce
     ( coerce )
 import Data.Foldable
@@ -325,9 +325,9 @@ deriving newtype instance Eq a => PositiveMonoid (Size [a])
 deriving newtype instance Eq a => PartialOrd     (Size [a])
 
 instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
-    toExact (Size n) = Size (toExact n)
-    toLowerBound (Size r) = Size (toLowerBound r)
-    toUpperBound (Size r) = Size (toUpperBound r)
+    toExact (Size n) = Size (getInfix $ toExact $ Infix n)
+    toLowerBound (Size r) = Size (getInfix $ toLowerBound $ Infix r)
+    toUpperBound (Size r) = Size (getInfix $ toUpperBound $ Infix r)
 
 instance Eq a => Apportion (Size [a]) where
     type Weight (Size [a]) = Size Natural
