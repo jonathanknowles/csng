@@ -177,6 +177,7 @@ test-suite test
         Algebra.ApportionSpec
         Algebra.Apportion.BalancedSpec
         ChangeSpec
+        Data.List.FractionSpec
         Test.Hspec.Unit
         Test.QuickCheck.Classes.Hspec
         Test.QuickCheck.Extended
@@ -197,6 +198,7 @@ test-suite test
       , QuickCheck
       , quickcheck-classes
       , quickcheck-groups
+      , quickcheck-instances
       , quickcheck-monoid-subclasses
       , quickcheck-quid
       , safe
