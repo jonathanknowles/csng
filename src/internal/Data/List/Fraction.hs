@@ -8,6 +8,7 @@ module Data.List.Fraction
     , drop
     , take
     , splitAt
+    , isInfixOf
     , isPrefixOf
     , isSuffixOf
     , isValid
@@ -16,6 +17,8 @@ module Data.List.Fraction
 
 import Algebra.ExactBounded
     ( ExactBounded (..) )
+import Algebra.PartialOrd.Extended
+    ( Infix (..), PartialOrd (..), Prefix (..), Suffix (..) )
 import Data.Function
     ( on )
 import Data.List
@@ -66,6 +69,15 @@ instance SizeDivisible (ListFraction a) where
     take = take
     splitAt = splitAt
 
+instance Eq a => PartialOrd (Prefix (ListFraction a)) where
+    Prefix f1 `leq` Prefix f2 = f1 `isPrefixOf` f2
+
+instance Eq a => PartialOrd (Suffix (ListFraction a)) where
+    Suffix f1 `leq` Suffix f2 = f1 `isSuffixOf` f2
+
+instance Eq a => PartialOrd (Infix (ListFraction a)) where
+    Infix f1 `leq` Infix f2 = f1 `isInfixOf` f2
+
 toCanonical :: forall a. Eq a => ListFraction a -> ListFraction a
 toCanonical (ListFraction as) =
     ListFraction (filter ((/= 0) . snd) $ labels `zip` totals)
@@ -113,6 +125,16 @@ isPrefixOf a b = a == take (length a) b
 
 isSuffixOf :: Eq a => ListFraction a -> ListFraction a -> Bool
 isSuffixOf a b = a == drop (getSum (Sum (length b) <\> Sum (length a))) b
+
+isInfixOf :: Eq a => ListFraction a -> ListFraction a -> Bool
+isInfixOf (ListFraction f1) (ListFraction f2) = test f1 f2
+  where
+    test [] _ = True
+    test _ [] = False
+    test ((a, p) : as) ((b, q) : bs) =
+        (a == b && p <= q && ListFraction as `isPrefixOf` ListFraction bs)
+        ||
+        test ((a, p) : as) bs
 
 isValid :: Eq a => ListFraction a -> Bool
 isValid f = f == toCanonical f
