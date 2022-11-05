@@ -6,6 +6,8 @@ import Data.Kind
     ( Type )
 import Data.List.NonEmpty
     ( NonEmpty )
+import Data.MonoidMap
+    ( MonoidMap )
 import Data.Strict.Map
     ( Map )
 import Data.Strict.Set
@@ -28,4 +30,5 @@ instance Foldable f => Sized (FoldableSized f a) where
 deriving via FoldableSized [] a instance Sized [a]
 deriving via FoldableSized NonEmpty a instance Sized (NonEmpty a)
 deriving via FoldableSized (Map k) a instance Sized (Map k a)
+deriving via FoldableSized (MonoidMap k) a instance Sized (MonoidMap k a)
 deriving via FoldableSized Set a instance Sized (Set a)
