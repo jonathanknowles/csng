@@ -183,7 +183,7 @@ boundedApportionAsExact
     => a
     -> NonEmpty (Weight a)
     -> Apportionment (Exact a)
-boundedApportionAsExact a ws = exactApportion (toExact a) (toExact <$> ws)
+boundedApportionAsExact a ws = exactApportion (exact a) (exact <$> ws)
 
 boundedApportionIsBounded
     :: forall a. BoundedApportion a
@@ -208,14 +208,14 @@ boundedApportionLowerBound
     => a
     -> NonEmpty (Weight a)
     -> Apportionment a
-boundedApportionLowerBound a ws = toLowerBound <$> boundedApportionAsExact a ws
+boundedApportionLowerBound a ws = lowerBound <$> boundedApportionAsExact a ws
 
 boundedApportionUpperBound
     :: forall a. BoundedApportion a
     => a
     -> NonEmpty (Weight a)
     -> Apportionment a
-boundedApportionUpperBound a ws = toUpperBound <$> boundedApportionAsExact a ws
+boundedApportionUpperBound a ws = upperBound <$> boundedApportionAsExact a ws
 
 boundedApportionLaw_identity
     :: BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
@@ -269,9 +269,9 @@ instance Apportion (Size NaturalRatio) where
     apportion = apportionSize
 
 instance ExactBounded (Size NaturalRatio) (Size Natural) where
-    toExact (Size n) = Size (toExact n)
-    toLowerBound (Size r) = Size (toLowerBound r)
-    toUpperBound (Size r) = Size (toUpperBound r)
+    exact (Size n) = Size (exact n)
+    lowerBound (Size r) = Size (lowerBound r)
+    upperBound (Size r) = Size (upperBound r)
 
 apportionSize
     :: (Weight (Sum a) ~ Sum a, Apportion (Sum a))
@@ -327,9 +327,9 @@ deriving newtype instance Eq a => PositiveMonoid (Size [a])
 deriving via Infix [a] instance Eq a => PartialOrd (Size [a])
 
 instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
-    toExact (Size n) = Size (getInfix $ toExact $ Infix n)
-    toLowerBound (Size r) = Size (getInfix $ toLowerBound $ Infix r)
-    toUpperBound (Size r) = Size (getInfix $ toUpperBound $ Infix r)
+    exact (Size n) = Size (getInfix $ exact $ Infix n)
+    lowerBound (Size r) = Size (getInfix $ lowerBound $ Infix r)
+    upperBound (Size r) = Size (getInfix $ upperBound $ Infix r)
 
 instance Eq a => Apportion (Size [a]) where
     type Weight (Size [a]) = Size Natural
