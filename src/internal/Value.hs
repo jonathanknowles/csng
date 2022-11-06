@@ -21,17 +21,15 @@ import Algebra.ExactBounded
     ( ExactBounded (..) )
 import Algebra.NewApportion
     ( Apportion (..)
-    , Apportionment (..)
     , BoundedApportion (..)
     , CommutativeApportion
     , ExactApportion
+    , apportionMap
     )
 import Algebra.PartialOrd.Extended
     ( PartialOrd )
 import AsList
     ( AsList (..), asList )
-import Data.Coerce
-    ( Coercible, coerce )
 import Data.Group
     ( Group (..) )
 import Data.IntCast
@@ -115,7 +113,7 @@ newtype CoinValue = CoinValue Natural
 
 instance Apportion CoinValue where
     type Weight CoinValue = CoinValue
-    apportion = apportionNewtypeSum
+    apportion = apportionMap (pack . getSum) (Sum . unpack) (Sum . unpack)
 
 instance BoundedApportion CoinValue where
     type Exact CoinValue = FractionalCoinValue
@@ -146,7 +144,7 @@ newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
 
 instance Apportion FractionalCoinValue where
     type Weight FractionalCoinValue = FractionalCoinValue
-    apportion = apportionNewtypeSum
+    apportion = apportionMap (pack . getSum) (Sum . unpack) (Sum . unpack)
 
 instance CommutativeApportion FractionalCoinValue
 instance ExactApportion FractionalCoinValue
@@ -262,7 +260,7 @@ newtype Coin a = Coin (MonoidMap a CoinValue)
 
 instance Ord a => Apportion (Coin a) where
     type Weight (Coin a) = Coin a
-    apportion = apportionNewtype
+    apportion = apportionMap pack unpack unpack
 
 instance Ord a => BoundedApportion (Coin a) where
     type Exact (Coin a) = FractionalCoin a
@@ -291,7 +289,7 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
 
 instance Ord a => Apportion (FractionalCoin a) where
     type Weight (FractionalCoin a) = FractionalCoin a
-    apportion = apportionNewtype
+    apportion = apportionMap pack unpack unpack
 
 instance Ord a => CommutativeApportion (FractionalCoin a)
 instance Ord a => ExactApportion (FractionalCoin a)
@@ -328,32 +326,3 @@ coinValueToBalanceValue = unpacked intCast
 
 coinValueToFractionalCoinValue :: CoinValue -> FractionalCoinValue
 coinValueToFractionalCoinValue = unpacked (% 1)
-
---------------------------------------------------------------------------------
--- Utilities
---------------------------------------------------------------------------------
-
-apportionCoerce
-    :: forall a b t. Traversable t
-    => (Coercible a b, Apportion b, Weight b ~ b)
-    => a
-    -> t a
-    -> Apportionment t a
-apportionCoerce a ws =
-    coerce @b @a <$> apportion (coerce @a @b a) (coerce @a @b <$> ws)
-
-apportionNewtype
-    :: forall a t. Traversable t
-    => (Newtype a, Apportion (Old a), Weight (Old a) ~ Old a)
-    => a
-    -> t a
-    -> Apportionment t a
-apportionNewtype = apportionCoerce @a @(Old a)
-
-apportionNewtypeSum
-    :: forall a t. Traversable t
-    => (Newtype a, Apportion (Sum (Old a)), Weight (Sum (Old a)) ~ Sum (Old a))
-    => a
-    -> t a
-    -> Apportionment t a
-apportionNewtypeSum = apportionCoerce @a @(Sum (Old a))
