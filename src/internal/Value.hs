@@ -113,7 +113,7 @@ newtype CoinValue = CoinValue Natural
 
 instance Apportion CoinValue where
     type Weight CoinValue = CoinValue
-    apportion = apportionMap (pack . getSum) (Sum . unpack) (Sum . unpack)
+    apportion = apportionMap (pack . getSum) (Sum . unpack)
 
 instance BoundedApportion CoinValue where
     type Exact CoinValue = FractionalCoinValue
@@ -144,7 +144,7 @@ newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
 
 instance Apportion FractionalCoinValue where
     type Weight FractionalCoinValue = FractionalCoinValue
-    apportion = apportionMap (pack . getSum) (Sum . unpack) (Sum . unpack)
+    apportion = apportionMap (pack . getSum) (Sum . unpack)
 
 instance CommutativeApportion FractionalCoinValue
 instance ExactApportion FractionalCoinValue
@@ -260,7 +260,7 @@ newtype Coin a = Coin (MonoidMap a CoinValue)
 
 instance Ord a => Apportion (Coin a) where
     type Weight (Coin a) = Coin a
-    apportion = apportionMap pack unpack unpack
+    apportion = apportionMap pack unpack
 
 instance Ord a => BoundedApportion (Coin a) where
     type Exact (Coin a) = FractionalCoin a
@@ -289,7 +289,7 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
 
 instance Ord a => Apportion (FractionalCoin a) where
     type Weight (FractionalCoin a) = FractionalCoin a
-    apportion = apportionMap pack unpack unpack
+    apportion = apportionMap pack unpack
 
 instance Ord a => CommutativeApportion (FractionalCoin a)
 instance Ord a => ExactApportion (FractionalCoin a)
