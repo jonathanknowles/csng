@@ -13,7 +13,6 @@ module Algebra.NewApportion
     -- * Apportion
     , Apportion (..)
     , apportionLaws
-    , apportionJust
 
     -- * BoundedApportion
     , BoundedApportion (..)
@@ -33,6 +32,7 @@ module Algebra.NewApportion
     , exactApportionLaws
 
     -- * Combinator functions
+    , apportionJust
     , apportionList
     , apportionListMaybe
     , apportionMap
@@ -151,9 +151,6 @@ class (Eq a, PositiveMonoid a, PositiveMonoid (Weight a)) => Apportion a
        _ -> Nothing
 
     {-# MINIMAL apportion | apportionMaybe #-}
-
-apportionJust :: (Traversable t, Apportion a) => a -> t (Weight a) -> t a
-apportionJust a ws = partition (apportion a ws)
 
 apportionLaws
     :: forall t a.
@@ -339,6 +336,9 @@ exactApportionLaw_folds a ws =
 --------------------------------------------------------------------------------
 -- Combinator functions
 --------------------------------------------------------------------------------
+
+apportionJust :: (Traversable t, Apportion a) => a -> t (Weight a) -> t a
+apportionJust a ws = partition (apportion a ws)
 
 apportionList
     :: (Traversable t, Monoid a)
