@@ -36,8 +36,6 @@ import Data.Group
     ( Group (..) )
 import Data.IntCast
     ( intCast, intCastMaybe )
-import Data.List.NonEmpty
-    ( NonEmpty )
 import Data.Maybe
     ( fromMaybe )
 import Data.Monoid
@@ -336,24 +334,26 @@ coinValueToFractionalCoinValue = unpacked (% 1)
 --------------------------------------------------------------------------------
 
 apportionCoerce
-    :: forall a b. (Coercible a b, Apportion b, Weight b ~ b)
+    :: forall a b t. Traversable t
+    => (Coercible a b, Apportion b, Weight b ~ b)
     => a
-    -> NonEmpty a
-    -> Apportionment a
+    -> t a
+    -> Apportionment t a
 apportionCoerce a ws =
     coerce @b @a <$> apportion (coerce @a @b a) (coerce @a @b <$> ws)
 
 apportionNewtype
-    :: forall a. (Newtype a, Apportion (Old a), Weight (Old a) ~ Old a)
+    :: forall a t. Traversable t
+    => (Newtype a, Apportion (Old a), Weight (Old a) ~ Old a)
     => a
-    -> NonEmpty a
-    -> Apportionment a
+    -> t a
+    -> Apportionment t a
 apportionNewtype = apportionCoerce @a @(Old a)
 
 apportionNewtypeSum
-    :: forall a.
-        (Newtype a, Apportion (Sum (Old a)), Weight (Sum (Old a)) ~ Sum (Old a))
+    :: forall a t. Traversable t
+    => (Newtype a, Apportion (Sum (Old a)), Weight (Sum (Old a)) ~ Sum (Old a))
     => a
-    -> NonEmpty a
-    -> Apportionment a
+    -> t a
+    -> Apportionment t a
 apportionNewtypeSum = apportionCoerce @a @(Sum (Old a))

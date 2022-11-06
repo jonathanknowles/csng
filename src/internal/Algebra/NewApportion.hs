@@ -1,5 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {- HLINT ignore "Redundant bracket" -}
@@ -12,12 +12,10 @@ import Algebra.ExactBounded
     ( ExactBounded (..) )
 import Algebra.PartialOrd.Extended
     ( Infix (..), PartialOrd (..) )
-import Data.Coerce
-    ( coerce )
 import Data.List.Fraction
     ( ListFraction )
 import Data.List.NonEmpty.Extended
-    ( NonEmpty (..), folds, permutations )
+    ( NonEmpty (..) )
 import Data.Maybe
     ( isJust )
 import Data.Monoid
@@ -36,16 +34,16 @@ import Data.Semialign
     ( Semialign (..), Zip (..), salign )
 import Data.Semigroup.Cancellative
     ( Commutative )
-import Data.Semigroup.Foldable
-    ( Foldable1 (..) )
 import Data.Sized
     ( size )
 import Data.SizeDivisible
-    ( SizeDivisible (..), splitAtMany )
+    ( SizeDivisible (..), takeMany )
 import Data.Set
     ( Set )
 import Data.These
     ( These (..) )
+import Data.Traversable
+    ( mapAccumL )
 import Numeric.Natural
     ( Natural )
 import Test.QuickCheck
@@ -60,6 +58,7 @@ import Prelude hiding
 
 import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.Foldable as F
+import qualified Data.List.NonEmpty.Extended as NE
 import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Sized as Sized
 
@@ -67,26 +66,27 @@ import qualified Data.Sized as Sized
 -- Apportionment
 --------------------------------------------------------------------------------
 
-data Apportionment a = Apportionment
+data Apportionment t a = Apportionment
     { remainder :: a
-    , partition :: NonEmpty a
+    , partition :: t a
     }
-    deriving stock (Eq, Foldable, Functor, Show)
-    deriving anyclass Foldable1
+    deriving stock (Eq, Foldable, Functor, Show, Traversable)
 
-instance Semialign Apportionment where
+instance Semialign t => Semialign (Apportionment t) where
     alignWith f a0 a1 = Apportionment
         { remainder =           f $ These (remainder a0) (remainder a1)
         , partition = alignWith f         (partition a0) (partition a1)
         }
 
-instance Zip Apportionment where
+instance Zip t => Zip (Apportionment t) where
     zipWith f a0 a1 = Apportionment
         { remainder =         f (remainder a0) (remainder a1)
         , partition = zipWith f (partition a0) (partition a1)
         }
 
-instance PartialOrd a => PartialOrd (Apportionment a) where
+instance (Eq (t a), Foldable t, Zip t, PartialOrd a) =>
+    PartialOrd (Apportionment t a)
+  where
     leq a0 a1 = and $ zipWith leq a0 a1
 
 --------------------------------------------------------------------------------
@@ -98,59 +98,63 @@ class (Eq a, PositiveMonoid a, PositiveMonoid (Weight a)) => Apportion a where
     type Weight a
 
     apportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: Traversable t => a -> t (Weight a) -> Apportionment t a
     default apportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: Traversable t => a -> t (Weight a) -> Apportionment t a
     apportion a as = case apportionMaybe a as of
         Nothing -> Apportionment a (mempty <$ as)
         Just bs -> Apportionment mempty bs
 
     apportionMaybe
-        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
     default apportionMaybe
-        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
     apportionMaybe a as = case apportion a as of
        Apportionment b bs | b == mempty -> Just bs
        _ -> Nothing
 
     {-# MINIMAL apportion | apportionMaybe #-}
 
-apportionJust :: Apportion a => a -> NonEmpty (Weight a) -> NonEmpty a
+apportionJust :: (Traversable t, Apportion a) => a -> t (Weight a) -> t a
 apportionJust a ws = partition (apportion a ws)
 
 apportionLaws
-    :: forall a.
+    :: forall t a.
         ( Apportion a
         , Arbitrary a
-        , Arbitrary (Weight a)
+        , Arbitrary (t (Weight a))
         , Show a
-        , Show (Weight a)
+        , Show (t (Weight a))
+        , Traversable t
         )
     => Proxy a
     -> Laws
 apportionLaws _ = Laws "Apportion"
     [ ( "apportionLaw_fold"
-      , (apportionLaw_fold @a & property)
+      , (apportionLaw_fold @a @t & property)
       )
     , ( "apportionLaw_length"
-      , (apportionLaw_length @a & property)
+      , (apportionLaw_length @a @t & property)
       )
     , ( "apportionLaw_maybe"
-      , (apportionLaw_maybe @a & property)
+      , (apportionLaw_maybe @a @t & property)
       )
     ]
 
-apportionLaw_fold :: Apportion a => a -> NonEmpty (Weight a) -> Bool
+apportionLaw_fold
+    :: (Apportion a, Traversable t) => a -> t (Weight a) -> Bool
 apportionLaw_fold a ws =
-    fold1 (apportion a ws) == a
+    F.fold (apportion a ws) == a
 
-apportionLaw_length :: Apportion a => a -> NonEmpty (Weight a) -> Bool
+apportionLaw_length
+    :: (Apportion a, Traversable t) => a -> t (Weight a) -> Bool
 apportionLaw_length a ws =
     length (apportionJust a ws) == length ws
 
-apportionLaw_maybe :: Apportion a => a -> NonEmpty (Weight a) -> Bool
+apportionLaw_maybe
+    :: (Apportion a, Traversable t) => a -> t (Weight a) -> Bool
 apportionLaw_maybe a ws =
-    isJust (apportionMaybe a ws) == (fold1 (apportionJust a ws) == a)
+    isJust (apportionMaybe a ws) == (F.fold (apportionJust a ws) == a)
 
 --------------------------------------------------------------------------------
 -- ExactApportion
@@ -159,29 +163,29 @@ apportionLaw_maybe a ws =
 class Apportion a => ExactApportion a where
 
     exactApportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: Traversable t => a -> t (Weight a) -> Apportionment t a
     default exactApportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: Traversable t => a -> t (Weight a) -> Apportionment t a
     exactApportion = apportion
 
     exactApportionMaybe
-        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
     default exactApportionMaybe
-        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
     exactApportionMaybe = apportionMaybe
 
 exactApportionLaw_identity
-    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
+    :: (Eq (t a), Traversable t, ExactApportion a) => a -> t (Weight a) -> Bool
 exactApportionLaw_identity a ws =
     exactApportion a ws == apportion a ws
 
 exactApportionLaw_identity_maybe
-    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
+    :: (Eq (t a), Traversable t, ExactApportion a) => a -> t (Weight a) -> Bool
 exactApportionLaw_identity_maybe a ws =
     exactApportionMaybe a ws == apportionMaybe a ws
 
 exactApportionLaw_folds
-    :: ExactApportion a => a -> NonEmpty (Weight a) -> Bool
+    :: (Traversable t, ExactApportion a) => a -> t (Weight a) -> Bool
 exactApportionLaw_folds a ws =
     folds (apportionJust a ws) == (apportionJust a <$> folds ws)
 
@@ -200,68 +204,77 @@ class
     type Exact a
 
     boundedApportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: Traversable t => a -> t (Weight a) -> Apportionment t a
     default boundedApportion
-        :: a -> NonEmpty (Weight a) -> Apportionment a
+        :: Traversable t => a -> t (Weight a) -> Apportionment t a
     boundedApportion = apportion
 
     boundedApportionMaybe
-        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
     default boundedApportionMaybe
-        :: a -> NonEmpty (Weight a) -> Maybe (NonEmpty a)
+        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
     boundedApportionMaybe = apportionMaybe
 
 boundedApportionAsExact
-    :: forall a. BoundedApportion a
+    :: (Traversable t, BoundedApportion a)
     => a
-    -> NonEmpty (Weight a)
-    -> Apportionment (Exact a)
+    -> t (Weight a)
+    -> Apportionment t (Exact a)
 boundedApportionAsExact a ws = exactApportion (exact a) (exact <$> ws)
 
 boundedApportionIsBounded
-    :: forall a. BoundedApportion a
+    :: (Eq (t a), Traversable t, Zip t, BoundedApportion a)
     => a
-    -> NonEmpty (Weight a)
+    -> t (Weight a)
     -> Bool
 boundedApportionIsBounded a ws = (&&)
     (boundedApportionLowerBound a ws `leq` boundedApportion           a ws)
     (boundedApportion           a ws `leq` boundedApportionUpperBound a ws)
 
 boundedApportionIsExact
-    :: forall a. BoundedApportion a
+    :: (Eq (t a), Traversable t, BoundedApportion a)
     => a
-    -> NonEmpty (Weight a)
+    -> t (Weight a)
     -> Bool
 boundedApportionIsExact a ws = (==)
     (boundedApportionLowerBound a ws)
     (boundedApportionUpperBound a ws)
 
 boundedApportionLowerBound
-    :: forall a. BoundedApportion a
+    :: (Traversable t, BoundedApportion a)
     => a
-    -> NonEmpty (Weight a)
-    -> Apportionment a
+    -> t (Weight a)
+    -> Apportionment t a
 boundedApportionLowerBound a ws = lowerBound <$> boundedApportionAsExact a ws
 
 boundedApportionUpperBound
-    :: forall a. BoundedApportion a
+    :: (Traversable t, BoundedApportion a)
     => a
-    -> NonEmpty (Weight a)
-    -> Apportionment a
+    -> t (Weight a)
+    -> Apportionment t a
 boundedApportionUpperBound a ws = upperBound <$> boundedApportionAsExact a ws
 
 boundedApportionLaw_identity
-    :: BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
+    :: (Eq (t a), Traversable t, BoundedApportion a)
+    => a
+    -> t (Weight a)
+    -> Bool
 boundedApportionLaw_identity a ws =
     boundedApportion a ws == apportion a ws
 
 boundedApportionLaw_identity_maybe
-    :: BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
+    :: (Eq (t a), Traversable t, BoundedApportion a)
+    => a
+    -> t (Weight a)
+    -> Bool
 boundedApportionLaw_identity_maybe a ws =
     boundedApportionMaybe a ws == apportionMaybe a ws
 
 boundedApportionLaw_isBounded
-    :: forall a. BoundedApportion a => a -> NonEmpty (Weight a) -> Bool
+    :: (Eq (t a), Traversable t, Zip t, BoundedApportion a)
+    => a
+    -> t (Weight a)
+    -> Bool
 boundedApportionLaw_isBounded =
     boundedApportionIsBounded
 
@@ -273,7 +286,7 @@ class (Apportion a, Commutative a, Commutative (Weight a)) =>
     CommutativeApportion a
 
 commutativeApportionLaw_permutations
-    :: CommutativeApportion a => a -> NonEmpty (Weight a) -> Bool
+    :: (Traversable t, CommutativeApportion a) => a -> t (Weight a) -> Bool
 commutativeApportionLaw_permutations a ws =
     permutations (apportionJust a ws) == (apportionJust a <$> permutations ws)
 
@@ -319,20 +332,26 @@ instance ExactBounded (Size NaturalRatio) (Size Natural) where
     upperBound (Size r) = Size (upperBound r)
 
 apportionSize
-    :: (Weight (Sum a) ~ Sum a, Apportion (Sum a))
+    :: (Weight (Sum a) ~ Sum a, Apportion (Sum a), Traversable t)
     => Size a
-    -> NonEmpty (Size a)
-    -> Apportionment (Size a)
+    -> t (Size a)
+    -> Apportionment t (Size a)
 apportionSize a ws =
     Size . getSum <$> apportion (Sum $ getSize a) (Sum . getSize <$> ws)
 
 apportionSizeDivisibleMaybe
-    :: (SizeDivisible a, Apportion (Size (Sized.Size a)))
+    :: Traversable t
+    => (Monoid a, SizeDivisible a, Apportion (Size (Sized.Size a)))
     => a
-    -> NonEmpty (Weight (Size (Sized.Size a)))
-    -> Maybe (NonEmpty a)
+    -> t (Weight (Size (Sized.Size a)))
+    -> Maybe (t a)
 apportionSizeDivisibleMaybe a ws =
-    flip splitAtMany a . fmap getSize <$> apportionMaybe (Size $ size a) ws
+    case F.toList <$> sizes of
+        Nothing -> Nothing
+        Just [] -> Nothing
+        Just zs -> Just $ fill (takeMany zs a) ws
+  where
+    sizes = fmap getSize <$> apportionMaybe (Size $ size a) ws
 
 --------------------------------------------------------------------------------
 -- Instances: NaturalSum
@@ -340,7 +359,12 @@ apportionSizeDivisibleMaybe a ws =
 
 instance Apportion NaturalSum where
     type Weight NaturalSum = NaturalSum
-    apportionMaybe = coerce Natural.apportion
+    apportionMaybe a ws = case F.toList ws of
+        [] -> Nothing
+        (x : xs) ->
+            case Natural.apportion (getSum a) (getSum <$> (x :| xs)) of
+                Nothing -> Nothing
+                Just as -> Just $ fill (Sum <$> F.toList as) ws
 
 instance BoundedApportion NaturalSum where
     type Exact NaturalSum = NaturalRatioSum
@@ -355,7 +379,7 @@ instance Apportion NaturalRatioSum where
         | weightSum == mempty = Nothing
         | otherwise = Just (mkPortion <$> ws)
       where
-        weightSum = fold1 ws
+        weightSum = F.fold ws
         mkPortion w = Sum (getSum a * getSum w / getSum weightSum)
 
 instance ExactApportion NaturalRatioSum
@@ -410,23 +434,42 @@ instance (Ord k, Apportion v, Weight v ~ v) => Apportion (MonoidMap k v)
   where
     type Weight (MonoidMap k v) = MonoidMap k v
     apportion m ms =
-        F.foldl' salign empty $ apportionForKey <$> F.toList allKeys
+        Apportionment (remainder result) (fill (partition result) ms)
       where
+        result :: Apportionment [] (MonoidMap k v)
+        result = F.foldl' salign empty $ apportionForKey <$> F.toList allKeys
+
         allKeys :: Set k
         allKeys = F.foldMap MonoidMap.keys (m : F.toList ms)
 
-        empty :: Apportionment (MonoidMap k v)
-        empty = Apportionment mempty (mempty <$ ms)
+        empty :: Apportionment [] (MonoidMap k v)
+        empty = Apportionment mempty (mempty <$ F.toList ms)
 
-        apportionForKey :: k -> Apportionment (MonoidMap k v)
+        apportionForKey :: k -> Apportionment [] (MonoidMap k v)
         apportionForKey k = MonoidMap.singleton k <$>
-            apportion (MonoidMap.get k m) (MonoidMap.get k <$> ms)
+            apportion (MonoidMap.get k m) (MonoidMap.get k <$> F.toList ms)
 
 instance (Ord k, Apportion v, Weight v ~ v) => ExactApportion (MonoidMap k v)
 
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
+
+fill :: (Monoid b, Foldable f, Traversable t) => f b -> t a -> t b
+fill xs = snd . mapAccumL fillM (F.toList xs)
+  where
+    fillM [] _ = ([], mempty)
+    fillM (y : ys) _ = (ys, y)
+
+folds :: (Traversable t, Semigroup a) => t a -> [NonEmpty a]
+folds as = case F.toList as of
+    [] -> []
+    (x : xs) -> F.toList $ NE.folds (x :| xs)
+
+permutations :: (Traversable t, Semigroup a) => t a -> [NonEmpty a]
+permutations as = case F.toList as of
+    [] -> []
+    (x : xs) -> F.toList $ NE.permutations (x :| xs)
 
 zipAll :: (Foldable t, Zip t) => (a -> b -> Bool) -> t a -> t b -> Bool
 zipAll f xs ys = all (uncurry f) (zip xs ys)
