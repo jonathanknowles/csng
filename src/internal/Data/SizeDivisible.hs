@@ -9,8 +9,6 @@ module Data.SizeDivisible
 
 import Data.IntCast
     ( intCastMaybe )
-import Data.List.NonEmpty
-    ( NonEmpty (..) )
 import Data.Maybe
     ( fromMaybe )
 import Data.MonoidMap
@@ -21,6 +19,10 @@ import Data.Strict.Map
     ( Map )
 import Data.Strict.Set
     ( Set )
+import Data.Traversable
+    ( mapAccumL )
+import Data.Tuple
+    ( swap )
 import Numeric.Natural
     ( Natural )
 
@@ -28,7 +30,6 @@ import Prelude hiding
     ( drop, splitAt, take )
 
 import qualified Data.List as L
-import qualified Data.List.NonEmpty as NE
 import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Strict.Map as Map
 import qualified Data.Strict.Set as Set
@@ -61,18 +62,10 @@ instance SizeDivisible (MonoidMap k v) where
 instance SizeDivisible (Set a) where
     splitAt = Set.splitAt . naturalToInt
 
-takeMany :: forall a. SizeDivisible a => [Size a] -> a -> [a]
-takeMany chunkSizes a = case chunkSizes of
-    [ ]    -> [ ]
-    [_]    -> [a]
-    s : ss -> toList $ NE.unfoldr makeChunk (s :| ss, a)
+takeMany :: (Traversable t, SizeDivisible a) => t (Size a) -> a -> t a
+takeMany ss a0 = snd $ mapAccumL takeOne a0 ss
   where
-    makeChunk :: (NonEmpty (Size a), a) -> (a, Maybe (NonEmpty (Size a), a))
-    makeChunk (l :| mls, r) = case NE.nonEmpty mls of
-        Just ls -> (prefix, Just (ls, suffix))
-        Nothing -> (take l r, Nothing)
-      where
-        (prefix, suffix) = splitAt l r
+    takeOne a s = swap $ splitAt s a
 
 --------------------------------------------------------------------------------
 -- Internal functions
