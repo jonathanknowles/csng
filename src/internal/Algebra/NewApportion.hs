@@ -6,6 +6,41 @@
 {- HLINT ignore "Use camelCase" -}
 
 module Algebra.NewApportion
+    (
+    -- * Apportionment
+      Apportionment (..)
+
+    -- * Apportion
+    , Apportion (..)
+    , apportionLaws
+    , apportionJust
+
+    -- * BoundedApportion
+    , BoundedApportion (..)
+    , boundedApportionLaws
+    , boundedApportionAsExact
+    , boundedApportionIsExact
+    , boundedApportionIsBounded
+    , boundedApportionLowerBound
+    , boundedApportionUpperBound
+
+    -- * CommutativeApportion
+    , CommutativeApportion
+    , commutativeApportionLaws
+
+    -- * ExactApportion
+    , ExactApportion
+    , exactApportionLaws
+
+    -- * Combinator functions
+    , apportionList
+    , apportionListMaybe
+    , apportionMap
+    , apportionSizeDivisible
+
+    -- * Combinator types
+    , Size (..)
+    )
     where
 
 import Algebra.ExactBounded
@@ -172,52 +207,71 @@ class
   where
     type Exact a
 
-apportionAsExact
+boundedApportionAsExact
     :: (Traversable t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Apportionment t (Exact a)
-apportionAsExact a ws = apportion (exact a) (exact <$> ws)
+boundedApportionAsExact a ws = apportion (exact a) (exact <$> ws)
 
-apportionIsExact
+boundedApportionIsExact
     :: (Eq (t a), Traversable t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Bool
-apportionIsExact a ws = (==)
-    (apportionLowerBound a ws)
-    (apportionUpperBound a ws)
+boundedApportionIsExact a ws = (==)
+    (boundedApportionLowerBound a ws)
+    (boundedApportionUpperBound a ws)
 
-apportionIsBounded
+boundedApportionIsBounded
     :: (Eq (t a), Traversable t, Zip t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Bool
-apportionIsBounded a ws = (&&)
-    (apportionLowerBound a ws `leq` apportion           a ws)
-    (apportion           a ws `leq` apportionUpperBound a ws)
+boundedApportionIsBounded a ws = (&&)
+    (boundedApportionLowerBound a ws `leq` apportion           a ws)
+    (apportion           a ws `leq` boundedApportionUpperBound a ws)
 
-apportionLowerBound
+boundedApportionLowerBound
     :: (Traversable t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Apportionment t a
-apportionLowerBound a ws = lowerBound <$> apportionAsExact a ws
+boundedApportionLowerBound a ws = lowerBound <$> boundedApportionAsExact a ws
 
-apportionUpperBound
+boundedApportionUpperBound
     :: (Traversable t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Apportionment t a
-apportionUpperBound a ws = upperBound <$> apportionAsExact a ws
+boundedApportionUpperBound a ws = upperBound <$> boundedApportionAsExact a ws
+
+boundedApportionLaws
+    :: forall t a.
+        ( Arbitrary a
+        , Arbitrary (t (Weight a))
+        , BoundedApportion a
+        , Eq (t a)
+        , Show a
+        , Show (t (Weight a))
+        , Traversable t
+        , Zip t
+        )
+    => Proxy a
+    -> Laws
+boundedApportionLaws _ = Laws "BoundedApportion"
+    [ ( "boundedApportionLaw_isBounded"
+      , (boundedApportionLaw_isBounded @a @t & property)
+      )
+    ]
 
 boundedApportionLaw_isBounded
-    :: (Eq (t a), Traversable t, Zip t, BoundedApportion a)
+    :: forall a t. (Eq (t a), Traversable t, Zip t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Bool
 boundedApportionLaw_isBounded =
-    apportionIsBounded
+    boundedApportionIsBounded
 
 --------------------------------------------------------------------------------
 -- CommutativeApportion
@@ -226,8 +280,28 @@ boundedApportionLaw_isBounded =
 class (Apportion a, Commutative a, Commutative (Weight a)) =>
     CommutativeApportion a
 
+commutativeApportionLaws
+    :: forall t a.
+        ( Arbitrary a
+        , Arbitrary (t (Weight a))
+        , CommutativeApportion a
+        , Show a
+        , Show (t (Weight a))
+        , Traversable t
+        )
+    => Proxy a
+    -> Laws
+commutativeApportionLaws _ = Laws "CommutativeApportion"
+    [ ( "commutativeApportionLaw_permutations"
+      , (commutativeApportionLaw_permutations @a @t & property)
+      )
+    ]
+
 commutativeApportionLaw_permutations
-    :: (Traversable t, CommutativeApportion a) => a -> t (Weight a) -> Bool
+    :: forall a t. (Traversable t, CommutativeApportion a)
+    => a
+    -> t (Weight a)
+    -> Bool
 commutativeApportionLaw_permutations a ws =
     permutations (apportionJust a ws) == (apportionJust a <$> permutations ws)
 
@@ -237,24 +311,30 @@ commutativeApportionLaw_permutations a ws =
 
 class Apportion a => ExactApportion a
 
+exactApportionLaws
+    :: forall t a.
+        ( Arbitrary a
+        , Arbitrary (t (Weight a))
+        , ExactApportion a
+        , Show a
+        , Show (t (Weight a))
+        , Traversable t
+        )
+    => Proxy a
+    -> Laws
+exactApportionLaws _ = Laws "ExactApportion"
+    [ ( "exactApportionLaw_folds"
+      , (exactApportionLaw_folds @a @t & property)
+      )
+    ]
+
 exactApportionLaw_folds
-    :: (Traversable t, ExactApportion a) => a -> t (Weight a) -> Bool
+    :: forall a t. (Traversable t, ExactApportion a)
+    => a
+    -> t (Weight a)
+    -> Bool
 exactApportionLaw_folds a ws =
     folds (apportionJust a ws) == (apportionJust a <$> folds ws)
-
---------------------------------------------------------------------------------
--- Combinator types
---------------------------------------------------------------------------------
-
-type NaturalRatio = Ratio Natural
-type NaturalRatioSize = Size NaturalRatio
-type NaturalRatioSum = Sum NaturalRatio
-type NaturalSize = Size Natural
-type NaturalSum = Sum Natural
-
-newtype Size a = Size {getSize :: a}
-    deriving stock (Eq, Show)
-    deriving newtype (Sized.Sized, SizeDivisible)
 
 --------------------------------------------------------------------------------
 -- Combinator functions
@@ -307,6 +387,20 @@ apportionSizeDivisible a ws =
         Just zs -> Apportionment mempty (takeMany zs a)
   where
     sizes = fmap getSize <$> apportionMaybe (Size $ size a) ws
+
+--------------------------------------------------------------------------------
+-- Combinator types
+--------------------------------------------------------------------------------
+
+type NaturalRatio = Ratio Natural
+type NaturalRatioSize = Size NaturalRatio
+type NaturalRatioSum = Sum NaturalRatio
+type NaturalSize = Size Natural
+type NaturalSum = Sum Natural
+
+newtype Size a = Size {getSize :: a}
+    deriving stock (Eq, Show)
+    deriving newtype (Sized.Sized, SizeDivisible)
 
 --------------------------------------------------------------------------------
 -- Instances: MonoidMap
@@ -457,9 +551,3 @@ permutations :: (Traversable t, Semigroup a) => t a -> [NonEmpty a]
 permutations as = case F.toList as of
     [] -> []
     (x : xs) -> F.toList $ NE.permutations (x :| xs)
-
-zipAll :: (Foldable t, Zip t) => (a -> b -> Bool) -> t a -> t b -> Bool
-zipAll f xs ys = all (uncurry f) (zip xs ys)
-
-zipAny :: (Foldable t, Zip t) => (a -> b -> Bool) -> t a -> t b -> Bool
-zipAny f xs ys = any (uncurry f) (zip xs ys)
