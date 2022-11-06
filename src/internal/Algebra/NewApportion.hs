@@ -318,12 +318,13 @@ apportionMap2
 apportionMap2 from toTarget toWeight a ws =
     from <$> apportion (toTarget a) (toWeight <$> ws)
 
-apportionSizeDivisibleList
-    :: (Monoid a, SizeDivisible a, Apportion (Size (Sized.Size a)))
+apportionSizeDivisible
+    :: Traversable t
+    => (Monoid a, SizeDivisible a, Apportion (Size (Sized.Size a)))
     => a
-    -> [Weight (Size (Sized.Size a))]
-    -> Apportionment [] a
-apportionSizeDivisibleList a ws =
+    -> t (Weight (Size (Sized.Size a)))
+    -> Apportionment t a
+apportionSizeDivisible a ws =
     case sizes of
         Nothing -> Apportionment a (mempty <$ ws)
         Just zs -> Apportionment mempty (takeMany zs a)
@@ -380,7 +381,7 @@ instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
 
 instance Eq a => Apportion (Size [a]) where
     type Weight (Size [a]) = Size Natural
-    apportion = apportionList apportionSizeDivisibleList
+    apportion = apportionSizeDivisible
 
 instance Eq a => BoundedApportion (Size [a]) where
     type Exact (Size [a]) = Size (ListFraction a)
@@ -399,7 +400,7 @@ deriving via Infix (ListFraction a) instance Eq a =>
 
 instance Eq a => Apportion (Size (ListFraction a)) where
     type Weight (Size (ListFraction a)) = Size NaturalRatio
-    apportion = apportionList apportionSizeDivisibleList
+    apportion = apportionSizeDivisible
 
 instance Eq a => ExactApportion (Size (ListFraction a))
 
