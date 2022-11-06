@@ -24,7 +24,7 @@ import Algebra.NewApportion
     , Apportionment (..)
     , BoundedApportion (..)
     , CommutativeApportion
-    , ExactApportion (..)
+    , ExactApportion
     )
 import Algebra.PartialOrd.Extended
     ( PartialOrd )
