@@ -4,7 +4,7 @@
 
 module Data.SizeDivisible
     ( SizeDivisible (..)
-    , splitAtMany
+    , takeMany
     ) where
 
 import Data.IntCast
@@ -61,18 +61,16 @@ instance SizeDivisible (MonoidMap k v) where
 instance SizeDivisible (Set a) where
     splitAt = Set.splitAt . naturalToInt
 
-splitAtMany
-    :: forall a. SizeDivisible a
-    => NonEmpty (Size a)
-    -> a
-    -> NonEmpty a
-splitAtMany chunkSizes a = NE.unfoldr makeChunk (chunkSizes, a)
+takeMany :: forall a. SizeDivisible a => [Size a] -> a -> [a]
+takeMany chunkSizes a = case chunkSizes of
+    [ ]    -> [ ]
+    [_]    -> [a]
+    s : ss -> toList $ NE.unfoldr makeChunk (s :| ss, a)
   where
-    makeChunk
-        :: (NonEmpty (Size a), a) -> (a, Maybe (NonEmpty (Size a), a))
+    makeChunk :: (NonEmpty (Size a), a) -> (a, Maybe (NonEmpty (Size a), a))
     makeChunk (l :| mls, r) = case NE.nonEmpty mls of
         Just ls -> (prefix, Just (ls, suffix))
-        Nothing -> (r, Nothing)
+        Nothing -> (take l r, Nothing)
       where
         (prefix, suffix) = splitAt l r
 
