@@ -12,6 +12,8 @@ import Algebra.ExactBounded
     ( ExactBounded (..) )
 import Algebra.PartialOrd.Extended
     ( Infix (..), PartialOrd (..) )
+import Data.Foldable
+    ( fold )
 import Data.List.Fraction
     ( ListFraction )
 import Data.List.NonEmpty.Extended
@@ -101,19 +103,26 @@ class (Eq a, PositiveMonoid a, PositiveMonoid (Weight a)) => Apportion a where
         :: Traversable t => a -> t (Weight a) -> Apportionment t a
     default apportion
         :: Traversable t => a -> t (Weight a) -> Apportionment t a
-    apportion a as = case apportionMaybe a as of
-        Nothing -> Apportionment a (mempty <$ as)
+    apportion a ws = case apportionList a (F.toList ws) of
+        Apportionment r bs -> Apportionment r (fill bs ws)
+
+    apportionList
+        :: a -> [Weight a] -> Apportionment [] a
+    default apportionList
+        :: a -> [Weight a] -> Apportionment [] a
+    apportionList a ws = case apportionListMaybe a ws of
+        Nothing -> Apportionment a (mempty <$ ws)
         Just bs -> Apportionment mempty bs
 
-    apportionMaybe
-        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
-    default apportionMaybe
-        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
-    apportionMaybe a as = case apportion a as of
-       Apportionment b bs | b == mempty -> Just bs
+    apportionListMaybe
+        :: a -> [Weight a] -> Maybe [a]
+    default apportionListMaybe
+        :: a -> [Weight a] -> Maybe [a]
+    apportionListMaybe a ws = case apportion a ws of
+       Apportionment r bs | r == mempty -> Just bs
        _ -> Nothing
 
-    {-# MINIMAL apportion | apportionMaybe #-}
+    {-# MINIMAL apportion | apportionList | apportionListMaybe #-}
 
 apportionJust :: (Traversable t, Apportion a) => a -> t (Weight a) -> t a
 apportionJust a ws = partition (apportion a ws)
@@ -154,7 +163,7 @@ apportionLaw_length a ws =
 apportionLaw_maybe
     :: (Apportion a, Traversable t) => a -> t (Weight a) -> Bool
 apportionLaw_maybe a ws =
-    isJust (apportionMaybe a ws) == (F.fold (apportionJust a ws) == a)
+    isJust (apportionListMaybe a (F.toList ws)) == (fold (apportion a ws) == a)
 
 --------------------------------------------------------------------------------
 -- ExactApportion
@@ -289,19 +298,17 @@ apportionSize
 apportionSize a ws =
     Size . getSum <$> apportion (Sum $ getSize a) (Sum . getSize <$> ws)
 
-apportionSizeDivisibleMaybe
-    :: Traversable t
-    => (Monoid a, SizeDivisible a, Apportion (Size (Sized.Size a)))
+apportionSizeDivisibleList
+    :: (Monoid a, SizeDivisible a, Apportion (Size (Sized.Size a)))
     => a
-    -> t (Weight (Size (Sized.Size a)))
-    -> Maybe (t a)
-apportionSizeDivisibleMaybe a ws =
-    case F.toList <$> sizes of
-        Nothing -> Nothing
-        Just [] -> Nothing
-        Just zs -> Just $ fill (takeMany zs a) ws
+    -> [Weight (Size (Sized.Size a))]
+    -> Apportionment [] a
+apportionSizeDivisibleList a ws =
+    case sizes of
+        Nothing -> Apportionment a (mempty <$ ws)
+        Just zs -> Apportionment mempty (takeMany zs a)
   where
-    sizes = fmap getSize <$> apportionMaybe (Size $ size a) ws
+    sizes = fmap getSize <$> apportionListMaybe (Size $ size a) ws
 
 --------------------------------------------------------------------------------
 -- Instances: NaturalSum
@@ -309,12 +316,12 @@ apportionSizeDivisibleMaybe a ws =
 
 instance Apportion NaturalSum where
     type Weight NaturalSum = NaturalSum
-    apportionMaybe a ws = case F.toList ws of
-        [] -> Nothing
-        (x : xs) ->
-            case Natural.apportion (getSum a) (getSum <$> (x :| xs)) of
-                Nothing -> Nothing
-                Just as -> Just $ fill (Sum <$> F.toList as) ws
+    apportionList a ws = case NE.nonEmpty ws of
+        Nothing -> Apportionment a []
+        Just xs ->
+            case Natural.apportion (getSum a) (getSum <$> xs) of
+                Nothing -> Apportionment a []
+                Just as -> Apportionment mempty (NE.toList (Sum <$> as))
 
 instance BoundedApportion NaturalSum where
     type Exact NaturalSum = NaturalRatioSum
@@ -325,9 +332,9 @@ instance BoundedApportion NaturalSum where
 
 instance Apportion NaturalRatioSum where
     type Weight NaturalRatioSum = NaturalRatioSum
-    apportionMaybe a ws
-        | weightSum == mempty = Nothing
-        | otherwise = Just (mkPortion <$> ws)
+    apportion a ws
+        | weightSum == mempty = Apportionment a (mempty <$ ws)
+        | otherwise = Apportionment mempty (mkPortion <$> ws)
       where
         weightSum = F.fold ws
         mkPortion w = Sum (getSum a * getSum w / getSum weightSum)
@@ -353,7 +360,7 @@ instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
 
 instance Eq a => Apportion (Size [a]) where
     type Weight (Size [a]) = Size Natural
-    apportionMaybe = apportionSizeDivisibleMaybe
+    apportionList = apportionSizeDivisibleList
 
 instance Eq a => BoundedApportion (Size [a]) where
     type Exact (Size [a]) = Size (ListFraction a)
@@ -372,7 +379,7 @@ deriving via Infix (ListFraction a) instance Eq a =>
 
 instance Eq a => Apportion (Size (ListFraction a)) where
     type Weight (Size (ListFraction a)) = Size NaturalRatio
-    apportionMaybe = apportionSizeDivisibleMaybe
+    apportionList = apportionSizeDivisibleList
 
 instance Eq a => ExactApportion (Size (ListFraction a))
 
@@ -383,12 +390,9 @@ instance Eq a => ExactApportion (Size (ListFraction a))
 instance (Ord k, Apportion v, Weight v ~ v) => Apportion (MonoidMap k v)
   where
     type Weight (MonoidMap k v) = MonoidMap k v
-    apportion m ms =
-        Apportionment (remainder result) (fill (partition result) ms)
+    apportionList m ms =
+        F.foldl' salign empty $ apportionForKey <$> F.toList allKeys
       where
-        result :: Apportionment [] (MonoidMap k v)
-        result = F.foldl' salign empty $ apportionForKey <$> F.toList allKeys
-
         allKeys :: Set k
         allKeys = F.foldMap MonoidMap.keys (m : F.toList ms)
 
