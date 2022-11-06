@@ -120,21 +120,6 @@ class (Eq a, PositiveMonoid a, PositiveMonoid (Weight a)) => Apportion a
 apportionJust :: (Traversable t, Apportion a) => a -> t (Weight a) -> t a
 apportionJust a ws = partition (apportion a ws)
 
-apportionList
-    :: (Traversable t, Monoid a)
-    => (a ->   [Weight a] -> Apportionment [] a)
-    -> (a -> t (Weight a) -> Apportionment t  a)
-apportionList f a ws = case f a (F.toList ws) of
-    Apportionment r as -> Apportionment r (fill as ws)
-
-apportionListMaybe
-    :: (Traversable t, Monoid a)
-    => (a ->   [Weight a] -> Maybe   [a])
-    -> (a -> t (Weight a) -> Maybe (t a))
-apportionListMaybe f a ws = case f a (F.toList ws) of
-    Nothing -> Nothing
-    Just as -> Just $ fill as ws
-
 apportionLaws
     :: forall t a.
         ( Apportion a
@@ -172,17 +157,6 @@ apportionLaw_maybe
     :: (Apportion a, Traversable t) => a -> t (Weight a) -> Bool
 apportionLaw_maybe a ws =
     isJust (apportionMaybe a (F.toList ws)) == (fold (apportion a ws) == a)
-
---------------------------------------------------------------------------------
--- ExactApportion
---------------------------------------------------------------------------------
-
-class Apportion a => ExactApportion a
-
-exactApportionLaw_folds
-    :: (Traversable t, ExactApportion a) => a -> t (Weight a) -> Bool
-exactApportionLaw_folds a ws =
-    folds (apportionJust a ws) == (apportionJust a <$> folds ws)
 
 --------------------------------------------------------------------------------
 -- BoundedApportion
@@ -258,45 +232,48 @@ commutativeApportionLaw_permutations a ws =
     permutations (apportionJust a ws) == (apportionJust a <$> permutations ws)
 
 --------------------------------------------------------------------------------
--- Type synonyms
+-- ExactApportion
+--------------------------------------------------------------------------------
+
+class Apportion a => ExactApportion a
+
+exactApportionLaw_folds
+    :: (Traversable t, ExactApportion a) => a -> t (Weight a) -> Bool
+exactApportionLaw_folds a ws =
+    folds (apportionJust a ws) == (apportionJust a <$> folds ws)
+
+--------------------------------------------------------------------------------
+-- Combinator types
 --------------------------------------------------------------------------------
 
 type NaturalRatio = Ratio Natural
+type NaturalRatioSize = Size NaturalRatio
 type NaturalRatioSum = Sum NaturalRatio
+type NaturalSize = Size Natural
 type NaturalSum = Sum Natural
-
---------------------------------------------------------------------------------
--- Combinators
---------------------------------------------------------------------------------
 
 newtype Size a = Size {getSize :: a}
     deriving stock (Eq, Show)
     deriving newtype (Sized.Sized, SizeDivisible)
 
-deriving via NaturalSum instance Semigroup      (Size Natural)
-deriving via NaturalSum instance Monoid         (Size Natural)
-deriving via NaturalSum instance MonoidNull     (Size Natural)
-deriving via NaturalSum instance PartialOrd     (Size Natural)
-deriving via NaturalSum instance PositiveMonoid (Size Natural)
+--------------------------------------------------------------------------------
+-- Combinator functions
+--------------------------------------------------------------------------------
 
-deriving via NaturalRatioSum instance Semigroup      (Size NaturalRatio)
-deriving via NaturalRatioSum instance Monoid         (Size NaturalRatio)
-deriving via NaturalRatioSum instance MonoidNull     (Size NaturalRatio)
-deriving via NaturalRatioSum instance PartialOrd     (Size NaturalRatio)
-deriving via NaturalRatioSum instance PositiveMonoid (Size NaturalRatio)
+apportionList
+    :: (Traversable t, Monoid a)
+    => (a ->   [Weight a] -> Apportionment [] a)
+    -> (a -> t (Weight a) -> Apportionment t  a)
+apportionList f a ws = case f a (F.toList ws) of
+    Apportionment r as -> Apportionment r (fill as ws)
 
-instance Apportion (Size Natural) where
-    type Weight (Size Natural) = Size Natural
-    apportion = apportionMap (Size . getSum) (Sum . getSize)
-
-instance Apportion (Size NaturalRatio) where
-    type Weight (Size NaturalRatio) = Size NaturalRatio
-    apportion = apportionMap (Size . getSum) (Sum . getSize)
-
-instance ExactBounded (Size NaturalRatio) (Size Natural) where
-    exact (Size n) = Size (exact n)
-    lowerBound (Size r) = Size (lowerBound r)
-    upperBound (Size r) = Size (upperBound r)
+apportionListMaybe
+    :: (Traversable t, Monoid a)
+    => (a ->   [Weight a] -> Maybe   [a])
+    -> (a -> t (Weight a) -> Maybe (t a))
+apportionListMaybe f a ws = case f a (F.toList ws) of
+    Nothing -> Nothing
+    Just as -> Just $ fill as ws
 
 apportionMap
     :: (Apportion a2, Traversable t, a2 ~ Weight a2)
@@ -332,6 +309,63 @@ apportionSizeDivisible a ws =
     sizes = fmap getSize <$> apportionMaybe (Size $ size a) ws
 
 --------------------------------------------------------------------------------
+-- Instances: MonoidMap
+--------------------------------------------------------------------------------
+
+instance (Ord k, Apportion v, Weight v ~ v) => Apportion (MonoidMap k v)
+  where
+    type Weight (MonoidMap k v) = MonoidMap k v
+    apportion = apportionList apportionInner
+      where
+        apportionInner m ms =
+            F.foldl' salign empty $ apportionForKey <$> F.toList allKeys
+          where
+            allKeys :: Set k
+            allKeys = F.foldMap MonoidMap.keys (m : F.toList ms)
+
+            empty :: Apportionment [] (MonoidMap k v)
+            empty = Apportionment mempty (mempty <$ F.toList ms)
+
+            apportionForKey :: k -> Apportionment [] (MonoidMap k v)
+            apportionForKey k = MonoidMap.singleton k <$>
+                apportion (MonoidMap.get k m) (MonoidMap.get k <$> F.toList ms)
+
+instance (Ord k, Apportion v, Weight v ~ v) => ExactApportion (MonoidMap k v)
+
+--------------------------------------------------------------------------------
+-- Instances: NaturalRatioSize
+--------------------------------------------------------------------------------
+
+deriving via NaturalRatioSum instance Semigroup      NaturalRatioSize
+deriving via NaturalRatioSum instance Monoid         NaturalRatioSize
+deriving via NaturalRatioSum instance MonoidNull     NaturalRatioSize
+deriving via NaturalRatioSum instance PartialOrd     NaturalRatioSize
+deriving via NaturalRatioSum instance PositiveMonoid NaturalRatioSize
+
+instance Apportion NaturalRatioSize where
+    type Weight NaturalRatioSize = Size NaturalRatio
+    apportion = apportionMap (Size . getSum) (Sum . getSize)
+
+instance ExactBounded NaturalRatioSize NaturalSize where
+    exact (Size n) = Size (exact n)
+    lowerBound (Size r) = Size (lowerBound r)
+    upperBound (Size r) = Size (upperBound r)
+
+--------------------------------------------------------------------------------
+-- Instances: NaturalSize
+--------------------------------------------------------------------------------
+
+deriving via NaturalSum instance Semigroup      NaturalSize
+deriving via NaturalSum instance Monoid         NaturalSize
+deriving via NaturalSum instance MonoidNull     NaturalSize
+deriving via NaturalSum instance PartialOrd     NaturalSize
+deriving via NaturalSum instance PositiveMonoid NaturalSize
+
+instance Apportion NaturalSize where
+    type Weight NaturalSize = Size Natural
+    apportion = apportionMap (Size . getSum) (Sum . getSize)
+
+--------------------------------------------------------------------------------
 -- Instances: NaturalSum
 --------------------------------------------------------------------------------
 
@@ -364,7 +398,7 @@ instance ExactApportion NaturalRatioSum
 instance CommutativeApportion NaturalRatioSum
 
 --------------------------------------------------------------------------------
--- Instances: []
+-- Instances: Size []
 --------------------------------------------------------------------------------
 
 deriving newtype instance Eq a => Semigroup      (Size [a])
@@ -387,7 +421,7 @@ instance Eq a => BoundedApportion (Size [a]) where
     type Exact (Size [a]) = Size (ListFraction a)
 
 --------------------------------------------------------------------------------
--- Instances: ListFraction
+-- Instances: Size ListFraction
 --------------------------------------------------------------------------------
 
 deriving newtype instance Eq a => Semigroup      (Size (ListFraction a))
@@ -403,30 +437,6 @@ instance Eq a => Apportion (Size (ListFraction a)) where
     apportion = apportionSizeDivisible
 
 instance Eq a => ExactApportion (Size (ListFraction a))
-
---------------------------------------------------------------------------------
--- Instances: MonoidMap
---------------------------------------------------------------------------------
-
-instance (Ord k, Apportion v, Weight v ~ v) => Apportion (MonoidMap k v)
-  where
-    type Weight (MonoidMap k v) = MonoidMap k v
-    apportion = apportionList apportionInner
-      where
-        apportionInner m ms =
-            F.foldl' salign empty $ apportionForKey <$> F.toList allKeys
-          where
-            allKeys :: Set k
-            allKeys = F.foldMap MonoidMap.keys (m : F.toList ms)
-
-            empty :: Apportionment [] (MonoidMap k v)
-            empty = Apportionment mempty (mempty <$ F.toList ms)
-
-            apportionForKey :: k -> Apportionment [] (MonoidMap k v)
-            apportionForKey k = MonoidMap.singleton k <$>
-                apportion (MonoidMap.get k m) (MonoidMap.get k <$> F.toList ms)
-
-instance (Ord k, Apportion v, Weight v ~ v) => ExactApportion (MonoidMap k v)
 
 --------------------------------------------------------------------------------
 -- Utilities
