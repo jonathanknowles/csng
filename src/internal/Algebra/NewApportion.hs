@@ -160,29 +160,7 @@ apportionLaw_maybe a ws =
 -- ExactApportion
 --------------------------------------------------------------------------------
 
-class Apportion a => ExactApportion a where
-
-    exactApportion
-        :: Traversable t => a -> t (Weight a) -> Apportionment t a
-    default exactApportion
-        :: Traversable t => a -> t (Weight a) -> Apportionment t a
-    exactApportion = apportion
-
-    exactApportionMaybe
-        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
-    default exactApportionMaybe
-        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
-    exactApportionMaybe = apportionMaybe
-
-exactApportionLaw_identity
-    :: (Eq (t a), Traversable t, ExactApportion a) => a -> t (Weight a) -> Bool
-exactApportionLaw_identity a ws =
-    exactApportion a ws == apportion a ws
-
-exactApportionLaw_identity_maybe
-    :: (Eq (t a), Traversable t, ExactApportion a) => a -> t (Weight a) -> Bool
-exactApportionLaw_identity_maybe a ws =
-    exactApportionMaybe a ws == apportionMaybe a ws
+class Apportion a => ExactApportion a
 
 exactApportionLaw_folds
     :: (Traversable t, ExactApportion a) => a -> t (Weight a) -> Bool
@@ -203,72 +181,44 @@ class
   where
     type Exact a
 
-    boundedApportion
-        :: Traversable t => a -> t (Weight a) -> Apportionment t a
-    default boundedApportion
-        :: Traversable t => a -> t (Weight a) -> Apportionment t a
-    boundedApportion = apportion
-
-    boundedApportionMaybe
-        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
-    default boundedApportionMaybe
-        :: Traversable t => a -> t (Weight a) -> Maybe (t a)
-    boundedApportionMaybe = apportionMaybe
-
-boundedApportionAsExact
+apportionAsExact
     :: (Traversable t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Apportionment t (Exact a)
-boundedApportionAsExact a ws = exactApportion (exact a) (exact <$> ws)
+apportionAsExact a ws = apportion (exact a) (exact <$> ws)
 
-boundedApportionIsBounded
+apportionIsExact
+    :: (Eq (t a), Traversable t, BoundedApportion a)
+    => a
+    -> t (Weight a)
+    -> Bool
+apportionIsExact a ws = (==)
+    (apportionLowerBound a ws)
+    (apportionUpperBound a ws)
+
+apportionIsBounded
     :: (Eq (t a), Traversable t, Zip t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Bool
-boundedApportionIsBounded a ws = (&&)
-    (boundedApportionLowerBound a ws `leq` boundedApportion           a ws)
-    (boundedApportion           a ws `leq` boundedApportionUpperBound a ws)
+apportionIsBounded a ws = (&&)
+    (apportionLowerBound a ws `leq` apportion           a ws)
+    (apportion           a ws `leq` apportionUpperBound a ws)
 
-boundedApportionIsExact
-    :: (Eq (t a), Traversable t, BoundedApportion a)
-    => a
-    -> t (Weight a)
-    -> Bool
-boundedApportionIsExact a ws = (==)
-    (boundedApportionLowerBound a ws)
-    (boundedApportionUpperBound a ws)
-
-boundedApportionLowerBound
+apportionLowerBound
     :: (Traversable t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Apportionment t a
-boundedApportionLowerBound a ws = lowerBound <$> boundedApportionAsExact a ws
+apportionLowerBound a ws = lowerBound <$> apportionAsExact a ws
 
-boundedApportionUpperBound
+apportionUpperBound
     :: (Traversable t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Apportionment t a
-boundedApportionUpperBound a ws = upperBound <$> boundedApportionAsExact a ws
-
-boundedApportionLaw_identity
-    :: (Eq (t a), Traversable t, BoundedApportion a)
-    => a
-    -> t (Weight a)
-    -> Bool
-boundedApportionLaw_identity a ws =
-    boundedApportion a ws == apportion a ws
-
-boundedApportionLaw_identity_maybe
-    :: (Eq (t a), Traversable t, BoundedApportion a)
-    => a
-    -> t (Weight a)
-    -> Bool
-boundedApportionLaw_identity_maybe a ws =
-    boundedApportionMaybe a ws == apportionMaybe a ws
+apportionUpperBound a ws = upperBound <$> apportionAsExact a ws
 
 boundedApportionLaw_isBounded
     :: (Eq (t a), Traversable t, Zip t, BoundedApportion a)
@@ -276,7 +226,7 @@ boundedApportionLaw_isBounded
     -> t (Weight a)
     -> Bool
 boundedApportionLaw_isBounded =
-    boundedApportionIsBounded
+    apportionIsBounded
 
 --------------------------------------------------------------------------------
 -- CommutativeApportion
