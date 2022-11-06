@@ -287,11 +287,11 @@ deriving via NaturalRatioSum instance PositiveMonoid (Size NaturalRatio)
 
 instance Apportion (Size Natural) where
     type Weight (Size Natural) = Size Natural
-    apportion = apportionMap (Size . getSum) (Sum . getSize) (Sum . getSize)
+    apportion = apportionMap (Size . getSum) (Sum . getSize)
 
 instance Apportion (Size NaturalRatio) where
     type Weight (Size NaturalRatio) = Size NaturalRatio
-    apportion = apportionMap (Size . getSum) (Sum . getSize) (Sum . getSize)
+    apportion = apportionMap (Size . getSum) (Sum . getSize)
 
 instance ExactBounded (Size NaturalRatio) (Size Natural) where
     exact (Size n) = Size (exact n)
@@ -299,6 +299,15 @@ instance ExactBounded (Size NaturalRatio) (Size Natural) where
     upperBound (Size r) = Size (upperBound r)
 
 apportionMap
+    :: (Apportion a2, Traversable t, a2 ~ Weight a2)
+    => (a2 -> a3)
+    -> (a1 -> a2)
+    -> a1
+    -> t a1
+    -> Apportionment t a3
+apportionMap from to = apportionMap2 from to to
+
+apportionMap2
     :: (Apportion a2, Traversable t, w2 ~ Weight a2)
     => (a2 -> a3)
     -> (a1 -> a2)
@@ -306,7 +315,7 @@ apportionMap
     -> a1
     -> t w1
     -> Apportionment t a3
-apportionMap from toTarget toWeight a ws =
+apportionMap2 from toTarget toWeight a ws =
     from <$> apportion (toTarget a) (toWeight <$> ws)
 
 apportionSizeDivisibleList
