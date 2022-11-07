@@ -32,17 +32,15 @@ import Data.Monoid.Null
     ( MonoidNull (..), PositiveMonoid )
 import Data.Ratio
     ( Ratio )
-import Data.Sized
-    ( Sized (..) )
-import Data.SizeDivisible
-    ( SizeDivisible )
+import Data.Sliceable
+    ( Sliceable )
 import Numeric.Natural
     ( Natural )
 
 import Prelude hiding
     ( drop, fromList, length, splitAt, take )
 
-import qualified Data.SizeDivisible as SD
+import qualified Data.Sliceable as Sliceable
 
 newtype ListFraction a = ListFraction
     {getListFraction :: [(a, Ratio Natural)]}
@@ -64,14 +62,12 @@ instance Eq a => ExactBounded (Infix (ListFraction a)) (Infix [a]) where
         (a, n) <- fmap upperBound <$> as
         replicate (fromIntegral n) a
 
-instance Sized (ListFraction a) where
-    type Size (ListFraction a) = Ratio Natural
-    size = length
-
-instance SizeDivisible (ListFraction a) where
+instance Sliceable (ListFraction a) where
+    type SliceableSize (ListFraction a) = Ratio Natural
     drop = drop
     take = take
     splitAt = splitAt
+    size = length
 
 instance Eq a => PartialOrd (Prefix (ListFraction a)) where
     Prefix f1 `leq` Prefix f2 = f1 `isPrefixOf` f2

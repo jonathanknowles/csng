@@ -36,7 +36,7 @@ module Algebra.NewApportion
     , apportionList
     , apportionListMaybe
     , apportionMap
-    , apportionSizeDivisible
+    , apportionSliceable
 
     -- * Combinator types
     , Size (..)
@@ -71,10 +71,8 @@ import Data.Semialign
     ( Semialign (..), Zip (..), salign )
 import Data.Semigroup.Cancellative
     ( Commutative )
-import Data.Sized
-    ( size )
-import Data.SizeDivisible
-    ( SizeDivisible (..), takeMany )
+import Data.Sliceable
+    ( Sliceable (..), takeMany )
 import Data.Set
     ( Set )
 import Data.These
@@ -97,7 +95,6 @@ import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty.Extended as NE
 import qualified Data.MonoidMap as MonoidMap
-import qualified Data.Sized as Sized
 
 --------------------------------------------------------------------------------
 -- Apportionment
@@ -375,13 +372,13 @@ apportionMap2
 apportionMap2 from toTarget toWeight a ws =
     from <$> apportion (toTarget a) (toWeight <$> ws)
 
-apportionSizeDivisible
+apportionSliceable
     :: Traversable t
-    => (Monoid a, SizeDivisible a, Apportion (Size (Sized.Size a)))
+    => (Monoid a, Sliceable a, Apportion (Size (SliceableSize a)))
     => a
-    -> t (Weight (Size (Sized.Size a)))
+    -> t (Weight (Size (SliceableSize a)))
     -> Apportionment t a
-apportionSizeDivisible a ws =
+apportionSliceable a ws =
     case sizes of
         Nothing -> Apportionment a (mempty <$ ws)
         Just zs -> Apportionment mempty (takeMany zs a)
@@ -400,7 +397,7 @@ type NaturalSum = Sum Natural
 
 newtype Size a = Size {getSize :: a}
     deriving stock (Eq, Show)
-    deriving newtype (Sized.Sized, SizeDivisible)
+    deriving newtype Sliceable
 
 --------------------------------------------------------------------------------
 -- Instances: MonoidMap
@@ -509,7 +506,7 @@ instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
 
 instance Eq a => Apportion (Size [a]) where
     type Weight (Size [a]) = Size Natural
-    apportion = apportionSizeDivisible
+    apportion = apportionSliceable
 
 instance Eq a => BoundedApportion (Size [a]) where
     type Exact (Size [a]) = Size (ListFraction a)
@@ -528,7 +525,7 @@ deriving via Infix (ListFraction a) instance Eq a =>
 
 instance Eq a => Apportion (Size (ListFraction a)) where
     type Weight (Size (ListFraction a)) = Size NaturalRatio
-    apportion = apportionSizeDivisible
+    apportion = apportionSliceable
 
 instance Eq a => ExactApportion (Size (ListFraction a))
 
