@@ -530,6 +530,19 @@ instance Eq a => Apportion (Size (ListFraction a)) where
 instance Eq a => ExactApportion (Size (ListFraction a))
 
 --------------------------------------------------------------------------------
+-- Instances: Size Set
+--------------------------------------------------------------------------------
+
+deriving newtype instance Ord a => Semigroup      (Size (Set a))
+deriving newtype instance Ord a => Monoid         (Size (Set a))
+deriving newtype instance Ord a => MonoidNull     (Size (Set a))
+deriving newtype instance Ord a => PositiveMonoid (Size (Set a))
+
+instance Ord a => Apportion (Size (Set a)) where
+    type Weight (Size (Set a)) = Size Natural
+    apportion = apportionSliceable
+
+--------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
 
