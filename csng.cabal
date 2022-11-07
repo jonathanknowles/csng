@@ -129,6 +129,7 @@ library internal
         Data.List.NonEmpty.Extended
         Data.Monoid.Monus.Extended
         Data.Sliceable
+        Data.Sliceable.Fractional
         Test.QuickCheck.Instances.NonEmpty
         Value
         Wrapped
