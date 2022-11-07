@@ -2,8 +2,8 @@
 {- HLINT ignore "Use take" -}
 {- HLINT ignore "Use splitAt" -}
 
-module Data.SizeDivisible
-    ( SizeDivisible (..)
+module Data.Sliceable
+    ( Sliceable (..)
     , takeMany
     ) where
 
@@ -13,8 +13,6 @@ import Data.Maybe
     ( fromMaybe )
 import Data.MonoidMap
     ( MonoidMap )
-import Data.Sized
-    ( Sized (..) )
 import Data.Strict.Map
     ( Map )
 import Data.Strict.Set
@@ -29,40 +27,53 @@ import Numeric.Natural
 import Prelude hiding
     ( drop, splitAt, take )
 
+import qualified Data.Foldable as F
 import qualified Data.List as L
 import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Strict.Map as Map
 import qualified Data.Strict.Set as Set
 
-class Sized a => SizeDivisible a where
+class Sliceable a where
 
-    drop :: Size a -> a -> a
-    default drop :: Size a -> a -> a
+    type SliceableSize a
+
+    drop :: SliceableSize a -> a -> a
+    default drop :: SliceableSize a -> a -> a
     drop s a = snd (splitAt s a)
 
-    take :: Size a -> a -> a
-    default take :: Size a -> a -> a
+    take :: SliceableSize a -> a -> a
+    default take :: SliceableSize a -> a -> a
     take s a = fst (splitAt s a)
 
-    splitAt :: Size a -> a -> (a, a)
-    default splitAt :: Size a -> a -> (a, a)
+    splitAt :: SliceableSize a -> a -> (a, a)
+    default splitAt :: SliceableSize a -> a -> (a, a)
     splitAt s a = (take s a, drop s a)
 
-    {-# MINIMAL (drop, take) | splitAt #-}
+    size :: a -> SliceableSize a
 
-instance SizeDivisible [a] where
+    {-# MINIMAL (drop, take, size) | (splitAt, size) #-}
+
+instance Sliceable [a] where
+    type SliceableSize [a] = Natural
+    size = foldableSize
     splitAt = L.splitAt . naturalToInt
 
-instance SizeDivisible (Map k v) where
+instance Sliceable (Map k v) where
+    type SliceableSize (Map k v) = Natural
+    size = foldableSize
     splitAt = Map.splitAt . naturalToInt
 
-instance SizeDivisible (MonoidMap k v) where
+instance Sliceable (MonoidMap k v) where
+    type SliceableSize (MonoidMap k v) = Natural
+    size = foldableSize
     splitAt = MonoidMap.splitAt . naturalToInt
 
-instance SizeDivisible (Set a) where
+instance Sliceable (Set a) where
+    type SliceableSize (Set a) = Natural
+    size = foldableSize
     splitAt = Set.splitAt . naturalToInt
 
-takeMany :: (Traversable t, SizeDivisible a) => t (Size a) -> a -> t a
+takeMany :: (Traversable t, Sliceable a) => t (SliceableSize a) -> a -> t a
 takeMany ss a0 = snd $ mapAccumL takeOne a0 ss
   where
     takeOne a s = swap $ splitAt s a
@@ -70,6 +81,9 @@ takeMany ss a0 = snd $ mapAccumL takeOne a0 ss
 --------------------------------------------------------------------------------
 -- Internal functions
 --------------------------------------------------------------------------------
+
+foldableSize :: Foldable f => f a -> Natural
+foldableSize = fromIntegral @Int @Natural . F.length
 
 naturalToInt :: Natural -> Int
 naturalToInt = fromMaybe maxBound . intCastMaybe @Natural @Int
