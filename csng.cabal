@@ -130,6 +130,7 @@ library internal
         Data.Monoid.Monus.Extended
         Data.Sliceable
         Data.Sliceable.Fractional
+        Data.Traversable.Extended
         Test.QuickCheck.Instances.NonEmpty
         Value
         Wrapped
