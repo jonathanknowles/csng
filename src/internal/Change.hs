@@ -7,8 +7,6 @@ import Algebra.NewApportion
     ( Apportion (..), Apportionment (..) )
 import Data.Bifunctor
     ( bimap )
-import Data.Functor
-    ( ($>) )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Monoid.Monus.Extended
@@ -18,11 +16,13 @@ import Data.Monoid.Null
 import Data.Ord
     ( Down (..) )
 import Data.Semialign
-    ( Semialign (..), salign )
+    ( Semialign (..) )
 import Data.Set
     ( Set )
 import Data.These
     ( mergeThese )
+import Data.Traversable.Extended
+    ( mapTraverseNonEmpty )
 import Value
     ( Coin, CoinValue, HasAssets (..) )
 
@@ -86,7 +86,7 @@ makeChangeForAsset     (n,                       pws)
         . alignWith (mergeThese (<>)) (mempty <$ pws)
         . partition
         . apportion n
-        . takeUntilSumIsNonNullAndMinimalDistanceToTarget n
+        . nullifyAfterSumIsNonNullAndMinimalDistanceToTarget n
         $ snd <$> index
 
     index :: NonEmpty ((p, Int), CoinValue)
@@ -96,15 +96,16 @@ makeChangeForAsset     (n,                       pws)
             (NE.zip (fst <$> pws) (NE.iterate (+ 1) 0))
             (snd <$> pws)
 
-takeUntilSumIsNonNullAndMinimalDistanceToTarget
-    :: (MonoidNull a, Monus a, Ord a)
+nullifyAfterSumIsNonNullAndMinimalDistanceToTarget
+    :: (MonoidNull a, Monus a, Ord a, Traversable t)
     => a
-    -> NonEmpty a
-    -> NonEmpty a
-takeUntilSumIsNonNullAndMinimalDistanceToTarget target as =
-    salign
+    -> t a
+    -> t a
+nullifyAfterSumIsNonNullAndMinimalDistanceToTarget target =
+    mapTraverseNonEmpty $ \as ->
+    alignWith (mergeThese const)
         (takeUntilSumIsNonNull as)
-        (takeUntilSumIsMinimalDistanceToTarget target as $> mempty)
+        (takeUntilSumIsMinimalDistanceToTarget target as)
 
 takeUntilSumIsNonNull
     :: MonoidNull a
