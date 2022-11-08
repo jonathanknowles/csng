@@ -77,8 +77,8 @@ import Data.Set
     ( Set )
 import Data.These
     ( These (..) )
-import Data.Traversable
-    ( mapAccumL )
+import Data.Traversable.Extended
+    ( fill )
 import Numeric.Natural
     ( Natural )
 import Test.QuickCheck
@@ -545,12 +545,6 @@ instance Ord a => Apportion (Size (Set a)) where
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
-
-fill :: (Monoid b, Foldable f, Traversable t) => f b -> t a -> t b
-fill xs = snd . mapAccumL fillM (F.toList xs)
-  where
-    fillM [] _ = ([], mempty)
-    fillM (y : ys) _ = (ys, y)
 
 folds :: (Traversable t, Semigroup a) => t a -> [NonEmpty a]
 folds as = case F.toList as of
