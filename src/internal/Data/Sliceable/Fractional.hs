@@ -7,12 +7,12 @@ import Algebra.ExactBounded
     ( ExactBounded (..) )
 import Algebra.PartialOrd.Extended
     ( Infix (..), PartialOrd (..) )
-import Data.Ratio
-    ( Ratio )
 import Data.Monoid
     ( Sum (..) )
 import Data.Monoid.Monus.Extended
     ( (<\>) )
+import Data.Ratio
+    ( Ratio )
 import Data.Sliceable
     ( Sliceable )
 import Numeric.Natural
