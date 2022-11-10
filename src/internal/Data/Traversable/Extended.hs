@@ -28,16 +28,15 @@ mapAccumSortedL
     -> state
     -> t a
     -> (state, t b)
-mapAccumSortedL accum0 state0 elements
+mapAccumSortedL accum0 state0 as
     = index
     & fmap snd
     & mapAccumL accum0 state0
-    & fmap (fmap snd . L.sortOn fst . L.zip (fst <$> index))
-    & fmap (`fillUnsafe` elements)
+    & fmap ((`fillUnsafe` as) . fmap snd . L.sortOn fst . L.zip (fst <$> index))
   where
     index :: [(Int, a)]
     index
-        = elements
+        = as
         & F.toList
         & L.zip (L.iterate (+ 1) 0)
         & L.sortOn snd
