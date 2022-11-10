@@ -28,18 +28,14 @@ mapAccumSortedL
     -> state
     -> t a
     -> (state, t b)
-mapAccumSortedL accum0 state0 as
-    = index
-    & fmap snd
-    & mapAccumL accum0 state0
-    & fmap ((`fillUnsafe` as) . fmap snd . L.sortOn fst . L.zip (fst <$> index))
+mapAccumSortedL accum0 state0 as =
+    remap <$> mapAccumL accum0 state0 (snd <$> index)
   where
     index :: [(Int, a)]
-    index
-        = as
-        & F.toList
-        & L.zip (L.iterate (+ 1) 0)
-        & L.sortOn snd
+    index = L.sortOn snd $ L.zip (L.iterate (+ 1) 0) $ F.toList as
+
+    remap :: [b] -> t b
+    remap = (`fillUnsafe` as) . fmap snd . L.sortOn fst . L.zip (fst <$> index)
 
 fill :: (Monoid b, Foldable f, Traversable t) => f b -> t a -> t b
 fill xs = snd . mapAccumL fillInner (F.toList xs)
