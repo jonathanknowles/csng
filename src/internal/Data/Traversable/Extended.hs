@@ -23,11 +23,11 @@ import qualified Data.Foldable as F
 import qualified Data.List as L
 
 mapAccumSortedL
-    :: forall t a b s. (Traversable t, Ord a)
-    => (s -> a -> (s, b))
-    -> s
+    :: forall state t a b. (Traversable t, Ord a)
+    => (state -> a -> (state, b))
+    -> state
     -> t a
-    -> (s, t b)
+    -> (state, t b)
 mapAccumSortedL accum0 state0 elements
     = index
     & fmap snd
