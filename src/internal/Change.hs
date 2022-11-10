@@ -7,6 +7,8 @@ import Prelude hiding
 
 import Algebra.NewApportion
     ( Apportionment (..), apportion )
+import Data.Function
+    ( on )
 import Data.Monoid.Monus.Extended
     ( Monus (..), distance )
 import Data.Monoid.Null
@@ -19,15 +21,18 @@ import Value
     ( Coin, CoinValue, HasAssets (..) )
 
 import qualified Data.Foldable as F
+import qualified Data.List as L
 
 makeChangeForCoin
     :: forall p c a v. (c ~ Coin a, v ~ CoinValue, Functor p, Ord a, Ord (p v))
     => (p v -> v)
     -> c
     -> [p c]
-    -> Apportionment [] c
+    -> (c, [p c])
 makeChangeForCoin extract target weights =
-    apportion target $ selectWeightsForCoin extract target weights
+    (remainder result, L.zipWith (<$) (partition result) weights)
+  where
+    result = apportion target $ selectWeightsForCoin extract target weights
 
 selectWeightsForCoin
     :: forall p c a v. (c ~ Coin a, v ~ CoinValue, Functor p, Ord a, Ord (p v))
@@ -81,29 +86,39 @@ takeUntilSumIsNonNullAndMinimalDistanceToTarget target sum0 a
 -- Example
 --------------------------------------------------------------------------------
 
-data Weight a
-    = Input a
-    | Output a
-    deriving (Eq, Functor, Ord, Show)
+data Weight a = Input a | Output a
+    deriving (Eq, Functor, Show)
 
-extractWeight :: Weight a -> a
-extractWeight = \case
-    Input a -> a
-    Output a -> a
+instance Ord a => Ord (Weight a) where
+    compare = compare `on` weightPriority
 
-data AssetId = A | B | C | D
+newtype Priority = Priority Int
     deriving (Eq, Ord, Show)
 
-example :: Apportionment [] (Coin AssetId)
-example = makeChangeForCoin extractWeight target weights
+weightPriority :: Weight a -> (Priority, a)
+weightPriority = \case
+    -- We give outputs a higher priority than inputs:
+    Input  a -> (Priority 1, a)
+    Output a -> (Priority 0, a)
+
+weightValue :: Weight a -> a
+weightValue = \case
+    Input  a -> a
+    Output a -> a
+
+data AssetId = A | B | C | D | E
+    deriving (Eq, Ord, Show)
+
+example :: (Coin AssetId, [Weight (Coin AssetId)])
+example = makeChangeForCoin weightValue target weights
   where
     target :: Coin AssetId
-    target = [(A, 200), (B, 200), (C, 200), (D, 200)]
+    target = [(A, 100), (B, 100), (C, 100), (D, 100), (E, 100)]
 
     weights :: [Weight (Coin AssetId)]
     weights = [weightA, weightB, weightC, weightD]
 
-    weightA = Input  [(A, 100), (B,   0), (C,   0), (D,   0)]
-    weightB = Input  [(A,   0), (B, 100), (C,   0), (D,   0)]
-    weightC = Output [(A,   0), (B,   0), (C, 100), (D,   0)]
-    weightD = Output [(A,   0), (B,   0), (C,   0), (D, 100)]
+    weightA = Input  [(A, 100), (B,  50), (C,  30), (D,  20)]
+    weightB = Input  [(A,  20), (B, 100), (C,  50), (D,  30)]
+    weightC = Output [(A,  30), (B,  20), (C, 100), (D,  50)]
+    weightD = Output [(A,  50), (B,  30), (C,  20), (D, 100)]
