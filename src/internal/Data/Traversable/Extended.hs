@@ -23,30 +23,24 @@ import qualified Data.Foldable as F
 import qualified Data.List as L
 
 mapAccumSortedL
-    :: forall t p a b s. (Functor p, Traversable t, Ord (p a))
-    => (p a -> a)
-    -> (s -> a -> (s, b))
+    :: forall t a b s. (Traversable t, Ord a)
+    => (s -> a -> (s, b))
     -> s
-    -> t (p a)
-    -> (s, t (p b))
-mapAccumSortedL extract accum state0 elements
+    -> t a
+    -> (s, t b)
+mapAccumSortedL accum0 state0 elements
     = index
     & fmap snd
-    & mapAccumL accum state0
+    & mapAccumL accum0 state0
     & fmap (fmap snd . L.sortOn fst . L.zip (fst <$> index))
-    & fmap (zipWith (flip (<$)) elementList)
     & fmap (`fillUnsafe` elements)
   where
-    elementList :: [p a]
-    elementList = elements & F.toList
-
     index :: [(Int, a)]
     index
         = elements
         & F.toList
         & L.zip (L.iterate (+ 1) 0)
         & L.sortOn snd
-        & (fmap . fmap) extract
 
 fill :: (Monoid b, Foldable f, Traversable t) => f b -> t a -> t b
 fill xs = snd . mapAccumL fillInner (F.toList xs)

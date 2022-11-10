@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE OverloadedLists #-}
 
 module Change where
@@ -60,15 +61,17 @@ selectWeightsForAsset extract target weights asset =
         ((fmap . fmap) (getAssetValue asset) weights)
 
 selectWeightsForCoinValue
-    :: forall p v. (v ~ CoinValue, Ord (p v), Functor p)
+    :: forall p v. (v ~ CoinValue, Functor p, Ord (p v))
     => (p v -> v)
     -> v
     -> [p v]
     -> [v]
 selectWeightsForCoinValue extract target weights =
-    fmap extract $ snd $ mapAccumSortedL extract accum mempty weights
+    extract <$> snd (mapAccumSortedL accum mempty weights)
   where
-    accum = takeUntilSumIsNonNullAndMinimalDistanceToTarget target
+    accum :: v -> p v -> (v, p v)
+    accum v pv = (<$ pv) <$>
+        takeUntilSumIsNonNullAndMinimalDistanceToTarget target v (extract pv)
 
 takeUntilSumIsNonNullAndMinimalDistanceToTarget
     :: (MonoidNull a, Monus a, Ord a) => a -> (a -> a -> (a, a))
@@ -85,7 +88,7 @@ takeUntilSumIsNonNullAndMinimalDistanceToTarget target sum0 a
 --------------------------------------------------------------------------------
 
 data Weight a = Input a | Output a
-    deriving (Eq, Functor, Show)
+    deriving (Eq, Foldable, Functor, Show)
 
 instance Ord a => Ord (Weight a) where
     compare = compare `on` weightPriority
