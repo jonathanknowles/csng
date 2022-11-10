@@ -28,8 +28,8 @@ mapAccumSortedL
     -> state
     -> t a
     -> (state, t b)
-mapAccumSortedL accum0 state0 as =
-    remap <$> mapAccumL accum0 state0 (snd <$> index)
+mapAccumSortedL accum state as =
+    remap <$> mapAccumL accum state (snd <$> index)
   where
     index :: [(Int, a)]
     index = L.sortOn snd $ L.zip (L.iterate (+ 1) 0) $ F.toList as
