@@ -66,11 +66,9 @@ selectWeightsForCoinValue
     -> [p v]
     -> [v]
 selectWeightsForCoinValue extract target weights =
-    fmap extract $ snd $ mapAccumSortedL
-        extract
-        (takeUntilSumIsNonNullAndMinimalDistanceToTarget target)
-        mempty
-        weights
+    fmap extract $ snd $ mapAccumSortedL extract accum mempty weights
+  where
+    accum = takeUntilSumIsNonNullAndMinimalDistanceToTarget target
 
 takeUntilSumIsNonNullAndMinimalDistanceToTarget
     :: (MonoidNull a, Monus a, Ord a) => a -> (a -> a -> (a, a))
