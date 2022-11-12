@@ -46,6 +46,7 @@ common common-extensions
         InstanceSigs
         LambdaCase
         MultiParamTypeClasses
+        NamedFieldPuns
         PatternSynonyms
         ScopedTypeVariables
         StandaloneDeriving
@@ -166,6 +167,25 @@ library prelude
         Haskell2010
     build-depends:
         base >=4.7 && <5
+
+executable terminal
+    import:
+        common-extensions
+      , common-options
+      , common-prelude
+    hs-source-dirs:
+        src/terminal
+    ghc-options:
+        -threaded
+    main-is:
+        Main.hs
+    default-language:
+        Haskell2010
+    build-depends:
+        base >=4.7 && <5
+      , brick
+      , csng:internal
+      , strict-containers
 
 test-suite test
     import:
