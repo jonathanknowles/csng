@@ -16,11 +16,14 @@ import Brick.Widgets.Table
 
 data Selection a = Selection
     { inputs
-        :: [Coin a]
+        :: [SelectionEntry a]
     , outputs
-        :: [Coin a]
-    , change
-        :: [Coin a]
+        :: [SelectionEntry a]
+    }
+
+data SelectionEntry a = SelectionEntry
+    { weight :: Coin a
+    , change :: Coin a
     }
 
 renderSelectionAsGrid
@@ -47,13 +50,14 @@ renderSelectionAsGrid selection =
 
     lcolumnForAsset :: a -> [String]
     lcolumnForAsset a = show a : mconcat
-        [ show . getAssetValue a <$> outputs selection
-        , show . getAssetValue a <$> inputs  selection
+        [ show . getAssetValue a . weight <$> outputs selection
+        , show . getAssetValue a . weight <$> inputs  selection
         ]
 
     rcolumn :: [String]
     rcolumn = "" : mconcat
-        [ "Change" <$ change selection
+        [ "Change" <$ outputs selection
+        , "Change" <$ inputs  selection
         ]
 
     rcolumnsForAssets :: [[String]]
@@ -61,14 +65,14 @@ renderSelectionAsGrid selection =
 
     rcolumnForAsset :: a -> [String]
     rcolumnForAsset a = show a : mconcat
-        [ show . getAssetValue a <$> change selection
+        [ show . getAssetValue a . change <$> outputs selection
+        , show . getAssetValue a . change <$> inputs  selection
         ]
 
 selectionAssets :: Ord a => Selection a -> Set a
-selectionAssets Selection {inputs, outputs, change} = mconcat
-    [ foldMap getAssets inputs
-    , foldMap getAssets outputs
-    , foldMap getAssets change
+selectionAssets Selection {inputs, outputs} = mconcat
+    [ foldMap (getAssets . weight) (inputs <> outputs)
+    , foldMap (getAssets . change) (inputs <> outputs)
     ]
 
 coinMaxCoinValue :: Ord a => Coin a -> CoinValue
@@ -77,11 +81,11 @@ coinMaxCoinValue c
     | otherwise = maximum (snd <$> toList c)
 
 selectionMaxCoinValue :: Ord a => Selection a -> CoinValue
-selectionMaxCoinValue s = maximum $ coinMaxCoinValue <$> mconcat
-    [ toList (inputs  s)
-    , toList (outputs s)
-    , toList (change  s)
-    ]
+selectionMaxCoinValue Selection {inputs, outputs} =
+    maximum $ coinMaxCoinValue <$> mconcat
+        [ toList (weight <$> (inputs <> outputs))
+        , toList (change <$> (inputs <> outputs))
+        ]
 
 renderSelection :: forall a. (Ord a, Show a) => Selection a -> Widget ()
 renderSelection s = vBox
@@ -91,18 +95,15 @@ renderSelection s = vBox
   where
     renderOutputsInputs :: Widget ()
     renderOutputsInputs = renderTable $ table $ pure
-        [ hBox [str " ", renderCoins (outputs s), str " "]
-        , hBox [str " ", renderCoins (inputs  s), str " "]
+        [ hBox [str " ", renderCoins (weight <$> outputs s), str " "]
+        , hBox [str " ", renderCoins (weight <$> inputs  s), str " "]
         ]
 
     renderChange :: Widget ()
     renderChange = renderTable $ table $ pure
-        [ hBox [str " ", renderCoins changeForOutputs, str " "]
-        , hBox [str " ", renderCoins changeForInputs , str " "]
+        [ hBox [str " ", renderCoins (change <$> outputs s), str " "]
+        , hBox [str " ", renderCoins (change <$> inputs  s), str " "]
         ]
-      where
-        changeForInputs  = drop (length (outputs s)) (change s)
-        changeForOutputs = take (length (outputs s)) (change s)
 
     renderCoins :: [Coin a] -> Widget ()
     renderCoins coins = hBox $ L.intersperse (str " ") $
@@ -166,21 +167,13 @@ exampleCoin = [(A, 1000000), (B, 20), (C, 3000)]
 exampleSelection :: Selection ExampleAsset
 exampleSelection = Selection
     { inputs =
-        [ [(A, 30), (B, 30)         ]
-        , [         (B, 30), (C, 30)]
-        , [(A, 30),          (C, 30)]
+        [ SelectionEntry [(A, 30), (B, 30)         ] [(A, 20), (B, 20)         ]
+        , SelectionEntry [         (B, 30), (C, 30)] [         (B, 20), (C, 20)]
+        , SelectionEntry [(A, 30),          (C, 30)] [(A, 20),          (C, 20)]
         ]
     , outputs =
-        [ [(A, 10), (B, 10)         ]
-        , [         (B, 10), (C, 10)]
-        , [(A, 10),          (C, 10)]
-        ]
-    , change =
-        [ [(A, 20), (B, 20)         ]
-        , [         (B, 20), (C, 20)]
-        , [(A, 20),          (C, 20)]
-        , [(A,  2), (B,  2)         ]
-        , [         (B,  2), (C,  2)]
-        , [(A,  2),          (C,  2)]
+        [ SelectionEntry [(A, 10), (B, 10)         ] [(A,  2), (B,  2)         ]
+        , SelectionEntry [         (B, 10), (C, 10)] [         (B,  2), (C,  2)]
+        , SelectionEntry [(A, 10),          (C, 10)] [(A,  2),          (C,  2)]
         ]
     }
