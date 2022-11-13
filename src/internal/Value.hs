@@ -231,6 +231,9 @@ newtype Balance a = Balance (MonoidMap a BalanceValue)
         , Semigroup
         )
 
+instance Foldable Balance where
+    foldMap f (Balance a) = foldMap f (MonoidMap.keys a)
+
 --------------------------------------------------------------------------------
 -- Coin
 --------------------------------------------------------------------------------
@@ -264,6 +267,9 @@ instance Ord a => Apportion (Coin a) where
 
 instance Ord a => BoundedApportion (Coin a) where
     type Exact (Coin a) = FractionalCoin a
+
+instance Foldable Coin where
+    foldMap f (Coin a) = foldMap f (MonoidMap.keys a)
 
 --------------------------------------------------------------------------------
 -- FractionalCoin
