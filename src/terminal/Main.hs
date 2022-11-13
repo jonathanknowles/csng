@@ -15,10 +15,8 @@ import Brick
 import Brick.Widgets.Table
 
 data Selection a = Selection
-    { inputs
-        :: [SelectionEntry a]
-    , outputs
-        :: [SelectionEntry a]
+    { inputs  :: [SelectionEntry a]
+    , outputs :: [SelectionEntry a]
     }
 
 data SelectionEntry a = SelectionEntry
@@ -26,9 +24,50 @@ data SelectionEntry a = SelectionEntry
     , change :: Coin a
     }
 
-renderSelectionAsGrid
+renderSelection
     :: forall a. (Ord a, Show a) => Selection a -> Widget ()
-renderSelectionAsGrid selection =
+renderSelection selection@Selection{inputs, outputs} =
+    renderTable $ tableOptions $ table $ mconcat
+        [ [rowAssets]
+        , [rowSpacer]
+        , rowSelectionEntry "Output"
+            <$> outputs
+        , [rowSpacer]
+        , rowSelectionEntry "Input"
+            <$> inputs
+        ]
+  where
+    tableOptions
+        = rowBorders False
+        . setDefaultColAlignment AlignRight
+
+    assets :: [a]
+    assets = toList (selectionAssets selection)
+
+    rowSpacer :: [Widget ()]
+    rowSpacer = str " " <$ rowAssets
+
+    rowAssets :: [Widget ()]
+    rowAssets = mconcat
+        [ [str "Asset"]
+        , str . show <$> assets
+        , [str " "]
+        , [str "Asset"]
+        , str . show <$> assets
+        ]
+
+    rowSelectionEntry :: String -> SelectionEntry a -> [Widget ()]
+    rowSelectionEntry entryType e = mconcat
+        [ [str entryType]
+        , renderCoinValue . flip getAssetValue (weight e) <$> assets
+        , [str " "]
+        , [str "Change"]
+        , renderCoinValue . flip getAssetValue (change e) <$> assets
+        ]
+
+renderSelection1
+    :: forall a. (Ord a, Show a) => Selection a -> Widget ()
+renderSelection1 selection =
     renderTable $ setDefaultColAlignment AlignRight $ table $ transpose columns
   where
     columns :: [[Widget ()]]
@@ -87,8 +126,8 @@ selectionMaxCoinValue Selection {inputs, outputs} =
         , toList (change <$> (inputs <> outputs))
         ]
 
-renderSelection :: forall a. (Ord a, Show a) => Selection a -> Widget ()
-renderSelection s = vBox
+renderSelection2 :: forall a. (Ord a, Show a) => Selection a -> Widget ()
+renderSelection2 s = vBox
     [ renderOutputsInputs
     , renderChange
     ]
