@@ -1,3 +1,5 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedLists #-}
 
 module Main where
@@ -6,35 +8,46 @@ import Data.List
     ( transpose )
 import Data.Strict.Set
     ( Set )
+import GHC.Records
+    ( HasField (..) )
 import Value
-    ( Coin, CoinValue, getAssets, getAssetValue )
+    ( Coin, CoinValue, getAssetValue )
 
+import qualified Data.Foldable as F
 import qualified Data.List as L
+import qualified Data.Strict.Set as Set
 
 import Brick
 import Brick.Widgets.Table
 
-data Selection a = Selection
-    { inputs  :: [SelectionEntry a]
-    , outputs :: [SelectionEntry a]
+data SelectionOf f g a = Selection
+    { inputs  :: f (g a)
+    , outputs :: f (g a)
     }
+    deriving Foldable
 
-data SelectionEntry a = SelectionEntry
+data WeightChange a = WeightChange
     { weight :: Coin a
     , change :: Coin a
     }
+    deriving Foldable
 
-renderSelection
-    :: forall a. (Ord a, Show a) => Selection a -> Widget ()
-renderSelection selection@Selection{inputs, outputs} =
+type Selection f a = SelectionOf f Coin a
+type SelectionWithChange f a = SelectionOf f WeightChange a
+
+renderSelectionWithChange
+    :: forall f a. (Foldable f, Ord a, Show a)
+    => SelectionWithChange f a
+    -> Widget ()
+renderSelectionWithChange selection@Selection{inputs, outputs} =
     renderTable $ tableOptions $ table $ mconcat
         [ [rowAssets]
         , [rowSpacer]
-        , rowSelectionEntry "Output"
-            <$> outputs
+        , rowSelectionChange "Output"
+            <$> F.toList outputs
         , [rowSpacer]
-        , rowSelectionEntry "Input"
-            <$> inputs
+        , rowSelectionChange "Input"
+            <$> F.toList inputs
         ]
   where
     tableOptions
@@ -56,8 +69,8 @@ renderSelection selection@Selection{inputs, outputs} =
         , str . show <$> assets
         ]
 
-    rowSelectionEntry :: String -> SelectionEntry a -> [Widget ()]
-    rowSelectionEntry entryType e = mconcat
+    rowSelectionChange :: String -> WeightChange a -> [Widget ()]
+    rowSelectionChange entryType e = mconcat
         [ [str entryType]
         , renderCoinValue . flip getAssetValue (weight e) <$> assets
         , [str " "]
@@ -65,9 +78,9 @@ renderSelection selection@Selection{inputs, outputs} =
         , renderCoinValue . flip getAssetValue (change e) <$> assets
         ]
 
-renderSelection1
-    :: forall a. (Ord a, Show a) => Selection a -> Widget ()
-renderSelection1 selection =
+renderSelectionWithChange1
+    :: forall a. (Ord a, Show a) => SelectionWithChange [] a -> Widget ()
+renderSelectionWithChange1 selection =
     renderTable $ setDefaultColAlignment AlignRight $ table $ transpose columns
   where
     columns :: [[Widget ()]]
@@ -80,8 +93,8 @@ renderSelection1 selection =
 
     lcolumn :: [String]
     lcolumn = "" : mconcat
-        [ "Output" <$ outputs selection
-        , "Input"  <$ inputs  selection
+        [ "Output" <$ selection.outputs
+        , "Input"  <$ selection.inputs
         ]
 
     lcolumnsForAssets :: [[String]]
@@ -89,14 +102,14 @@ renderSelection1 selection =
 
     lcolumnForAsset :: a -> [String]
     lcolumnForAsset a = show a : mconcat
-        [ show . getAssetValue a . weight <$> outputs selection
-        , show . getAssetValue a . weight <$> inputs  selection
+        [ show . getAssetValue a . weight <$> selection.outputs
+        , show . getAssetValue a . weight <$> selection.inputs
         ]
 
     rcolumn :: [String]
     rcolumn = "" : mconcat
-        [ "Change" <$ outputs selection
-        , "Change" <$ inputs  selection
+        [ "Change" <$ selection.outputs
+        , "Change" <$ selection.inputs
         ]
 
     rcolumnsForAssets :: [[String]]
@@ -104,44 +117,42 @@ renderSelection1 selection =
 
     rcolumnForAsset :: a -> [String]
     rcolumnForAsset a = show a : mconcat
-        [ show . getAssetValue a . change <$> outputs selection
-        , show . getAssetValue a . change <$> inputs  selection
+        [ show . getAssetValue a . change <$> selection.outputs
+        , show . getAssetValue a . change <$> selection.inputs
         ]
 
-selectionAssets :: Ord a => Selection a -> Set a
-selectionAssets Selection {inputs, outputs} = mconcat
-    [ foldMap (getAssets . weight) (inputs <> outputs)
-    , foldMap (getAssets . change) (inputs <> outputs)
-    ]
+selectionAssets :: (Foldable f, Foldable g, Ord a) => SelectionOf f g a -> Set a
+selectionAssets = F.foldMap Set.singleton
 
 coinMaxCoinValue :: Ord a => Coin a -> CoinValue
 coinMaxCoinValue c
     | toList c == mempty = mempty
     | otherwise = maximum (snd <$> toList c)
 
-selectionMaxCoinValue :: Ord a => Selection a -> CoinValue
+selectionMaxCoinValue :: Ord a => SelectionWithChange [] a -> CoinValue
 selectionMaxCoinValue Selection {inputs, outputs} =
     maximum $ coinMaxCoinValue <$> mconcat
         [ toList (weight <$> (inputs <> outputs))
         , toList (change <$> (inputs <> outputs))
         ]
 
-renderSelection2 :: forall a. (Ord a, Show a) => Selection a -> Widget ()
-renderSelection2 s = vBox
+renderSelectionWithChange2
+    :: forall a. (Ord a, Show a) => SelectionWithChange [] a -> Widget ()
+renderSelectionWithChange2 s = vBox
     [ renderOutputsInputs
     , renderChange
     ]
   where
     renderOutputsInputs :: Widget ()
     renderOutputsInputs = renderTable $ table $ pure
-        [ hBox [str " ", renderCoins (weight <$> outputs s), str " "]
-        , hBox [str " ", renderCoins (weight <$> inputs  s), str " "]
+        [ hBox [str " ", renderCoins (weight <$> s.outputs), str " "]
+        , hBox [str " ", renderCoins (weight <$> s.inputs ), str " "]
         ]
 
     renderChange :: Widget ()
     renderChange = renderTable $ table $ pure
-        [ hBox [str " ", renderCoins (change <$> outputs s), str " "]
-        , hBox [str " ", renderCoins (change <$> inputs  s), str " "]
+        [ hBox [str " ", renderCoins (change <$> s.outputs), str " "]
+        , hBox [str " ", renderCoins (change <$> s.inputs ), str " "]
         ]
 
     renderCoins :: [Coin a] -> Widget ()
@@ -188,7 +199,7 @@ renderCoinValue v
     | otherwise = str (show v)
 
 ui :: Widget ()
-ui = renderSelection exampleSelection
+ui = renderSelectionWithChange exampleSelection
 
 main :: IO ()
 main = simpleMain ui
@@ -203,16 +214,16 @@ data ExampleAsset = A | B | C | D
 exampleCoin :: Coin ExampleAsset
 exampleCoin = [(A, 1000000), (B, 20), (C, 3000)]
 
-exampleSelection :: Selection ExampleAsset
+exampleSelection :: SelectionWithChange [] ExampleAsset
 exampleSelection = Selection
     { inputs =
-        [ SelectionEntry [(A, 30), (B, 30)         ] [(A, 20), (B, 20)         ]
-        , SelectionEntry [         (B, 30), (C, 30)] [         (B, 20), (C, 20)]
-        , SelectionEntry [(A, 30),          (C, 30)] [(A, 20),          (C, 20)]
+        [ WeightChange [(A, 30), (B, 30)         ] [(A, 20), (B, 20)         ]
+        , WeightChange [         (B, 30), (C, 30)] [         (B, 20), (C, 20)]
+        , WeightChange [(A, 30),          (C, 30)] [(A, 20),          (C, 20)]
         ]
     , outputs =
-        [ SelectionEntry [(A, 10), (B, 10)         ] [(A,  2), (B,  2)         ]
-        , SelectionEntry [         (B, 10), (C, 10)] [         (B,  2), (C,  2)]
-        , SelectionEntry [(A, 10),          (C, 10)] [(A,  2),          (C,  2)]
+        [ WeightChange [(A, 10), (B, 10)         ] [(A,  2), (B,  2)         ]
+        , WeightChange [         (B, 10), (C, 10)] [         (B,  2), (C,  2)]
+        , WeightChange [(A, 10),          (C, 10)] [(A,  2),          (C,  2)]
         ]
     }
