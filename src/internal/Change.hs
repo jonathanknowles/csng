@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE OverloadedLists #-}
 
 module Change where

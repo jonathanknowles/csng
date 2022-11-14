@@ -37,6 +37,7 @@ common common-extensions
         DefaultSignatures
         DeriveFoldable
         DeriveFunctor
+        DeriveTraversable
         DerivingStrategies
         DerivingVia
         FlexibleContexts
