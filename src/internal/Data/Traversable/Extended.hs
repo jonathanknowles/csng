@@ -1,5 +1,3 @@
-{- HLINT ignore "Functor law" -}
-
 module Data.Traversable.Extended
     ( module Data.Traversable
     , fill
