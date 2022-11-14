@@ -46,8 +46,6 @@ import Algebra.ExactBounded
     ( ExactBounded (..) )
 import Algebra.PartialOrd.Extended
     ( Infix (..), PartialOrd (..) )
-import Data.Foldable
-    ( fold )
 import Data.List.Fraction
     ( ListFraction )
 import Data.List.NonEmpty.Extended
@@ -59,7 +57,7 @@ import Data.Monoid
 import Data.Monoid.Monus.Extended
     ()
 import Data.Monoid.Null
-    ( MonoidNull, PositiveMonoid )
+    ( MonoidNull (..), PositiveMonoid )
 import Data.MonoidMap
     ( MonoidMap )
 import Data.Proxy
@@ -88,7 +86,7 @@ import Test.QuickCheck.Instances.NonEmpty
     ()
 
 import Prelude hiding
-    ( last, splitAt, zip, zipWith )
+    ( last, null, splitAt, zip, zipWith )
 
 import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.Foldable as F
@@ -184,7 +182,7 @@ apportionLaw_length a ws =
 apportionLaw_maybe
     :: (Apportion a, Traversable t) => a -> t (Weight a) -> Bool
 apportionLaw_maybe a ws =
-    isJust (apportionMaybe a (F.toList ws)) == (fold (apportion a ws) == a)
+    isJust (apportionMaybe a (F.toList ws)) == null (remainder (apportion a ws))
 
 --------------------------------------------------------------------------------
 -- BoundedApportion

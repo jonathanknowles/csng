@@ -2,6 +2,8 @@
 
 module ValueSpec where
 
+import Algebra.NewApportion
+    ( apportionLaws, boundedApportionLaws )
 import Data.Group
     ( Group (..) )
 import Test.Hspec
@@ -68,7 +70,9 @@ spec = do
             , showReadLaws
             ]
         testLawsMany @TestCoin
-            [ cancellativeLaws
+            [ apportionLaws @[]
+            , boundedApportionLaws @[]
+            , cancellativeLaws
             , commutativeLaws
             , eqLaws
             , isListLaws
@@ -86,6 +90,10 @@ spec = do
             , semigroupMonoidLaws
             , showLaws
             , showReadLaws
+            ]
+        testLawsMany @TestFractionalCoin
+            [ apportionLaws @[]
+            , eqLaws
             ]
 
     parallel $ describe "Conversions" $ do
@@ -115,6 +123,7 @@ prop_balanceToCoins_coinToBalance_invert b =
 
 type TestBalance = Balance TestAsset
 type TestCoin = Coin TestAsset
+type TestFractionalCoin = FractionalCoin TestAsset
 
 deriving instance Arbitrary (Assets TestCoin)
 deriving instance Arbitrary (Values TestCoin)
