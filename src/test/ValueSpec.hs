@@ -45,9 +45,9 @@ import Value
     , Balance
     , BalanceValue
     , Coin
+    , CoinFraction
     , CoinValue
-    , FractionalCoin
-    , FractionalCoinValue
+    , CoinValueFraction
     , Values (..)
     , balanceToCoins
     , coinToBalance
@@ -91,7 +91,7 @@ spec = do
             , showLaws
             , showReadLaws
             ]
-        testLawsMany @TestFractionalCoin
+        testLawsMany @TestCoinFraction
             [ apportionLaws @[]
             , eqLaws
             ]
@@ -123,7 +123,7 @@ prop_balanceToCoins_coinToBalance_invert b =
 
 type TestBalance = Balance TestAsset
 type TestCoin = Coin TestAsset
-type TestFractionalCoin = FractionalCoin TestAsset
+type TestCoinFraction = CoinFraction TestAsset
 
 deriving instance Arbitrary (Assets TestCoin)
 deriving instance Arbitrary (Values TestCoin)
@@ -163,13 +163,13 @@ testCoin =
 testCoinValues :: [CoinValue]
 testCoinValues = [0, 1, 2]
 
-testFractionalCoin :: FractionalCoin LatinChar
-testFractionalCoin =
+testCoinFraction :: CoinFraction LatinChar
+testCoinFraction =
     [ (A, 1%2)
     , (B, 1  )
     , (C, 3%2)
     , (D, 2  )
     ]
 
-testFractionalCoinValues :: [FractionalCoinValue]
-testFractionalCoinValues = [0, 1%2, 1, 3%2, 2]
+testCoinValueFractions :: [CoinValueFraction]
+testCoinValueFractions = [0, 1%2, 1, 3%2, 2]
