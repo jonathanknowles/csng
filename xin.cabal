@@ -184,6 +184,7 @@ executable terminal
         base >=4.7 && <5
       , brick
       , csng:internal
+      , monoid-subclasses
       , strict-containers
 
 test-suite test

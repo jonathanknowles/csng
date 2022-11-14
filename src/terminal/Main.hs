@@ -3,6 +3,13 @@
 
 module Main where
 
+import Change
+    ( SelectionOf (..)
+    , SelectionWithChange
+    , WeightChange (..)
+    , exampleSelection
+    , makeChange
+    )
 import Data.Strict.Set
     ( Set )
 import Value
@@ -14,24 +21,6 @@ import qualified Data.Strict.Set as Set
 import Brick
 import Brick.Widgets.Table
 
-makeChange :: Selection f a -> SelectionWithChange f a
-makeChange = undefined
-
-data SelectionOf f g a = Selection
-    { inputs  :: f (g a)
-    , outputs :: f (g a)
-    }
-    deriving Foldable
-
-data WeightChange a = WeightChange
-    { weight :: Coin a
-    , change :: Coin a
-    }
-    deriving Foldable
-
-type Selection f a = SelectionOf f Coin a
-type SelectionWithChange f a = SelectionOf f WeightChange a
-
 renderSelectionWithChange
     :: forall f a. (Foldable f, Ord a, Show a)
     => SelectionWithChange f a
@@ -40,11 +29,11 @@ renderSelectionWithChange selection@Selection{inputs, outputs} =
     renderTable $ tableOptions $ table $ mconcat
         [ [rowAssets]
         , [rowSpacer]
-        , rowSelectionChange "Output"
-            <$> F.toList outputs
-        , [rowSpacer]
         , rowSelectionChange "Input"
             <$> F.toList inputs
+        , [rowSpacer]
+        , rowSelectionChange "Output"
+            <$> F.toList outputs
         ]
   where
     tableOptions
@@ -96,31 +85,7 @@ renderCoinValue v
     | otherwise = str (show v)
 
 ui :: Widget ()
-ui = renderSelectionWithChange exampleSelection
+ui = renderSelectionWithChange (makeChange exampleSelection)
 
 main :: IO ()
 main = simpleMain ui
-
---------------------------------------------------------------------------------
--- Example
---------------------------------------------------------------------------------
-
-data ExampleAsset = A | B | C | D
-    deriving (Eq, Ord, Show)
-
-exampleCoin :: Coin ExampleAsset
-exampleCoin = [(A, 1000000), (B, 20), (C, 3000)]
-
-exampleSelection :: SelectionWithChange [] ExampleAsset
-exampleSelection = Selection
-    { inputs =
-        [ WeightChange [(A, 30), (B, 30)         ] [(A, 20), (B, 20)         ]
-        , WeightChange [         (B, 30), (C, 30)] [         (B, 20), (C, 20)]
-        , WeightChange [(A, 30),          (C, 30)] [(A, 20),          (C, 20)]
-        ]
-    , outputs =
-        [ WeightChange [(A, 10), (B, 10)         ] [(A,  2), (B,  2)         ]
-        , WeightChange [         (B, 10), (C, 10)] [         (B,  2), (C,  2)]
-        , WeightChange [(A, 10),          (C, 10)] [(A,  2),          (C,  2)]
-        ]
-    }
