@@ -66,7 +66,7 @@ makeChange s@Selection {inputs, outputs} = Selection
   where
     result :: [Weight (Coin a)]
     result = snd $ makeChangeForCoin weightValue
-        (selectionExcess s)
+        (selectionExcess  s)
         (selectionWeights s)
 
 selectionExcess :: (Foldable f, Ord a) => Selection f a -> Coin a
