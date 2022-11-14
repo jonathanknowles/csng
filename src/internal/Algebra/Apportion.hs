@@ -76,8 +76,12 @@ import Data.These
     ( These (..) )
 import Data.Traversable.Extended
     ( fill )
+import GHC.Generics
+    ( Generic )
 import Numeric.Natural
     ( Natural )
+import Quiet
+    ( Quiet (Quiet) )
 import Test.QuickCheck
     ( Arbitrary (..), property )
 import Test.QuickCheck.Classes
@@ -88,7 +92,6 @@ import Test.QuickCheck.Instances.NonEmpty
 import Prelude hiding
     ( last, null, splitAt, zip, zipWith )
 
-import qualified Algebra.Apportion.Natural as Natural
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty.Extended as NE
 import qualified Data.MonoidMap as MonoidMap
@@ -402,7 +405,8 @@ type NaturalSize = Size Natural
 type NaturalSum = Sum Natural
 
 newtype Size a = Size {getSize :: a}
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Generic)
+    deriving (Read, Show) via (Quiet (Size a))
     deriving newtype Sliceable
 
 --------------------------------------------------------------------------------
@@ -468,12 +472,29 @@ instance Apportion NaturalSize where
 
 instance Apportion NaturalSum where
     type Weight NaturalSum = NaturalSum
-    apportion = apportionList $ \a ws -> case NE.nonEmpty ws of
-        Nothing -> Apportionment a []
-        Just xs ->
-            case Natural.apportion (getSum a) (getSum <$> xs) of
-                Nothing -> Apportionment a []
-                Just as -> Apportionment mempty (NE.toList (Sum <$> as))
+    apportion = apportionList apportionNaturalSum
+
+apportionNaturalSum
+    :: NaturalSum -> [NaturalSum] -> Apportionment [] NaturalSum
+apportionNaturalSum a ws = Apportionment
+    { remainder = Sum $ naturalPart $ getSum $ remainder exactResult
+    , partition = Sum <$> carryToRight (getSum <$> partition exactResult)
+    }
+  where
+    carryToRight :: [NaturalRatio] -> [Natural]
+    carryToRight = \case
+        [] -> []
+        [r] -> [naturalPart r]
+        (r : s : ts) -> naturalPart r : carryToRight (s + fractionalPart r : ts)
+
+    exactResult :: Apportionment [] NaturalRatioSum
+    exactResult = boundedApportionAsExact a ws
+
+    naturalPart :: NaturalRatio -> Natural
+    naturalPart = floor
+
+    fractionalPart :: NaturalRatio -> NaturalRatio
+    fractionalPart = snd . properFraction @NaturalRatio @Natural
 
 instance BoundedApportion NaturalSum where
     type Exact NaturalSum = NaturalRatioSum
