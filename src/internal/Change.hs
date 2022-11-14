@@ -15,6 +15,8 @@ import Data.Monoid.Monus.Extended
     ( Monus (..), distance )
 import Data.Monoid.Null
     ( MonoidNull (..) )
+import Data.Ord
+    ( Down (..) )
 import Data.Semialign
     ( salign )
 import Data.Strict.Set
@@ -163,11 +165,11 @@ instance Ord a => Ord (Weight a) where
 newtype Priority = Priority Int
     deriving (Eq, Ord, Show)
 
-weightPriority :: Weight a -> (Priority, a)
+weightPriority :: Weight a -> (Priority, Down a)
 weightPriority = \case
     -- We give outputs a higher priority than inputs:
-    Input  a -> (Priority 1, a)
-    Output a -> (Priority 0, a)
+    Input  a -> (Priority 1, Down a)
+    Output a -> (Priority 0, Down a)
 
 weightValue :: Weight a -> a
 weightValue = \case
@@ -180,13 +182,13 @@ data ExampleAsset = A | B | C | D | E
 exampleSelection :: Selection [] ExampleAsset
 exampleSelection = Selection
     { inputs =
-        [ [(A, 32), (B, 20)         ]
+        [ [(A, 20), (B, 20)         ]
         , [         (B, 20), (C, 20)]
         , [(A, 20),          (C, 20)]
         ]
     , outputs =
         [ [(A, 10), (B, 10)         ]
-        , [         (B, 10), (C, 10)]
-        , [(A, 10),          (C, 10)]
+        , [         (B, 20), (C, 10)]
+        , [(A, 20),          (C, 20)]
         ]
     }
