@@ -56,7 +56,7 @@ import Data.Monoid.Null
 import Data.MonoidMap
     ( MonoidMap )
 import Data.Ratio
-    ( Ratio )
+    ( Ratio, (%) )
 import Data.Set
     ( Set )
 import Generic.Data
@@ -66,9 +66,12 @@ import GHC.Generics
 import Numeric.Natural
     ( Natural )
 import Test.QuickCheck
-    ( Arbitrary )
+    ( Arbitrary (..), choose, sized )
 import Test.QuickCheck.Instances.Natural
     ()
+
+import Prelude hiding
+    ( (%) )
 
 import qualified Data.MonoidMap as MonoidMap
 
@@ -125,8 +128,7 @@ instance BoundedApportion CoinValue where
 newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
     deriving Generic
     deriving newtype
-        ( Arbitrary
-        , Eq
+        ( Eq
         , FromFractional
         , FromInteger
         , PartialOrd
@@ -141,6 +143,12 @@ newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
         , PositiveMonoid
         , Semigroup
         ) via Sum (Ratio Natural)
+
+instance Arbitrary FractionalCoinValue where
+    arbitrary = sized $ \n ->
+        fmap FractionalCoinValue $ (%)
+            <$> fmap fromIntegral (choose (0, n))
+            <*> fmap fromIntegral (choose (1, n))
 
 instance Apportion FractionalCoinValue where
     type Weight FractionalCoinValue = FractionalCoinValue

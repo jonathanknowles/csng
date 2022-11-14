@@ -19,7 +19,7 @@ import Data.Ord
     ( Down (..) )
 import Data.Semialign
     ( salign )
-import Data.Strict.Set
+import Data.Set
     ( Set )
 import Data.Traversable.Extended
     ( mapAccumSortedL )
@@ -28,7 +28,7 @@ import Value
 
 import qualified Data.Foldable as F
 import qualified Data.List as L
-import qualified Data.Strict.Set as Set
+import qualified Data.Set as Set
 
 --------------------------------------------------------------------------------
 -- Selection types
