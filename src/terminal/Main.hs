@@ -1,24 +1,21 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedLists #-}
 
 module Main where
 
-import Data.List
-    ( transpose )
 import Data.Strict.Set
     ( Set )
-import GHC.Records
-    ( HasField (..) )
 import Value
     ( Coin, CoinValue, getAssetValue )
 
 import qualified Data.Foldable as F
-import qualified Data.List as L
 import qualified Data.Strict.Set as Set
 
 import Brick
 import Brick.Widgets.Table
+
+makeChange :: Selection f a -> SelectionWithChange f a
+makeChange = undefined
 
 data SelectionOf f g a = Selection
     { inputs  :: f (g a)
@@ -78,49 +75,6 @@ renderSelectionWithChange selection@Selection{inputs, outputs} =
         , renderCoinValue . flip getAssetValue (change e) <$> assets
         ]
 
-renderSelectionWithChange1
-    :: forall a. (Ord a, Show a) => SelectionWithChange [] a -> Widget ()
-renderSelectionWithChange1 selection =
-    renderTable $ setDefaultColAlignment AlignRight $ table $ transpose columns
-  where
-    columns :: [[Widget ()]]
-    columns = fmap (str . (<> " ") . (" " <>)) <$> mconcat
-        [ [lcolumn]
-        , lcolumnsForAssets
-        , rcolumnsForAssets
-        , [rcolumn]
-        ]
-
-    lcolumn :: [String]
-    lcolumn = "" : mconcat
-        [ "Output" <$ selection.outputs
-        , "Input"  <$ selection.inputs
-        ]
-
-    lcolumnsForAssets :: [[String]]
-    lcolumnsForAssets = lcolumnForAsset <$> toList (selectionAssets selection)
-
-    lcolumnForAsset :: a -> [String]
-    lcolumnForAsset a = show a : mconcat
-        [ show . getAssetValue a . weight <$> selection.outputs
-        , show . getAssetValue a . weight <$> selection.inputs
-        ]
-
-    rcolumn :: [String]
-    rcolumn = "" : mconcat
-        [ "Change" <$ selection.outputs
-        , "Change" <$ selection.inputs
-        ]
-
-    rcolumnsForAssets :: [[String]]
-    rcolumnsForAssets = rcolumnForAsset <$> toList (selectionAssets selection)
-
-    rcolumnForAsset :: a -> [String]
-    rcolumnForAsset a = show a : mconcat
-        [ show . getAssetValue a . change <$> selection.outputs
-        , show . getAssetValue a . change <$> selection.inputs
-        ]
-
 selectionAssets :: (Foldable f, Foldable g, Ord a) => SelectionOf f g a -> Set a
 selectionAssets = F.foldMap Set.singleton
 
@@ -135,63 +89,6 @@ selectionMaxCoinValue Selection {inputs, outputs} =
         [ toList (weight <$> (inputs <> outputs))
         , toList (change <$> (inputs <> outputs))
         ]
-
-renderSelectionWithChange2
-    :: forall a. (Ord a, Show a) => SelectionWithChange [] a -> Widget ()
-renderSelectionWithChange2 s = vBox
-    [ renderOutputsInputs
-    , renderChange
-    ]
-  where
-    renderOutputsInputs :: Widget ()
-    renderOutputsInputs = renderTable $ table $ pure
-        [ hBox [str " ", renderCoins (weight <$> s.outputs), str " "]
-        , hBox [str " ", renderCoins (weight <$> s.inputs ), str " "]
-        ]
-
-    renderChange :: Widget ()
-    renderChange = renderTable $ table $ pure
-        [ hBox [str " ", renderCoins (change <$> s.outputs), str " "]
-        , hBox [str " ", renderCoins (change <$> s.inputs ), str " "]
-        ]
-
-    renderCoins :: [Coin a] -> Widget ()
-    renderCoins coins = hBox $ L.intersperse (str " ") $
-        renderCoin (selectionAssets s) (selectionMaxCoinValue s) <$> coins
-
-renderCoin
-    :: forall a. (Ord a, Show a)
-    => Set a
-    -> CoinValue
-    -> Coin a
-    -> Widget ()
-renderCoin as maxCoinValue c
-    = renderTable
-    $ surroundingBorder True
-    $ setColAlignment AlignLeft  0
-    $ setColAlignment AlignRight 1
-    $ columnBorders False
-    $ rowBorders False
-    $ table
-    $ renderAssetValue <$> assetValues
-  where
-    assetValues :: [(a, CoinValue)]
-    assetValues = (\a -> (a, getAssetValue a c)) <$> toList as
-
-    renderAssetValue :: (a, CoinValue) -> [Widget ()]
-    renderAssetValue (a, v)
-        | v == 0    = [str " "     , str " ", renderValue v]
-        | otherwise = [str (show a), str ":", renderValue v]
-
-    renderValue :: CoinValue -> Widget ()
-    renderValue v =
-        str (replicate (maxCoinValueWidth - length vString) ' ' <> vString)
-      where
-        vString
-            | v == 0 = ""
-            | otherwise = show v
-
-    maxCoinValueWidth = length (show maxCoinValue)
 
 renderCoinValue :: CoinValue -> Widget ()
 renderCoinValue v
