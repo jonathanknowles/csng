@@ -102,7 +102,7 @@ selectWeightsForCoin
     -> [p c]
     -> [c]
 selectWeightsForCoin extract target weights =
-    F.foldl' salign []
+    F.foldl' salign (mempty <$ weights)
         (selectWeightsForAsset extract target weights <$> assets)
   where
     assets :: [a]
