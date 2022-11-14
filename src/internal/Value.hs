@@ -17,15 +17,15 @@ module Value
     , balanceToCoins
     ) where
 
-import Algebra.ExactBounded
-    ( ExactBounded (..) )
-import Algebra.NewApportion
+import Algebra.Apportion
     ( Apportion (..)
     , BoundedApportion (..)
     , CommutativeApportion
     , ExactApportion
     , apportionMap
     )
+import Algebra.ExactBounded
+    ( ExactBounded (..) )
 import Algebra.PartialOrd.Extended
     ( PartialOrd )
 import AsList

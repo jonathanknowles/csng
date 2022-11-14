@@ -118,10 +118,10 @@ library internal
         src/internal
     exposed-modules:
         Algebra.Apportion
-        Algebra.Apportion.Balanced
         Algebra.Apportion.Natural
+        Algebra.Apportion.Old.Apportion
+        Algebra.Apportion.Old.Balanced
         Algebra.ExactBounded
-        Algebra.NewApportion
         Algebra.PartialOrd.Extended
         AsList
         Change
@@ -197,8 +197,8 @@ test-suite test
     hs-source-dirs:
         src/test
     other-modules:
-        Algebra.ApportionSpec
-        Algebra.Apportion.BalancedSpec
+        Algebra.Apportion.Old.ApportionSpec
+        Algebra.Apportion.Old.BalancedSpec
         ChangeSpec
         Data.List.FractionSpec
         Test.Hspec.Unit

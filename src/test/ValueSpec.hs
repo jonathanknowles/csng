@@ -2,7 +2,7 @@
 
 module ValueSpec where
 
-import Algebra.NewApportion
+import Algebra.Apportion
     ( apportionLaws, boundedApportionLaws )
 import Data.Group
     ( Group (..) )

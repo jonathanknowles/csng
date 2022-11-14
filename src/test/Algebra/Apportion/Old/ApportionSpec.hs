@@ -3,10 +3,10 @@
 {- HLINT ignore "Redundant brackets" -}
 {- HLINT ignore "Use camelCase" -}
 
-module Algebra.ApportionSpec
+module Algebra.Apportion.Old.ApportionSpec
     where
 
-import Algebra.Apportion
+import Algebra.Apportion.Old.Apportion
     ( Apportion (..), apportionLaws )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
