@@ -5,7 +5,7 @@ module Change where
 import Prelude hiding
     ( null )
 
-import Algebra.NewApportion
+import Algebra.Apportion
     ( Apportionment (..), apportion )
 import Data.Function
     ( on )

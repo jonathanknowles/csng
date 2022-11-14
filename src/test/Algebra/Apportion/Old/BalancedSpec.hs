@@ -4,10 +4,10 @@
 {- HLINT ignore "Redundant bracket" -}
 {- HLINT ignore "Use camelCase" -}
 
-module Algebra.Apportion.BalancedSpec
+module Algebra.Apportion.Old.BalancedSpec
     where
 
-import Algebra.Apportion.Balanced
+import Algebra.Apportion.Old.Balanced
     ( BalancedApportion (..)
     , balancedApportionLaws
     , balancedApportionN

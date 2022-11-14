@@ -1,9 +1,9 @@
 {- HLINT ignore "Use camelCase" -}
 
-module Algebra.Apportion.Balanced
+module Algebra.Apportion.Old.Balanced
     where
 
-import Algebra.Apportion
+import Algebra.Apportion.Old.Apportion
     ( Apportion (..) )
 import Control.Arrow
     ( (&&&) )
