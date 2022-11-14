@@ -9,17 +9,21 @@ import Change
     , WeightChange (..)
     , exampleSelection
     , makeChange
+    , selectionAssets
     )
-import Data.Strict.Set
-    ( Set )
 import Value
-    ( Coin, CoinValue, getAssetValue )
+    ( CoinValue, getAssetValue )
 
 import qualified Data.Foldable as F
-import qualified Data.Strict.Set as Set
 
 import Brick
 import Brick.Widgets.Table
+
+main :: IO ()
+main = simpleMain ui
+
+ui :: Widget ()
+ui = renderSelectionWithChange (makeChange exampleSelection)
 
 renderSelectionWithChange
     :: forall f a. (Foldable f, Ord a, Show a)
@@ -64,28 +68,7 @@ renderSelectionWithChange selection@Selection{inputs, outputs} =
         , renderCoinValue . flip getAssetValue (change e) <$> assets
         ]
 
-selectionAssets :: (Foldable f, Foldable g, Ord a) => SelectionOf f g a -> Set a
-selectionAssets = F.foldMap Set.singleton
-
-coinMaxCoinValue :: Ord a => Coin a -> CoinValue
-coinMaxCoinValue c
-    | toList c == mempty = mempty
-    | otherwise = maximum (snd <$> toList c)
-
-selectionMaxCoinValue :: Ord a => SelectionWithChange [] a -> CoinValue
-selectionMaxCoinValue Selection {inputs, outputs} =
-    maximum $ coinMaxCoinValue <$> mconcat
-        [ toList (weight <$> (inputs <> outputs))
-        , toList (change <$> (inputs <> outputs))
-        ]
-
 renderCoinValue :: CoinValue -> Widget ()
 renderCoinValue v
     | v == 0 = str mempty
     | otherwise = str (show v)
-
-ui :: Widget ()
-ui = renderSelectionWithChange (makeChange exampleSelection)
-
-main :: IO ()
-main = simpleMain ui
