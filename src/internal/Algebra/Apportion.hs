@@ -151,6 +151,7 @@ apportionLaws
         ( Apportion a
         , Arbitrary a
         , Arbitrary (t (Weight a))
+        , Eq (t a)
         , Show a
         , Show (t (Weight a))
         , Traversable t
@@ -158,7 +159,10 @@ apportionLaws
     => Proxy a
     -> Laws
 apportionLaws _ = Laws "Apportion"
-    [ ( "apportionLaw_fold"
+    [ ( "apportionLaw_fill"
+      , (apportionLaw_fill @a @t & property)
+      )
+    , ( "apportionLaw_fold"
       , (apportionLaw_fold @a @t & property)
       )
     , ( "apportionLaw_length"
@@ -168,6 +172,11 @@ apportionLaws _ = Laws "Apportion"
       , (apportionLaw_maybe @a @t & property)
       )
     ]
+
+apportionLaw_fill
+    :: (Apportion a, Traversable t, Eq (t a)) => a -> t (Weight a) -> Bool
+apportionLaw_fill a ws =
+    fill (partition (apportion a ws)) ws == partition (apportion a ws)
 
 apportionLaw_fold
     :: (Apportion a, Traversable t) => a -> t (Weight a) -> Bool
