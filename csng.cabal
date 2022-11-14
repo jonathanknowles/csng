@@ -37,6 +37,7 @@ common common-extensions
         DefaultSignatures
         DeriveFoldable
         DeriveFunctor
+        DeriveGeneric
         DeriveTraversable
         DerivingStrategies
         DerivingVia
@@ -150,6 +151,7 @@ library internal
       , QuickCheck
       , quickcheck-classes
       , quickcheck-instances
+      , quiet
       , safe
       , semialign
       , semigroupoids
@@ -199,6 +201,7 @@ test-suite test
     hs-source-dirs:
         src/test
     other-modules:
+        Algebra.ApportionSpec
         Algebra.Apportion.Old.ApportionSpec
         Algebra.Apportion.Old.BalancedSpec
         ChangeSpec

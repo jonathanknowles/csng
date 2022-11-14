@@ -34,8 +34,12 @@ import Data.Ratio
     ( Ratio )
 import Data.Sliceable
     ( Sliceable )
+import GHC.Generics
+    ( Generic )
 import Numeric.Natural
     ( Natural )
+import Quiet
+    ( Quiet (Quiet) )
 
 import Prelude hiding
     ( drop, fromList, length, splitAt, take )
@@ -44,7 +48,8 @@ import qualified Data.Sliceable as Sliceable
 
 newtype ListFraction a = ListFraction
     {getListFraction :: [(a, Ratio Natural)]}
-    deriving stock (Eq, Show, Read)
+    deriving stock (Eq, Generic)
+    deriving (Read, Show) via (Quiet (ListFraction a))
     deriving newtype (MonoidNull, PositiveMonoid)
 
 instance Eq a => Semigroup (ListFraction a) where
