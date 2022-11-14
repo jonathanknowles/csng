@@ -6,14 +6,14 @@ module Value
     ( Balance
     , BalanceValue
     , Coin
+    , CoinFraction
     , CoinValue
-    , FractionalCoin
-    , FractionalCoinValue
+    , CoinValueFraction
     , HasAssets (..)
     , Assets (..)
     , Values (..)
     , coinToBalance
-    , coinToFractionalCoin
+    , coinToCoinFraction
     , balanceToCoins
     ) where
 
@@ -119,13 +119,13 @@ instance Apportion CoinValue where
     apportion = apportionMap (pack . getSum) (Sum . unpack)
 
 instance BoundedApportion CoinValue where
-    type Exact CoinValue = FractionalCoinValue
+    type Exact CoinValue = CoinValueFraction
 
 --------------------------------------------------------------------------------
--- FractionalCoinValue
+-- CoinValueFraction
 --------------------------------------------------------------------------------
 
-newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
+newtype CoinValueFraction = CoinValueFraction (Ratio Natural)
     deriving Generic
     deriving newtype
         ( Eq
@@ -144,28 +144,28 @@ newtype FractionalCoinValue = FractionalCoinValue (Ratio Natural)
         , Semigroup
         ) via Sum (Ratio Natural)
 
-instance Arbitrary FractionalCoinValue where
+instance Arbitrary CoinValueFraction where
     arbitrary = sized $ \n ->
-        fmap FractionalCoinValue $ (%)
+        fmap CoinValueFraction $ (%)
             <$> fmap fromIntegral (choose (0, n))
             <*> fmap fromIntegral (choose (1, n))
 
-instance Apportion FractionalCoinValue where
-    type Weight FractionalCoinValue = FractionalCoinValue
+instance Apportion CoinValueFraction where
+    type Weight CoinValueFraction = CoinValueFraction
     apportion = apportionMap (pack . getSum) (Sum . unpack)
 
-instance CommutativeApportion FractionalCoinValue
-instance ExactApportion FractionalCoinValue
+instance CommutativeApportion CoinValueFraction
+instance ExactApportion CoinValueFraction
 
-instance ExactBounded FractionalCoinValue CoinValue where
+instance ExactBounded CoinValueFraction CoinValue where
     exact = unpacked (% 1)
     lowerBound = unpacked floor
     upperBound = unpacked ceiling
 
-instance Monus FractionalCoinValue where
+instance Monus CoinValueFraction where
    a <\> b = fromMaybe mempty (a </> b)
 
-instance OverlappingGCDMonoid FractionalCoinValue where
+instance OverlappingGCDMonoid CoinValueFraction where
     overlap (unpack -> a) (unpack -> b) = pack $ min a b
     stripPrefixOverlap = flip (<\>)
     stripSuffixOverlap = flip (<\>)
@@ -175,15 +175,15 @@ instance OverlappingGCDMonoid FractionalCoinValue where
         , pack $ b - min a b
         )
 
-instance Reductive FractionalCoinValue where
+instance Reductive CoinValueFraction where
    a </> b
       | a > b = Just $ pack $ unpack a - unpack b
       | otherwise = Nothing
 
-instance LeftReductive FractionalCoinValue where
+instance LeftReductive CoinValueFraction where
     stripPrefix = flip (</>)
 
-instance RightReductive FractionalCoinValue where
+instance RightReductive CoinValueFraction where
     stripSuffix = flip (</>)
 
 --------------------------------------------------------------------------------
@@ -274,18 +274,18 @@ instance Ord a => Apportion (Coin a) where
     apportion = apportionMap pack unpack
 
 instance Ord a => BoundedApportion (Coin a) where
-    type Exact (Coin a) = FractionalCoin a
+    type Exact (Coin a) = CoinFraction a
 
 instance Foldable Coin where
     foldMap f (Coin a) = foldMap f (MonoidMap.keys a)
 
 --------------------------------------------------------------------------------
--- FractionalCoin
+-- CoinFraction
 --------------------------------------------------------------------------------
 
-newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
+newtype CoinFraction a = CoinFraction (MonoidMap a CoinValueFraction)
     deriving Generic
-    deriving (Arbitrary, Read, Show) via AsList (FractionalCoin a)
+    deriving (Arbitrary, Read, Show) via AsList (CoinFraction a)
     deriving newtype
         ( Commutative
         , Eq
@@ -301,14 +301,14 @@ newtype FractionalCoin a = FractionalCoin (MonoidMap a FractionalCoinValue)
         , Semigroup
         )
 
-instance Ord a => Apportion (FractionalCoin a) where
-    type Weight (FractionalCoin a) = FractionalCoin a
+instance Ord a => Apportion (CoinFraction a) where
+    type Weight (CoinFraction a) = CoinFraction a
     apportion = apportionMap pack unpack
 
-instance Ord a => CommutativeApportion (FractionalCoin a)
-instance Ord a => ExactApportion (FractionalCoin a)
+instance Ord a => CommutativeApportion (CoinFraction a)
+instance Ord a => ExactApportion (CoinFraction a)
 
-instance Ord a => ExactBounded (FractionalCoin a) (Coin a) where
+instance Ord a => ExactBounded (CoinFraction a) (Coin a) where
     exact = unpacked $ MonoidMap.mapValues exact
     lowerBound = unpacked $ MonoidMap.mapValues lowerBound
     upperBound = unpacked $ MonoidMap.mapValues upperBound
@@ -332,11 +332,11 @@ balanceValueToCoinValue = fmap pack . intCastMaybe . unpack
 coinToBalance :: Ord a => Coin a -> Balance a
 coinToBalance = asList $ fmap $ fmap coinValueToBalanceValue
 
-coinToFractionalCoin :: Ord a => Coin a -> FractionalCoin a
-coinToFractionalCoin = asList $ fmap $ fmap coinValueToFractionalCoinValue
+coinToCoinFraction :: Ord a => Coin a -> CoinFraction a
+coinToCoinFraction = asList $ fmap $ fmap coinValueToCoinValueFraction
 
 coinValueToBalanceValue :: CoinValue -> BalanceValue
 coinValueToBalanceValue = unpacked intCast
 
-coinValueToFractionalCoinValue :: CoinValue -> FractionalCoinValue
-coinValueToFractionalCoinValue = unpacked (% 1)
+coinValueToCoinValueFraction :: CoinValue -> CoinValueFraction
+coinValueToCoinValueFraction = unpacked (% 1)
