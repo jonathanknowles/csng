@@ -18,6 +18,8 @@ import Data.Monoid.Null
     ( MonoidNull (..) )
 import Data.Semialign
     ( salign )
+import Data.Strict.Set
+    ( Set )
 import Data.Traversable.Extended
     ( mapAccumSortedL )
 import Value
@@ -25,6 +27,11 @@ import Value
 
 import qualified Data.Foldable as F
 import qualified Data.List as L
+import qualified Data.Strict.Set as Set
+
+--------------------------------------------------------------------------------
+-- Selection types
+--------------------------------------------------------------------------------
 
 data SelectionOf f g a = Selection
     { inputs  :: f (g a)
@@ -40,6 +47,13 @@ data WeightChange a = WeightChange
 
 type Selection f a = SelectionOf f Coin a
 type SelectionWithChange f a = SelectionOf f WeightChange a
+
+selectionAssets :: (Foldable f, Foldable g, Ord a) => SelectionOf f g a -> Set a
+selectionAssets = F.foldMap Set.singleton
+
+--------------------------------------------------------------------------------
+-- Making change
+--------------------------------------------------------------------------------
 
 makeChange
     :: forall a. Ord a
