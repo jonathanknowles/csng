@@ -478,14 +478,14 @@ apportionNaturalSum
     :: NaturalSum -> [NaturalSum] -> Apportionment [] NaturalSum
 apportionNaturalSum a ws = Apportionment
     { remainder = Sum $ naturalPart $ getSum $ remainder exactResult
-    , partition = Sum <$> carryToRight (getSum <$> partition exactResult)
+    , partition = Sum <$> carryRight (getSum <$> partition exactResult)
     }
   where
-    carryToRight :: [NaturalRatio] -> [Natural]
-    carryToRight = \case
+    carryRight :: [NaturalRatio] -> [Natural]
+    carryRight = \case
         [] -> []
         [r] -> [naturalPart r]
-        (r : s : ts) -> naturalPart r : carryToRight (s + fractionalPart r : ts)
+        (r : s : ts) -> naturalPart r : carryRight (s + fractionalPart r : ts)
 
     exactResult :: Apportionment [] NaturalRatioSum
     exactResult = boundedApportionAsExact a ws
