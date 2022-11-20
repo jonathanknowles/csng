@@ -21,32 +21,31 @@ import Numeric.Natural
 import Quiet
     ( Quiet (Quiet) )
 
-import Prelude hiding
-    ( last, null, splitAt, zip, zipWith )
-
 -- | Apportions a value by carrying fractional remainders to the left.
 --
-newtype CarryL a = CarryL {getCarryL :: a}
+newtype CarryL a = CarryL {carryL :: a}
     deriving stock (Eq, Ord, Generic)
-    deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via (Sum a)
+    deriving newtype FromInteger
+    deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via Sum a
     deriving (Read, Show) via Quiet (CarryL a)
 
 -- | Apportions a value by carrying fractional remainders to the right.
 --
-newtype CarryR a = CarryR {getCarryR :: a}
+newtype CarryR a = CarryR {carryR :: a}
     deriving stock (Eq, Ord, Generic)
-    deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via (Sum a)
+    deriving newtype FromInteger
+    deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via Sum a
     deriving (Read, Show) via Quiet (CarryL a)
 
 instance Apportion (CarryL Natural) where
     type Weight (CarryL Natural) = CarryL Natural
     apportion a ws =
-        CarryL <$> apportionNatural MapAccumR (getCarryL a) (getCarryL <$> ws)
+        CarryL <$> apportionNatural MapAccumL (carryL a) (carryL <$> ws)
 
 instance Apportion (CarryR Natural) where
     type Weight (CarryR Natural) = CarryR Natural
     apportion a ws =
-        CarryR <$> apportionNatural MapAccumL (getCarryR a) (getCarryR <$> ws)
+        CarryR <$> apportionNatural MapAccumR (carryR a) (carryR <$> ws)
 
 apportionNatural
     :: Traversable t

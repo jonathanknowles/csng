@@ -449,10 +449,10 @@ instance Apportion NaturalSize where
 
 instance Apportion NaturalSum where
     type Weight NaturalSum = NaturalSum
-    apportion = (fmap . fmap) carryR boundedApportionAsExact
-
-carryR :: Traversable s => s NaturalRatioSum -> s NaturalSum
-carryR = snd . mapAccumL (fmap splitNaturalPart . (<>)) mempty
+    apportion = (fmap . fmap) carry boundedApportionAsExact
+      where
+        carry :: Traversable s => s NaturalRatioSum -> s NaturalSum
+        carry = snd . mapAccumL (fmap splitNaturalPart . (<>)) mempty
 
 splitNaturalPart :: NaturalRatioSum -> (NaturalRatioSum, NaturalSum)
 splitNaturalPart = bimap Sum Sum . swap . properFraction . getSum
