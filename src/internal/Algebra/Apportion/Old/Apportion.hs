@@ -35,7 +35,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Classes
     ( Laws (..) )
 
-import qualified Algebra.Apportion.Natural as Natural
+import qualified Algebra.Apportion.Old.Natural as Natural
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty as NE
 import qualified Data.MonoidMap as MonoidMap

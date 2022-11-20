@@ -119,9 +119,9 @@ library internal
         src/internal
     exposed-modules:
         Algebra.Apportion
-        Algebra.Apportion.Natural
         Algebra.Apportion.Old.Apportion
         Algebra.Apportion.Old.Balanced
+        Algebra.Apportion.Old.Natural
         Algebra.ExactBounded
         Algebra.PartialOrd.Extended
         AsList
