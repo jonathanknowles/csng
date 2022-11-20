@@ -1,5 +1,7 @@
 module Data.Traversable.Extended
     ( module Data.Traversable
+    , MapAccum (..)
+    , mapAccum
     , fill
     , fillMaybe
     , mapAccumSortedL
@@ -19,6 +21,15 @@ import Data.Maybe
 
 import qualified Data.Foldable as F
 import qualified Data.List as L
+
+data MapAccum = MapAccumL | MapAccumR
+
+class MapAccumWith x where
+    mapAccum :: Traversable t => x -> (s -> a -> (s, b)) -> s -> t a -> (s, t b)
+
+instance MapAccumWith MapAccum where
+    mapAccum MapAccumL = mapAccumL
+    mapAccum MapAccumR = mapAccumR
 
 mapAccumSortedL
     :: forall state t a b. (Traversable t, Ord a)
