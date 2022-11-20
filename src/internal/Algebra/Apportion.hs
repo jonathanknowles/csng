@@ -38,8 +38,6 @@ module Algebra.Apportion
     , apportionSliceable
 
     -- * Combinator types
-    , CarryL (..)
-    , CarryR (..)
     , Size (..)
     )
     where
@@ -476,30 +474,9 @@ instance Apportion NaturalSize where
 -- Instances: NaturalSum
 --------------------------------------------------------------------------------
 
-newtype CarryL a = CarryL {getCarryL :: a}
-    deriving stock Generic
-    deriving newtype (Eq, Ord, Semigroup, Monoid, MonoidNull, PositiveMonoid)
-    deriving (Read, Show) via Quiet (CarryL a)
-
-newtype CarryR a = CarryR {getCarryR :: a}
-    deriving stock Generic
-    deriving newtype (Eq, Ord, Semigroup, Monoid, MonoidNull, PositiveMonoid)
-    deriving (Read, Show) via Quiet (CarryL a)
-
-instance Apportion (CarryL NaturalSum) where
-    type Weight (CarryL NaturalSum) = NaturalSum
-    apportion a = fmap CarryL . carryL . boundedApportionAsExact (getCarryL a)
-
-instance Apportion (CarryR NaturalSum) where
-    type Weight (CarryR NaturalSum) = NaturalSum
-    apportion a = fmap CarryR . carryR . boundedApportionAsExact (getCarryR a)
-
 instance Apportion NaturalSum where
     type Weight NaturalSum = NaturalSum
     apportion = (fmap . fmap) carryR boundedApportionAsExact
-
-carryL :: Traversable s => s NaturalRatioSum -> s NaturalSum
-carryL = snd . mapAccumL (fmap splitNaturalPart . (<>)) mempty
 
 carryR :: Traversable s => s NaturalRatioSum -> s NaturalSum
 carryR = snd . mapAccumL (fmap splitNaturalPart . (<>)) mempty
