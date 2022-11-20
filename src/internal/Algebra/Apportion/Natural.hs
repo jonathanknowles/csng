@@ -14,6 +14,8 @@ import Data.Monoid
     ( Sum (..) )
 import Data.Monoid.Null
     ( MonoidNull (..), PositiveMonoid )
+import Data.Ratio
+    ( Ratio )
 import Data.Traversable.Extended
     ( MapAccum (..), mapAccum )
 import Data.Tuple
@@ -49,8 +51,7 @@ apportionNatural
     :: forall t a. (Coercible a Natural, Traversable t)
     => MapAccum -> a -> t a -> Apportionment t a
 apportionNatural mapAccumF a ws
-    = fmap (coerce @Natural)
-    $ snd
+    = fmap (coerce @Natural) $ snd
     $ mapAccum mapAccumF (fmap (swap . properFraction) . (+)) 0
-    $ fmap getSum
-    $ boundedApportionAsExact @_ @(Sum Natural) (coerce a) (coerce <$> ws)
+    $ fmap (getSum @(Ratio Natural))
+    $ boundedApportionAsExact (coerce a) (coerce <$> ws)
