@@ -24,14 +24,14 @@ import Quiet
 import Prelude hiding
     ( last, null, splitAt, zip, zipWith )
 
--- | Apportions a natural number by carrying fractional remainders to the left.
+-- | Apportions a value by carrying fractional remainders to the left.
 --
 newtype CarryL a = CarryL {getCarryL :: a}
     deriving stock (Eq, Ord, Generic)
     deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via (Sum a)
     deriving (Read, Show) via Quiet (CarryL a)
 
--- | Apportions a natural number by carrying fractional remainders to the right.
+-- | Apportions a value by carrying fractional remainders to the right.
 --
 newtype CarryR a = CarryR {getCarryR :: a}
     deriving stock (Eq, Ord, Generic)
