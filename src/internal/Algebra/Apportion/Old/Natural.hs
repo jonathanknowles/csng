@@ -2,7 +2,7 @@
 --
 -- Apportionment of natural numbers.
 --
-module Algebra.Apportion.Natural
+module Algebra.Apportion.Old.Natural
     ( apportion
     ) where
 
