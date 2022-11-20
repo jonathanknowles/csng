@@ -24,6 +24,8 @@ import Algebra.Apportion
     , ExactApportion
     , apportionMap
     )
+import Algebra.Apportion.MonoidMap
+    ()
 import Algebra.ExactBounded
     ( ExactBounded (..) )
 import Algebra.PartialOrd.Extended
