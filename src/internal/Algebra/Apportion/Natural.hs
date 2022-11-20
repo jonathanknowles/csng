@@ -1,3 +1,5 @@
+{- HLINT ignore "Use <$>" -}
+
 module Algebra.Apportion.Natural
     ( CarryL (..)
     , CarryR (..)
@@ -6,6 +8,8 @@ module Algebra.Apportion.Natural
 
 import Algebra.Apportion
     ( Apportion (..), Apportionment (..), boundedApportionAsExact )
+import Data.Coerce
+    ( Coercible, coerce )
 import Data.Monoid
     ( Sum (..) )
 import Data.Monoid.Null
@@ -39,21 +43,18 @@ newtype CarryR a = CarryR {carryR :: a}
 
 instance Apportion (CarryL Natural) where
     type Weight (CarryL Natural) = CarryL Natural
-    apportion a ws =
-        CarryL <$> apportionNatural MapAccumL (carryL a) (carryL <$> ws)
+    apportion = apportionNatural MapAccumR
 
 instance Apportion (CarryR Natural) where
     type Weight (CarryR Natural) = CarryR Natural
-    apportion a ws =
-        CarryR <$> apportionNatural MapAccumR (carryR a) (carryR <$> ws)
+    apportion = apportionNatural MapAccumL
 
 apportionNatural
-    :: Traversable t
-    => MapAccum
-    -> Natural
-    -> t Natural
-    -> Apportionment t Natural
-apportionNatural acc a ws
-    = snd
-    $ mapAccum acc (fmap (swap . properFraction) . (+)) 0
-    $ getSum <$> boundedApportionAsExact (Sum a) (Sum <$> ws)
+    :: forall t a. (Coercible a Natural, Traversable t)
+    => MapAccum -> a -> t a -> Apportionment t a
+apportionNatural mapAccumF a ws
+    = fmap (coerce @Natural)
+    $ snd
+    $ mapAccum mapAccumF (fmap (swap . properFraction) . (+)) 0
+    $ fmap getSum
+    $ boundedApportionAsExact @_ @(Sum Natural) (coerce a) (coerce <$> ws)

@@ -24,12 +24,13 @@ import qualified Data.List as L
 
 data MapAccum = MapAccumL | MapAccumR
 
-class MapAccumWith x where
-    mapAccum :: Traversable t => x -> (s -> a -> (s, b)) -> s -> t a -> (s, t b)
-
-instance MapAccumWith MapAccum where
-    mapAccum MapAccumL = mapAccumL
-    mapAccum MapAccumR = mapAccumR
+mapAccum
+    :: Traversable t
+    => MapAccum
+    -> (s -> a -> (s, b)) -> s -> t a -> (s, t b)
+mapAccum = \case
+    MapAccumL -> mapAccumL
+    MapAccumR -> mapAccumR
 
 mapAccumSortedL
     :: forall state t a b. (Traversable t, Ord a)
