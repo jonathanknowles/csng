@@ -25,13 +25,13 @@ import Numeric.Natural
 import Quiet
     ( Quiet (Quiet) )
 
-newtype SumL a = SumL {sumL :: a}
+newtype SumL a = SumL {getSumL :: a}
     deriving stock (Eq, Ord, Generic)
     deriving newtype FromInteger
     deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via Sum a
     deriving (Read, Show) via Quiet (SumL a)
 
-newtype SumR a = SumR {sumR :: a}
+newtype SumR a = SumR {getSumR :: a}
     deriving stock (Eq, Ord, Generic)
     deriving newtype FromInteger
     deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via Sum a
