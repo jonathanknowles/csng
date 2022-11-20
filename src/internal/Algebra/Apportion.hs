@@ -46,6 +46,8 @@ import Algebra.ExactBounded
     ( ExactBounded (..) )
 import Algebra.PartialOrd.Extended
     ( Infix (..), PartialOrd (..) )
+import Data.Bifunctor
+    ( bimap )
 import Data.List.Fraction
     ( ListFraction )
 import Data.List.NonEmpty.Extended
@@ -75,7 +77,9 @@ import Data.Set
 import Data.These
     ( These (..) )
 import Data.Traversable.Extended
-    ( fill )
+    ( fill, mapAccumL )
+import Data.Tuple
+    ( swap )
 import GHC.Generics
     ( Generic )
 import Numeric.Natural
@@ -472,29 +476,13 @@ instance Apportion NaturalSize where
 
 instance Apportion NaturalSum where
     type Weight NaturalSum = NaturalSum
-    apportion = apportionList apportionNaturalSum
+    apportion = (fmap . fmap) carryR boundedApportionAsExact
 
-apportionNaturalSum
-    :: NaturalSum -> [NaturalSum] -> Apportionment [] NaturalSum
-apportionNaturalSum a ws = Apportionment
-    { remainder = Sum $ naturalPart $ getSum $ remainder exactResult
-    , partition = Sum <$> carryRight (getSum <$> partition exactResult)
-    }
-  where
-    carryRight :: [NaturalRatio] -> [Natural]
-    carryRight = \case
-        [] -> []
-        [r] -> [naturalPart r]
-        (r : s : ts) -> naturalPart r : carryRight (s + fractionalPart r : ts)
+carryR :: Traversable s => s NaturalRatioSum -> s NaturalSum
+carryR = snd . mapAccumL (fmap splitNaturalPart . (<>)) mempty
 
-    exactResult :: Apportionment [] NaturalRatioSum
-    exactResult = boundedApportionAsExact a ws
-
-    naturalPart :: NaturalRatio -> Natural
-    naturalPart = floor
-
-    fractionalPart :: NaturalRatio -> NaturalRatio
-    fractionalPart = snd . properFraction @NaturalRatio @Natural
+splitNaturalPart :: NaturalRatioSum -> (NaturalRatioSum, NaturalSum)
+splitNaturalPart = bimap Sum Sum . swap . properFraction . getSum
 
 instance BoundedApportion NaturalSum where
     type Exact NaturalSum = NaturalRatioSum
