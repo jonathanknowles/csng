@@ -1,8 +1,8 @@
 {- HLINT ignore "Use <$>" -}
 
 module Algebra.Apportion.Natural
-    ( CarryL (..)
-    , CarryR (..)
+    ( SumL (..)
+    , SumR (..)
     )
     where
 
@@ -25,29 +25,25 @@ import Numeric.Natural
 import Quiet
     ( Quiet (Quiet) )
 
--- | Apportions a value by carrying fractional remainders to the left.
---
-newtype CarryL a = CarryL {carryL :: a}
+newtype SumL a = SumL {sumL :: a}
     deriving stock (Eq, Ord, Generic)
     deriving newtype FromInteger
     deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via Sum a
-    deriving (Read, Show) via Quiet (CarryL a)
+    deriving (Read, Show) via Quiet (SumL a)
 
--- | Apportions a value by carrying fractional remainders to the right.
---
-newtype CarryR a = CarryR {carryR :: a}
+newtype SumR a = SumR {sumR :: a}
     deriving stock (Eq, Ord, Generic)
     deriving newtype FromInteger
     deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via Sum a
-    deriving (Read, Show) via Quiet (CarryL a)
+    deriving (Read, Show) via Quiet (SumL a)
 
-instance Apportion (CarryL Natural) where
-    type Weight (CarryL Natural) = CarryL Natural
-    apportion = apportionNatural MapAccumR
-
-instance Apportion (CarryR Natural) where
-    type Weight (CarryR Natural) = CarryR Natural
+instance Apportion (SumL Natural) where
+    type Weight (SumL Natural) = SumL Natural
     apportion = apportionNatural MapAccumL
+
+instance Apportion (SumR Natural) where
+    type Weight (SumR Natural) = SumR Natural
+    apportion = apportionNatural MapAccumR
 
 apportionNatural
     :: forall t a. (Coercible a Natural, Traversable t)
