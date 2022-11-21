@@ -9,7 +9,7 @@ module Algebra.Apportion.Natural
 import Algebra.Apportion
     ( Apportion (..)
     , Apportionment (..)
-    , BoundedApportion (..)
+    , BoundedApportion
     , ExactApportion
     , apportionMap
     , boundedApportionAsExact
@@ -65,24 +65,19 @@ instance Apportion (SumR (Ratio Natural)) where
     type Weight (SumR (Ratio Natural)) = SumR (Ratio Natural)
     apportion = apportionMap (SumR . getSum) (Sum . getSumR)
 
-instance BoundedApportion (SumL Natural) where
-    type Exact (SumL Natural) = SumL (Ratio Natural)
-
-instance BoundedApportion (SumR Natural) where
-    type Exact (SumR Natural) = SumR (Ratio Natural)
-
+instance BoundedApportion (SumL Natural)
+instance BoundedApportion (SumR Natural)
 instance ExactApportion (SumL (Ratio Natural))
-
 instance ExactApportion (SumR (Ratio Natural))
 
-instance ExactBounded (SumL (Ratio Natural)) where
-    type Bound (SumL (Ratio Natural)) = SumL Natural
+instance ExactBounded (SumL Natural) where
+    type Exact (SumL Natural) = SumL (Ratio Natural)
     exact = fmap exact
     lowerBound = fmap lowerBound
     upperBound = fmap upperBound
 
-instance ExactBounded (SumR (Ratio Natural)) where
-    type Bound (SumR (Ratio Natural)) = SumR Natural
+instance ExactBounded (SumR Natural) where
+    type Exact (SumR Natural) = SumR (Ratio Natural)
     exact = fmap exact
     lowerBound = fmap lowerBound
     upperBound = fmap upperBound
@@ -94,4 +89,4 @@ apportionNatural mapAccumF a ws
     = fmap (coerce @Natural) $ snd
     $ mapAccum mapAccumF (fmap (swap . properFraction) . (+)) 0
     $ fmap (getSum @(Ratio Natural))
-    $ boundedApportionAsExact (coerce a) (coerce <$> ws)
+    $ boundedApportionAsExact (coerce @_ @(Sum Natural) a) (coerce <$> ws)

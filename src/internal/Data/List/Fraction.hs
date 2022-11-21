@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {- HLINT ignore "Use list literal pattern" -}
 
 module Data.List.Fraction
@@ -57,14 +58,14 @@ instance Eq a => Semigroup (ListFraction a) where
 instance Eq a => Monoid (ListFraction a) where
     mempty = ListFraction mempty
 
-instance Eq a => ExactBounded (Infix (ListFraction a)) where
-    type Bound (Infix (ListFraction a)) = Infix [a]
+instance Eq a => ExactBounded (Infix [a]) where
+    type Exact (Infix [a]) = Infix (ListFraction a)
     exact (Infix f) = Infix (fromList f)
     lowerBound (Infix (ListFraction as)) = Infix $ do
-        (a, n) <- fmap lowerBound <$> as
+        (a, n :: Natural) <- fmap lowerBound <$> as
         replicate (fromIntegral n) a
     upperBound (Infix (ListFraction as)) = Infix $ do
-        (a, n) <- fmap upperBound <$> as
+        (a, n :: Natural) <- fmap upperBound <$> as
         replicate (fromIntegral n) a
 
 instance Sliceable (ListFraction a) where
