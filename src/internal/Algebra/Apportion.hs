@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {- HLINT ignore "Redundant bracket" -}
 {- HLINT ignore "Use camelCase" -}
@@ -204,8 +203,10 @@ apportionLaw_maybe a ws =
 class
     ( Apportion a
     , ExactApportion (Exact a)
-    , ExactBounded (Exact a) a
-    , ExactBounded (Weight (Exact a)) (Weight a)
+    , ExactBounded (Exact a)
+    , ExactBounded (Weight (Exact a))
+    , Bound (Exact a) ~ a
+    , Bound (Weight (Exact a)) ~ Weight a
     ) =>
     BoundedApportion a
   where
@@ -424,7 +425,8 @@ instance Apportion NaturalRatioSize where
     type Weight NaturalRatioSize = Size NaturalRatio
     apportion = apportionMap (Size . getSum) (Sum . getSize)
 
-instance ExactBounded NaturalRatioSize NaturalSize where
+instance ExactBounded NaturalRatioSize where
+    type Bound NaturalRatioSize = NaturalSize
     exact (Size n) = Size (exact n)
     lowerBound (Size r) = Size (lowerBound r)
     upperBound (Size r) = Size (upperBound r)
@@ -487,7 +489,8 @@ deriving newtype instance Eq a => PositiveMonoid (Size [a])
 
 deriving via Infix [a] instance Eq a => PartialOrd (Size [a])
 
-instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
+instance Eq a => ExactBounded (Size (ListFraction a)) where
+    type Bound (Size (ListFraction a)) = Size [a]
     exact (Size n) = Size (getInfix $ exact $ Infix n)
     lowerBound (Size r) = Size (getInfix $ lowerBound $ Infix r)
     upperBound (Size r) = Size (getInfix $ upperBound $ Infix r)

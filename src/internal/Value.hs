@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -159,7 +158,8 @@ instance Apportion CoinValueFraction where
 instance CommutativeApportion CoinValueFraction
 instance ExactApportion CoinValueFraction
 
-instance ExactBounded CoinValueFraction CoinValue where
+instance ExactBounded CoinValueFraction where
+    type Bound CoinValueFraction = CoinValue
     exact = unpacked (% 1)
     lowerBound = unpacked floor
     upperBound = unpacked ceiling
@@ -310,7 +310,8 @@ instance Ord a => Apportion (CoinFraction a) where
 instance Ord a => CommutativeApportion (CoinFraction a)
 instance Ord a => ExactApportion (CoinFraction a)
 
-instance Ord a => ExactBounded (CoinFraction a) (Coin a) where
+instance Ord a => ExactBounded (CoinFraction a) where
+    type Bound (CoinFraction a) = Coin a
     exact = unpacked $ MonoidMap.mapValues exact
     lowerBound = unpacked $ MonoidMap.mapValues lowerBound
     upperBound = unpacked $ MonoidMap.mapValues upperBound

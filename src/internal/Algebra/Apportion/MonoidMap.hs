@@ -12,7 +12,7 @@ import Data.MonoidMap
     ( MonoidMap )
 import Data.Semialign
     ( salign )
-import Data.Strict.Set
+import Data.Set
     ( Set )
 import Test.QuickCheck.Instances.NonEmpty
     ()
