@@ -7,7 +7,17 @@ module Algebra.Apportion.Natural
     where
 
 import Algebra.Apportion
-    ( Apportion (..), Apportionment (..), boundedApportionAsExact )
+    ( Apportion (..)
+    , Apportionment (..)
+    , BoundedApportion (..)
+    , ExactApportion
+    , apportionMap
+    , boundedApportionAsExact
+    )
+import Algebra.ExactBounded
+    ( ExactBounded (..) )
+import Algebra.PartialOrd
+    ( PartialOrd )
 import Data.Coerce
     ( Coercible, coerce )
 import Data.Monoid
@@ -28,14 +38,14 @@ import Quiet
     ( Quiet (Quiet) )
 
 newtype SumL a = SumL {getSumL :: a}
-    deriving stock (Eq, Ord, Generic)
-    deriving newtype FromInteger
+    deriving stock (Eq, Functor, Ord, Generic)
+    deriving newtype (FromInteger, PartialOrd)
     deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via Sum a
     deriving (Read, Show) via Quiet (SumL a)
 
 newtype SumR a = SumR {getSumR :: a}
-    deriving stock (Eq, Ord, Generic)
-    deriving newtype FromInteger
+    deriving stock (Eq, Functor, Ord, Generic)
+    deriving newtype (FromInteger, PartialOrd)
     deriving (Semigroup, Monoid, MonoidNull, PositiveMonoid) via Sum a
     deriving (Read, Show) via Quiet (SumL a)
 
@@ -46,6 +56,36 @@ instance Apportion (SumL Natural) where
 instance Apportion (SumR Natural) where
     type Weight (SumR Natural) = SumR Natural
     apportion = apportionNatural MapAccumR
+
+instance Apportion (SumL (Ratio Natural)) where
+    type Weight (SumL (Ratio Natural)) = SumL (Ratio Natural)
+    apportion = apportionMap (SumL . getSum) (Sum . getSumL)
+
+instance Apportion (SumR (Ratio Natural)) where
+    type Weight (SumR (Ratio Natural)) = SumR (Ratio Natural)
+    apportion = apportionMap (SumR . getSum) (Sum . getSumR)
+
+instance BoundedApportion (SumL Natural) where
+    type Exact (SumL Natural) = SumL (Ratio Natural)
+
+instance BoundedApportion (SumR Natural) where
+    type Exact (SumR Natural) = SumR (Ratio Natural)
+
+instance ExactApportion (SumL (Ratio Natural))
+
+instance ExactApportion (SumR (Ratio Natural))
+
+instance ExactBounded (SumL (Ratio Natural)) where
+    type Bound (SumL (Ratio Natural)) = SumL Natural
+    exact = fmap exact
+    lowerBound = fmap lowerBound
+    upperBound = fmap upperBound
+
+instance ExactBounded (SumR (Ratio Natural)) where
+    type Bound (SumR (Ratio Natural)) = SumR Natural
+    exact = fmap exact
+    lowerBound = fmap lowerBound
+    upperBound = fmap upperBound
 
 apportionNatural
     :: forall t a. (Coercible a Natural, Traversable t)
