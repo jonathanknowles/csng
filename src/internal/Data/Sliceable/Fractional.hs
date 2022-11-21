@@ -35,9 +35,9 @@ instance
     ( Eq (f (a, Ratio Natural))
     , PartialOrd (Infix (f a))
     ) =>
-    ExactBounded (Infix (FractionalSlice f a))
+    ExactBounded (Infix (f a))
   where
-    type Bound (Infix (FractionalSlice f a)) = Infix (f a)
+    type Exact (Infix (f a)) = Infix (FractionalSlice f a)
     exact = undefined
     lowerBound = undefined
     upperBound = undefined

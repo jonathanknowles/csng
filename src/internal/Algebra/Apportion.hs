@@ -13,7 +13,7 @@ module Algebra.Apportion
     , apportionLaws
 
     -- * BoundedApportion
-    , BoundedApportion (..)
+    , BoundedApportion
     , boundedApportionLaws
     , boundedApportionAsExact
     , boundedApportionIsExact
@@ -203,21 +203,18 @@ apportionLaw_maybe a ws =
 class
     ( Apportion a
     , ExactApportion (Exact a)
-    , ExactBounded (Exact a)
-    , ExactBounded (Weight (Exact a))
-    , Bound (Exact a) ~ a
-    , Bound (Weight (Exact a)) ~ Weight a
+    , ExactBounded a
+    , ExactBounded (Weight a)
+    , Weight (Exact a) ~ Exact (Weight a)
     ) =>
     BoundedApportion a
-  where
-    type Exact a
 
 boundedApportionAsExact
-    :: (Traversable t, BoundedApportion a)
+    :: forall a t. (Traversable t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Apportionment t (Exact a)
-boundedApportionAsExact a ws = apportion (exact a) (exact <$> ws)
+boundedApportionAsExact a ws = apportion (exact @a a) (exact @(Weight a) <$> ws)
 
 boundedApportionIsExact
     :: (Eq (t a), Traversable t, BoundedApportion a)
@@ -425,8 +422,8 @@ instance Apportion NaturalRatioSize where
     type Weight NaturalRatioSize = Size NaturalRatio
     apportion = apportionMap (Size . getSum) (Sum . getSize)
 
-instance ExactBounded NaturalRatioSize where
-    type Bound NaturalRatioSize = NaturalSize
+instance ExactBounded NaturalSize where
+    type Exact NaturalSize = NaturalRatioSize
     exact (Size n) = Size (exact n)
     lowerBound (Size r) = Size (lowerBound r)
     upperBound (Size r) = Size (upperBound r)
@@ -460,7 +457,6 @@ splitNaturalPart :: NaturalRatioSum -> (NaturalRatioSum, NaturalSum)
 splitNaturalPart = bimap Sum Sum . swap . properFraction . getSum
 
 instance BoundedApportion NaturalSum where
-    type Exact NaturalSum = NaturalRatioSum
 
 --------------------------------------------------------------------------------
 -- Instances: NaturalRatioSum
@@ -489,8 +485,8 @@ deriving newtype instance Eq a => PositiveMonoid (Size [a])
 
 deriving via Infix [a] instance Eq a => PartialOrd (Size [a])
 
-instance Eq a => ExactBounded (Size (ListFraction a)) where
-    type Bound (Size (ListFraction a)) = Size [a]
+instance Eq a => ExactBounded (Size [a]) where
+    type Exact (Size [a]) = Size (ListFraction a)
     exact (Size n) = Size (getInfix $ exact $ Infix n)
     lowerBound (Size r) = Size (getInfix $ lowerBound $ Infix r)
     upperBound (Size r) = Size (getInfix $ upperBound $ Infix r)
@@ -500,7 +496,6 @@ instance Eq a => Apportion (Size [a]) where
     apportion = apportionSliceable
 
 instance Eq a => BoundedApportion (Size [a]) where
-    type Exact (Size [a]) = Size (ListFraction a)
 
 --------------------------------------------------------------------------------
 -- Instances: Size ListFraction
