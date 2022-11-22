@@ -4,7 +4,7 @@
 module Data.Sliceable.Fractional where
 
 import Algebra.ExactBounded
-    ( ExactBounded (..) )
+    ( BoundedExact (..) )
 import Algebra.PartialOrd.Extended
     ( Infix (..), PartialOrd (..) )
 import Data.Monoid
@@ -35,7 +35,7 @@ instance
     ( Eq (f (a, Ratio Natural))
     , PartialOrd (Infix (f a))
     ) =>
-    ExactBounded (Infix (FractionalSlice f a)) (Infix (f a))
+    BoundedExact (Infix (f a)) (Infix (FractionalSlice f a))
   where
     exact = undefined
     lowerBound = undefined

@@ -15,7 +15,7 @@ import Algebra.Apportion
     , boundedApportionAsExact
     )
 import Algebra.ExactBounded
-    ( ExactBounded (..) )
+    ( BoundedExact (..) )
 import Algebra.PartialOrd
     ( PartialOrd )
 import Data.Coerce
@@ -73,12 +73,12 @@ instance BoundedApportion (SumR Natural) where
 instance ExactApportion (SumL (Ratio Natural))
 instance ExactApportion (SumR (Ratio Natural))
 
-instance ExactBounded (SumL (Ratio Natural)) (SumL Natural) where
+instance BoundedExact (SumL Natural) (SumL (Ratio Natural)) where
     exact = fmap exact
     lowerBound = fmap lowerBound
     upperBound = fmap upperBound
 
-instance ExactBounded (SumR (Ratio Natural)) (SumR Natural) where
+instance BoundedExact (SumR Natural) (SumR (Ratio Natural)) where
     exact = fmap exact
     lowerBound = fmap lowerBound
     upperBound = fmap upperBound

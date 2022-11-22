@@ -42,7 +42,7 @@ module Algebra.Apportion
     where
 
 import Algebra.ExactBounded
-    ( ExactBounded (..) )
+    ( BoundedExact (..) )
 import Algebra.PartialOrd.Extended
     ( Infix (..), PartialOrd (..) )
 import Data.Bifunctor
@@ -202,9 +202,9 @@ apportionLaw_maybe a ws =
 
 class
     ( Apportion a
+    , BoundedExact a (Exact a)
+    , BoundedExact (Weight a) (Weight (Exact a))
     , ExactApportion (Exact a)
-    , ExactBounded (Exact a) a
-    , ExactBounded (Weight (Exact a)) (Weight a)
     ) =>
     BoundedApportion a
   where
@@ -422,7 +422,7 @@ instance Apportion NaturalRatioSize where
     type Weight NaturalRatioSize = Size NaturalRatio
     apportion = apportionMap (Size . getSum) (Sum . getSize)
 
-instance ExactBounded NaturalRatioSize NaturalSize where
+instance BoundedExact NaturalSize NaturalRatioSize where
     exact (Size n) = Size (exact n)
     lowerBound (Size r) = Size (lowerBound r)
     upperBound (Size r) = Size (upperBound r)
@@ -485,7 +485,7 @@ deriving newtype instance Eq a => PositiveMonoid (Size [a])
 
 deriving via Infix [a] instance Eq a => PartialOrd (Size [a])
 
-instance Eq a => ExactBounded (Size (ListFraction a)) (Size [a]) where
+instance Eq a => BoundedExact (Size [a]) (Size (ListFraction a)) where
     exact (Size n) = Size (getInfix $ exact $ Infix n)
     lowerBound (Size r) = Size (getInfix $ lowerBound $ Infix r)
     upperBound (Size r) = Size (getInfix $ upperBound $ Infix r)
