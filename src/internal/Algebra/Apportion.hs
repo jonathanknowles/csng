@@ -64,7 +64,7 @@ import Data.Proxy
 import Data.Ratio
     ( Ratio )
 import Data.Semialign
-    ( Semialign (..), Zip (..) )
+    ( Semialign (..), Zip (..), alignWith )
 import Data.Semigroup.Cancellative
     ( Commutative )
 import Data.Sliceable
@@ -72,7 +72,7 @@ import Data.Sliceable
 import Data.Set
     ( Set )
 import Data.These
-    ( These (..) )
+    ( These (..), these )
 import Data.Traversable.Extended
     ( fill, mapAccumL )
 import Data.Tuple
@@ -118,10 +118,10 @@ instance Zip t => Zip (Apportionment t) where
         , partition = zipWith f (partition a0) (partition a1)
         }
 
-instance (Eq (t a), Foldable t, Zip t, PartialOrd a) =>
+instance (Foldable t, Semialign t, Eq (t a), PartialOrd a) =>
     PartialOrd (Apportionment t a)
   where
-    leq a0 a1 = and $ zipWith leq a0 a1
+    leq a0 a1 = and $ alignWith (these (const False) (const False) leq) a0 a1
 
 --------------------------------------------------------------------------------
 -- Apportion
@@ -214,7 +214,7 @@ boundedApportionAsExact
     => a
     -> t (Weight a)
     -> Apportionment t (Exact a)
-boundedApportionAsExact a ws = apportion (exact @a a) (exact @(Weight a) <$> ws)
+boundedApportionAsExact a ws = apportion (exact a) (exact <$> ws)
 
 boundedApportionIsExact
     :: (Eq (t a), Traversable t, BoundedApportion a)
@@ -226,13 +226,13 @@ boundedApportionIsExact a ws = (==)
     (boundedApportionUpperBound a ws)
 
 boundedApportionIsBounded
-    :: (Eq (t a), Traversable t, Zip t, BoundedApportion a)
+    :: (Eq (t a), Traversable t, Semialign t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Bool
 boundedApportionIsBounded a ws = (&&)
-    (boundedApportionLowerBound a ws `leq` apportion           a ws)
-    (apportion           a ws `leq` boundedApportionUpperBound a ws)
+    (boundedApportionLowerBound a ws `leq` apportion a ws)
+    (apportion a ws `leq` boundedApportionUpperBound a ws)
 
 boundedApportionLowerBound
     :: (Traversable t, BoundedApportion a)
@@ -256,8 +256,8 @@ boundedApportionLaws
         , Eq (t a)
         , Show a
         , Show (t (Weight a))
+        , Semialign t
         , Traversable t
-        , Zip t
         )
     => Proxy a
     -> Laws
@@ -268,12 +268,11 @@ boundedApportionLaws _ = Laws "BoundedApportion"
     ]
 
 boundedApportionLaw_isBounded
-    :: forall a t. (Eq (t a), Traversable t, Zip t, BoundedApportion a)
+    :: forall a t. (Eq (t a), Traversable t, Semialign t, BoundedApportion a)
     => a
     -> t (Weight a)
     -> Bool
-boundedApportionLaw_isBounded =
-    boundedApportionIsBounded
+boundedApportionLaw_isBounded = boundedApportionIsBounded
 
 --------------------------------------------------------------------------------
 -- CommutativeApportion
