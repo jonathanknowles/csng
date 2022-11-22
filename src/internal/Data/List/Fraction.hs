@@ -17,7 +17,7 @@ module Data.List.Fraction
     where
 
 import Algebra.ExactBounded
-    ( ExactBounded (..) )
+    ( BoundedExact (..) )
 import Algebra.PartialOrd.Extended
     ( Infix (..), PartialOrd (..), Prefix (..), Suffix (..) )
 import Data.Function
@@ -58,7 +58,7 @@ instance Eq a => Semigroup (ListFraction a) where
 instance Eq a => Monoid (ListFraction a) where
     mempty = ListFraction mempty
 
-instance Eq a => ExactBounded (Infix (ListFraction a)) (Infix [a]) where
+instance Eq a => BoundedExact (Infix [a]) (Infix (ListFraction a)) where
     exact (Infix f) = Infix (fromList f)
     lowerBound (Infix (ListFraction as)) = Infix $ do
         (a, n :: Natural) <- fmap lowerBound <$> as

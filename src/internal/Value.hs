@@ -26,7 +26,7 @@ import Algebra.Apportion
 import Algebra.Apportion.MonoidMap
     ()
 import Algebra.ExactBounded
-    ( ExactBounded (..) )
+    ( BoundedExact (..) )
 import Algebra.PartialOrd.Extended
     ( PartialOrd )
 import AsList
@@ -158,7 +158,7 @@ instance Apportion CoinValueFraction where
 instance CommutativeApportion CoinValueFraction
 instance ExactApportion CoinValueFraction
 
-instance ExactBounded CoinValueFraction CoinValue where
+instance BoundedExact CoinValue CoinValueFraction where
     exact = unpacked (% 1)
     lowerBound = unpacked floor
     upperBound = unpacked ceiling
@@ -309,7 +309,7 @@ instance Ord a => Apportion (CoinFraction a) where
 instance Ord a => CommutativeApportion (CoinFraction a)
 instance Ord a => ExactApportion (CoinFraction a)
 
-instance Ord a => ExactBounded (CoinFraction a) (Coin a) where
+instance Ord a => BoundedExact (Coin a) (CoinFraction a) where
     exact = unpacked $ MonoidMap.map exact
     lowerBound = unpacked $ MonoidMap.map lowerBound
     upperBound = unpacked $ MonoidMap.map upperBound
