@@ -9,7 +9,7 @@ module Algebra.Apportion.Natural
 import Algebra.Apportion
     ( Apportion (..)
     , Apportionment (..)
-    , BoundedApportion
+    , BoundedApportion (..)
     , ExactApportion
     , apportionMap
     , boundedApportionAsExact
@@ -65,19 +65,20 @@ instance Apportion (SumR (Ratio Natural)) where
     type Weight (SumR (Ratio Natural)) = SumR (Ratio Natural)
     apportion = apportionMap (SumR . getSum) (Sum . getSumR)
 
-instance BoundedApportion (SumL Natural)
-instance BoundedApportion (SumR Natural)
+instance BoundedApportion (SumL Natural) where
+    type Exact (SumL Natural) = SumL (Ratio Natural)
+instance BoundedApportion (SumR Natural) where
+    type Exact (SumR Natural) = SumR (Ratio Natural)
+
 instance ExactApportion (SumL (Ratio Natural))
 instance ExactApportion (SumR (Ratio Natural))
 
-instance ExactBounded (SumL Natural) where
-    type Exact (SumL Natural) = SumL (Ratio Natural)
+instance ExactBounded (SumL (Ratio Natural)) (SumL Natural) where
     exact = fmap exact
     lowerBound = fmap lowerBound
     upperBound = fmap upperBound
 
-instance ExactBounded (SumR Natural) where
-    type Exact (SumR Natural) = SumR (Ratio Natural)
+instance ExactBounded (SumR (Ratio Natural)) (SumR Natural) where
     exact = fmap exact
     lowerBound = fmap lowerBound
     upperBound = fmap upperBound

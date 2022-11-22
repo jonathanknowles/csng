@@ -58,8 +58,7 @@ instance Eq a => Semigroup (ListFraction a) where
 instance Eq a => Monoid (ListFraction a) where
     mempty = ListFraction mempty
 
-instance Eq a => ExactBounded (Infix [a]) where
-    type Exact (Infix [a]) = Infix (ListFraction a)
+instance Eq a => ExactBounded (Infix (ListFraction a)) (Infix [a]) where
     exact (Infix f) = Infix (fromList f)
     lowerBound (Infix (ListFraction as)) = Infix $ do
         (a, n :: Natural) <- fmap lowerBound <$> as
