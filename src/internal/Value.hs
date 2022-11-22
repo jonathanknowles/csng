@@ -18,7 +18,7 @@ module Value
 
 import Algebra.Apportion
     ( Apportion (..)
-    , BoundedApportion
+    , BoundedApportion (..)
     , CommutativeApportion
     , ExactApportion
     , apportionMap
@@ -119,7 +119,8 @@ instance Apportion CoinValue where
     type Weight CoinValue = CoinValue
     apportion = apportionMap (pack . getSum) (Sum . unpack)
 
-instance BoundedApportion CoinValue
+instance BoundedApportion CoinValue where
+    type Exact CoinValue = CoinValueFraction
 
 --------------------------------------------------------------------------------
 -- CoinValueFraction
@@ -157,8 +158,7 @@ instance Apportion CoinValueFraction where
 instance CommutativeApportion CoinValueFraction
 instance ExactApportion CoinValueFraction
 
-instance ExactBounded CoinValue where
-    type Exact CoinValue = CoinValueFraction
+instance ExactBounded CoinValueFraction CoinValue where
     exact = unpacked (% 1)
     lowerBound = unpacked floor
     upperBound = unpacked ceiling
@@ -274,7 +274,8 @@ instance Ord a => Apportion (Coin a) where
     type Weight (Coin a) = Coin a
     apportion = apportionMap pack unpack
 
-instance Ord a => BoundedApportion (Coin a)
+instance Ord a => BoundedApportion (Coin a) where
+    type Exact (Coin a) = CoinFraction a
 
 instance Foldable Coin where
     foldMap f (Coin a) = foldMap f (MonoidMap.keys a)
@@ -308,8 +309,7 @@ instance Ord a => Apportion (CoinFraction a) where
 instance Ord a => CommutativeApportion (CoinFraction a)
 instance Ord a => ExactApportion (CoinFraction a)
 
-instance Ord a => ExactBounded (Coin a) where
-    type Exact (Coin a) = CoinFraction a
+instance Ord a => ExactBounded (CoinFraction a) (Coin a) where
     exact = unpacked $ MonoidMap.mapValues exact
     lowerBound = unpacked $ MonoidMap.mapValues lowerBound
     upperBound = unpacked $ MonoidMap.mapValues upperBound

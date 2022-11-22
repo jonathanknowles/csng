@@ -12,64 +12,62 @@ import Data.Ratio
 import Numeric.Natural
     ( Natural )
 
-class (PartialOrd e, PartialOrd (Exact e)) => ExactBounded e where
-    type Exact e
-    exact :: e -> Exact e
-    lowerBound :: Exact e -> e
-    upperBound :: Exact e -> e
+class (PartialOrd e, PartialOrd b) => ExactBounded e b | e -> b, b -> e
+  where
+    exact :: b -> e
+    lowerBound :: e -> b
+    upperBound :: e -> b
 
 exactBoundedLaw_exact_lowerBound
-    :: forall e. (ExactBounded e, Eq e) => e -> Bool
+    :: (ExactBounded e b, Eq b) => b -> Bool
 exactBoundedLaw_exact_lowerBound b =
-    lowerBound @e (exact b) == b
+    lowerBound (exact b) == b
 
 exactBoundedLaw_exact_upperBound
-    :: forall e. ( ExactBounded e, Eq e) => e -> Bool
+    :: (ExactBounded e b, Eq b) => b -> Bool
 exactBoundedLaw_exact_upperBound b =
-    upperBound @e (exact b) == b
+    upperBound (exact b) == b
 
 exactBoundedLaw_lowerBound_upperBound_equivalence_1
-    :: forall e. (ExactBounded e, Eq e) => Exact e -> Bool
+    :: (ExactBounded e b, Eq e) => e -> Bool
 exactBoundedLaw_lowerBound_upperBound_equivalence_1 e =
-    exact @e (lowerBound e) == e <=> exact @e (upperBound e) == e
+    exact (lowerBound e) == e <=> exact (upperBound e) == e
 
 exactBoundedLaw_lowerBound_upperBound_equivalence_2
-    :: forall e. (ExactBounded e, Eq e) => Exact e -> Bool
+    :: (ExactBounded e b, Eq e) => e -> Bool
 exactBoundedLaw_lowerBound_upperBound_equivalence_2 e =
-    exact @e (lowerBound e) /= e <=> exact @e (upperBound e) /= e
+    exact (lowerBound e) /= e <=> exact (upperBound e) /= e
 
 exactBoundedLaw_lowerBound_leq
-    :: forall e. (ExactBounded e, Eq e) => Exact e -> Exact e -> Bool
+    :: (ExactBounded e b, Eq e) => e -> e -> Bool
 exactBoundedLaw_lowerBound_leq e1 e2 =
-    e1 `leq` e2 <=> lowerBound @e e1 `leq` lowerBound @e e2
+    e1 `leq` e2 <=> lowerBound e1 `leq` lowerBound e2
 
 exactBoundedLaw_upperBound_leq
-    :: forall e. (ExactBounded e, Eq e) => Exact e -> Exact e -> Bool
+    :: (ExactBounded e b, Eq e) => e -> e -> Bool
 exactBoundedLaw_upperBound_leq e1 e2 =
-    e1 `leq` e2 <=> upperBound @e e1 `leq` upperBound @e e2
+    e1 `leq` e2 <=> upperBound e1 `leq` upperBound e2
 
 exactBoundedLaw_lowerBound_exact_leq
-    :: forall e. (ExactBounded e, Eq e) => Exact e -> Bool
+    :: (ExactBounded e b, Eq e) => e -> Bool
 exactBoundedLaw_lowerBound_exact_leq e =
-    exact @e (lowerBound e) `leq` e
+    exact (lowerBound e) `leq` e
 
 exactBoundedLaw_upperBound_exact_leq
-    :: forall e. (ExactBounded e, Eq e) => Exact e -> Bool
+    :: (ExactBounded e b, Eq e) => e -> Bool
 exactBoundedLaw_upperBound_exact_leq e =
-    e `leq` exact @e (upperBound e)
+    e `leq` exact (upperBound e)
 
 --------------------------------------------------------------------------------
 -- Utilities
 --------------------------------------------------------------------------------
 
-instance ExactBounded Natural where
-    type Exact Natural = Ratio Natural
+instance ExactBounded (Ratio Natural) Natural where
     exact = (% 1)
     lowerBound = floor
     upperBound = ceiling
 
-instance ExactBounded (Sum Natural) where
-    type Exact (Sum Natural) = Sum (Ratio Natural)
+instance ExactBounded (Sum (Ratio Natural)) (Sum Natural) where
     exact = fmap (% 1)
     lowerBound = fmap floor
     upperBound = fmap ceiling
