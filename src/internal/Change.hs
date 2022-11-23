@@ -93,6 +93,7 @@ makeChangeForCoin
 makeChangeForCoin extract target weights =
     (remainder result, L.zipWith (<$) (partition result) weights)
   where
+    result :: Apportionment [] (Coin a)
     result = apportion target $ selectWeightsForCoin extract target weights
 
 selectWeightsForCoin
