@@ -25,9 +25,7 @@ import qualified Data.List as L
 data MapAccum = MapAccumL | MapAccumR
 
 mapAccum
-    :: Traversable t
-    => MapAccum
-    -> (s -> a -> (s, b)) -> s -> t a -> (s, t b)
+    :: Traversable t => MapAccum -> (s -> a -> (s, b)) -> s -> t a -> (s, t b)
 mapAccum = \case
     MapAccumL -> mapAccumL
     MapAccumR -> mapAccumR
