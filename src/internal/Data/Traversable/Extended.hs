@@ -1,10 +1,13 @@
 module Data.Traversable.Extended
     ( module Data.Traversable
-    , MapAccum (..)
+    , MapAccumF (..)
+    , MapAccumT
     , mapAccum
     , fill
     , fillMaybe
+    , mapAccumSorted
     , mapAccumSortedL
+    , mapAccumSortedR
     , mapTraverseList
     , mapTraverseListMaybe
     , mapTraverseNonEmpty
@@ -22,22 +25,25 @@ import Data.Maybe
 import qualified Data.Foldable as F
 import qualified Data.List as L
 
-data MapAccum = MapAccumL | MapAccumR
+type MapAccumT s t a b = (s -> a -> (s, b)) -> s -> t a -> (s, t b)
 
-mapAccum
-    :: Traversable t => MapAccum -> (s -> a -> (s, b)) -> s -> t a -> (s, t b)
+data MapAccumF = MapAccumL | MapAccumR
+
+mapAccum :: Traversable t => MapAccumF -> MapAccumT s t a b
 mapAccum = \case
     MapAccumL -> mapAccumL
     MapAccumR -> mapAccumR
 
-mapAccumSortedL
-    :: forall state t a b. (Traversable t, Ord a)
-    => (state -> a -> (state, b))
-    -> state
-    -> t a
-    -> (state, t b)
-mapAccumSortedL accum state as =
-    remap <$> mapAccumL accum state (snd <$> index)
+mapAccumSortedL :: (Traversable t, Ord a) => MapAccumT s t a b
+mapAccumSortedL = mapAccumSorted MapAccumL
+
+mapAccumSortedR :: (Traversable t, Ord a) => MapAccumT s t a b
+mapAccumSortedR = mapAccumSorted MapAccumR
+
+mapAccumSorted
+    :: forall s t a b. (Traversable t, Ord a) => MapAccumF -> MapAccumT s t a b
+mapAccumSorted mapAccumF acc state as =
+    remap <$> mapAccum mapAccumF acc state (snd <$> index)
   where
     index :: [(Int, a)]
     index = L.sortOn snd $ L.zip (L.iterate (+ 1) 0) $ F.toList as

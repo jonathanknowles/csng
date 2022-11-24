@@ -27,7 +27,7 @@ import Data.Monoid.Null
 import Data.Ratio
     ( Ratio )
 import Data.Traversable.Extended
-    ( MapAccum (..), mapAccum )
+    ( MapAccumF (..), mapAccum )
 import Data.Tuple
     ( swap )
 import GHC.Generics
@@ -84,8 +84,11 @@ instance BoundedExact (SumR Natural) (SumR (Ratio Natural)) where
     upperBound = fmap upperBound
 
 apportionNatural
-    :: forall t a. (Coercible a Natural, Traversable t)
-    => MapAccum -> a -> t a -> Apportionment t a
+    :: (Coercible a Natural, Traversable t)
+    => MapAccumF
+    -> a
+    -> t a
+    -> Apportionment t a
 apportionNatural mapAccumF a ws
     = fmap (coerce @Natural) $ snd
     $ mapAccum mapAccumF (fmap (swap . properFraction) . (+)) 0
