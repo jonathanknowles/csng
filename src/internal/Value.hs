@@ -44,7 +44,7 @@ import Data.Monoid.Null
     ( MonoidNull, PositiveMonoid )
 import Data.MonoidMap
     ( MonoidMap )
-import Data.Strict.Set
+import Data.Set
     ( Set )
 import GHC.Exts
     ( IsList (..) )
@@ -88,7 +88,7 @@ class HasAssets a where
 instance (Ord a, Eq i, Num i) => HasAssets (AssetValueMap a i) where
     type Asset (AssetValueMap a i) = a
     type Value (AssetValueMap a i) = i
-    getAssets = MonoidMap.nonNullKeys . unAssetValueMap
+    getAssets = MonoidMap.keys . unAssetValueMap
     getAssetValue a = getSum . MonoidMap.get a . unAssetValueMap
     setAssetValue a q = coerce (MonoidMap.set a (Sum q))
 

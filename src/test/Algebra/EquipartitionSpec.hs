@@ -24,12 +24,12 @@ import Algebra.Equipartition
     )
 import Data.List.NonEmpty
     ( NonEmpty )
+import Data.Map.Strict
+    ( Map )
 import Data.Monoid
     ( Sum (..) )
 import Data.Set
     ( Set )
-import Data.Strict.Map
-    ( Map )
 import GHC.Exts
     ( IsList (..) )
 import Numeric.Natural
@@ -58,7 +58,7 @@ import Test.QuickCheck.Classes.Hspec
     ( testLawsMany )
 
 import qualified Data.Foldable as F
-import qualified Data.Strict.Map as Map
+import qualified Data.Map.Strict as Map
 
 spec :: Spec
 spec = do
@@ -387,16 +387,6 @@ data LatinChar
 --------------------------------------------------------------------------------
 -- Arbitrary instances
 --------------------------------------------------------------------------------
-
-instance (Arbitrary k, Arbitrary v, Ord k) => Arbitrary (Map k v) where
-    arbitrary = Map.fromList <$> arbitrary
-    shrink = shrinkMap Map.fromList Map.toList
-
-instance (CoArbitrary k, CoArbitrary v, Ord k) => CoArbitrary (Map k v) where
-    coarbitrary = coarbitrary . Map.toList
-
-instance (Function k, Function v, Ord k) => Function (Map k v) where
-    function = functionMap Map.toList Map.fromList
 
 instance Arbitrary Natural where
     arbitrary = fromIntegral . abs <$> arbitrarySizedIntegral @Int
