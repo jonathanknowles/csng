@@ -67,10 +67,10 @@ import Data.Semialign
     ( Semialign (..), Zip (..), alignWith )
 import Data.Semigroup.Cancellative
     ( Commutative )
-import Data.Sliceable
-    ( Sliceable (..), takeMany )
 import Data.Set
     ( Set )
+import Data.Sliceable
+    ( Sliceable (..), takeMany )
 import Data.These
     ( These (..), these )
 import Data.Traversable.Extended

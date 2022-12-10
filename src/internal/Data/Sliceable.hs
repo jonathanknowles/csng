@@ -9,12 +9,12 @@ module Data.Sliceable
 
 import Data.IntCast
     ( intCastMaybe )
+import Data.Map.Strict
+    ( Map )
 import Data.Maybe
     ( fromMaybe )
 import Data.MonoidMap
     ( MonoidMap )
-import Data.Map.Strict
-    ( Map )
 import Data.Set
     ( Set )
 import Data.Traversable
@@ -29,8 +29,8 @@ import Prelude hiding
 
 import qualified Data.Foldable as F
 import qualified Data.List as L
-import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Map.Strict as Map
+import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Set as Set
 
 class Sliceable a where
