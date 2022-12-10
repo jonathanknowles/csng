@@ -44,7 +44,7 @@ import Data.Monoid.Null
     ( MonoidNull, PositiveMonoid )
 import Data.MonoidMap
     ( MonoidMap )
-import Data.Strict.Set
+import Data.Set
     ( Set )
 import GHC.Exts
     ( IsList (..) )

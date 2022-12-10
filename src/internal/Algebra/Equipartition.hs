@@ -16,6 +16,8 @@ import Data.Function
     ( on )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
+import Data.Map.Strict
+    ( Map )
 import Data.Maybe
     ( mapMaybe )
 import Data.Monoid
@@ -30,8 +32,6 @@ import Data.Semigroup.Cancellative
     ( LeftReductive (..) )
 import Data.Set
     ( Set )
-import Data.Strict.Map
-    ( Map )
 import GHC.Exts
     ( IsList (..) )
 import Numeric.Natural
@@ -58,9 +58,9 @@ import Test.QuickCheck.Classes
 import qualified Data.Foldable as F
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Map.Strict as Map
 import qualified Data.MonoidMap as MonoidMap
 import qualified Data.Set as Set
-import qualified Data.Strict.Map as Map
 
 --------------------------------------------------------------------------------
 -- Classes
