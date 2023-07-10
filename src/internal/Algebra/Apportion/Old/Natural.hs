@@ -1,13 +1,9 @@
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-
-module Numeric.Natural.Extra
-    (
-      -- * Partitioning natural numbers
-      equipartitionNatural
-    , partitionNatural
-    , unsafePartitionNatural
+-- |
+--
+-- Apportionment of natural numbers.
+--
+module Algebra.Apportion.Old.Natural
+    ( apportion
     ) where
 
 import Prelude hiding
@@ -15,59 +11,31 @@ import Prelude hiding
 
 import Control.Arrow
     ( (&&&) )
-import Data.Function
-    ( (&) )
+import Data.Function.Extended
+    ( applyN )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
-import Data.Maybe
-    ( fromMaybe )
 import Data.Ord
     ( Down (..), comparing )
-import Data.Ratio
-    ( (%) )
-import GHC.Stack
-    ( HasCallStack )
 import Numeric.Natural
     ( Natural )
 
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty as NE
 
---------------------------------------------------------------------------------
--- Partitioning natural numbers
---------------------------------------------------------------------------------
-
--- | Computes the equipartition of a natural number into 'n' smaller numbers.
---
--- An /equipartition/ of a natural number 'n' is a /partition/ of that number
--- into 'n' smaller numbers whose values differ by no more than 1.
---
--- The resultant list is sorted in ascending order.
---
-equipartitionNatural
-    :: HasCallStack
-    => Natural
-    -- ^ The natural number to be partitioned.
-    -> NonEmpty a
-    -- ^ Represents the number of portions in which to partition the number.
-    -> NonEmpty Natural
-    -- ^ The partitioned numbers.
-equipartitionNatural n count =
-    unsafePartitionNatural n (1 <$ count)
-
--- | Partitions a natural number into a number of parts, where the size of each
+-- | Apportions a natural number into a number of parts, where the size of each
 --   part is proportional to the size of its corresponding element in the given
 --   list of weights, and the number of parts is equal to the number of weights.
 --
 -- Examples:
 --
---      >>> partitionNatural 9 (1 :| [1, 1])
+--      >>> apportion 9 (1 :| [1, 1])
 --      Just (3 :| [3, 3])
 --
---      >>> partitionNatural 10 (1 :| [])
+--      >>> apportion 10 (1 :| [])
 --      10
 --
---      >>> partitionNatural 30 (1 :| [2, 4, 8])
+--      >>> apportion 30 (1 :| [2, 4, 8])
 --      Just (2 :| [4, 8, 16])
 --
 -- Pre-condition: there must be at least one non-zero weight.
@@ -79,23 +47,23 @@ equipartitionNatural n count =
 --  1.  The length of the resulting list is identical to the length of the
 --      specified list:
 --
---      >>> fmap length (partitionNatural n weights) == Just (length weights)
+--      >>> fmap length (apportion n weights) == Just (length weights)
 --
 --  2.  The sum of elements in the resulting list is equal to the original
 --      natural number:
 --
---      >>> fmap sum (partitionNatural n weights) == Just n
+--      >>> fmap sum (apportion n weights) == Just n
 --
 --  3.  The size of each element in the resulting list is within unity of the
 --      ideal proportion.
 --
-partitionNatural
+apportion
     :: Natural
-        -- ^ Natural number to partition
+        -- ^ Natural number to apportion
     -> NonEmpty Natural
         -- ^ List of weights
     -> Maybe (NonEmpty Natural)
-partitionNatural target weights
+apportion target weights
     | totalWeight == 0 = Nothing
     | otherwise = Just portionsRounded
   where
@@ -140,31 +108,6 @@ partitionNatural target weights
     totalWeight :: Natural
     totalWeight = F.sum weights
 
---------------------------------------------------------------------------------
--- Unsafe partitioning
---------------------------------------------------------------------------------
-
--- | Partitions a natural number into a number of parts, where the size of each
---   part is proportional to the size of its corresponding element in the given
---   list of weights, and the number of parts is equal to the number of weights.
---
--- Throws a run-time error if the sum of weights is equal to zero.
---
-unsafePartitionNatural
-    :: HasCallStack
-    => Natural
-    -- ^ Natural number to partition
-    -> NonEmpty Natural
-    -- ^ List of weights
-    -> NonEmpty Natural
-unsafePartitionNatural target =
-    fromMaybe zeroWeightSumError . partitionNatural target
-  where
-    zeroWeightSumError = error $ unwords
-        [ "unsafePartitionNatural:"
-        , "specified weights must have a non-zero sum."
-        ]
-
 isFractional :: Rational -> Bool
 isFractional r = (floor r :: Integer) /= (ceiling r :: Integer)
 
@@ -187,8 +130,3 @@ round :: (RealFrac a, Integral b) => RoundingDirection -> a -> b
 round = \case
     RoundUp -> ceiling
     RoundDown -> floor
-
--- Apply the same function multiple times to a value.
---
-applyN :: Int -> (a -> a) -> a -> a
-applyN n f = F.foldr (.) id (replicate n f)

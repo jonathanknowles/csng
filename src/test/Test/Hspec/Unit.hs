@@ -1,12 +1,8 @@
-{-# LANGUAGE FunctionalDependencies #-}
-
 -- |
 -- Copyright: © 2022–2023 Jonathan Knowles
 -- License: Apache-2.0
 --
 module Test.Hspec.Unit where
-
-import Prelude
 
 import Data.Functor
     ( (<&>) )

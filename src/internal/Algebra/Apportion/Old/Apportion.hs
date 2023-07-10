@@ -1,28 +1,26 @@
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {- HLINT ignore "Use camelCase" -}
 
-module Algebra.Partition
+module Algebra.Apportion.Old.Apportion
     where
 
-import Prelude
-
+import Data.Bifunctor
+    ( bimap )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Maybe
     ( mapMaybe )
 import Data.Monoid
     ( Sum (..) )
+import Data.Monoid.Null
+    ( MonoidNull )
+import Data.MonoidMap
+    ( MonoidMap )
 import Data.Proxy
     ( Proxy )
+import Data.Set
+    ( Set )
 import Numeric.Natural
     ( Natural )
-import Numeric.Natural.Extra
-    ( partitionNatural )
 import Test.QuickCheck
     ( Arbitrary
     , Gen
@@ -37,75 +35,101 @@ import Test.QuickCheck
 import Test.QuickCheck.Classes
     ( Laws (..) )
 
+import qualified Algebra.Apportion.Old.Natural as Natural
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty as NE
+import qualified Data.MonoidMap as MonoidMap
 
 --------------------------------------------------------------------------------
 -- Class
 --------------------------------------------------------------------------------
 
-class Partition a where
+class Apportion a where
 
-    partition
+    apportion
         :: a -> NonEmpty a -> (a, NonEmpty a)
-    partitionMaybe
+    apportionMaybe
         :: a -> NonEmpty a -> Maybe (NonEmpty a)
 
-    default partition
+    default apportion
         :: Monoid a
         => a -> NonEmpty a -> (a, NonEmpty a)
-    partition a as = case partitionMaybe a as of
+    apportion a as = case apportionMaybe a as of
         Nothing -> (a, mempty <$ as)
         Just bs -> (mempty, bs)
 
-    default partitionMaybe
+    default apportionMaybe
         :: (Eq a, Monoid a)
         => a -> NonEmpty a -> Maybe (NonEmpty a)
-    partitionMaybe a as = case partition a as of
+    apportionMaybe a as = case apportion a as of
        (b, bs) | b == mempty -> Just bs
-       _ -> Nothing
+       (_, _) -> Nothing
 
 --------------------------------------------------------------------------------
 -- Laws
 --------------------------------------------------------------------------------
 
-partitionLaw_length :: Partition a => a -> NonEmpty a -> Bool
-partitionLaw_length a as =
-    length (snd (partition a as)) == length as
+apportionLaw_length :: Apportion a => a -> NonEmpty a -> Bool
+apportionLaw_length a as =
+    length (snd (apportion a as)) == length as
 
-partitionLaw_sum :: (Eq a, Monoid a, Partition a) => a -> NonEmpty a -> Bool
-partitionLaw_sum a as =
-    F.fold (uncurry NE.cons (partition a as)) == a
+apportionLaw_sum :: (Eq a, Monoid a, Apportion a) => a -> NonEmpty a -> Bool
+apportionLaw_sum a as =
+    F.fold (uncurry NE.cons (apportion a as)) == a
 
 --------------------------------------------------------------------------------
 -- Instances
 --------------------------------------------------------------------------------
 
-instance Partition (Sum Natural) where
-    partitionMaybe a as =
-        fmap Sum <$> partitionNatural (getSum a) (getSum <$> as)
+instance Apportion (Sum Natural) where
+    apportionMaybe a as =
+        fmap Sum <$> Natural.apportion (getSum a) (getSum <$> as)
 
-deriving via Sum Natural instance Partition Natural
+deriving via Sum Natural instance Apportion Natural
+
+instance (Ord k, Apportion v, Eq v, MonoidNull v) => Apportion (MonoidMap k v)
+  where
+    apportion m ms
+        = F.foldl' combine empty $ apportionForKey <$> F.toList allKeys
+      where
+        allKeys :: Set k
+        allKeys = F.foldMap MonoidMap.nonNullKeys (m : F.toList ms)
+
+        combine
+            :: (MonoidMap k v, NonEmpty (MonoidMap k v))
+            -> (MonoidMap k v, NonEmpty (MonoidMap k v))
+            -> (MonoidMap k v, NonEmpty (MonoidMap k v))
+        combine (v0, vs0) (v1, vs1) = (v0 <> v1, NE.zipWith (<>) vs0 vs1)
+
+        empty :: (MonoidMap k v, NonEmpty (MonoidMap k v))
+        empty = (mempty, mempty <$ ms)
+
+        apportionForKey :: k -> (MonoidMap k v, NonEmpty (MonoidMap k v))
+        apportionForKey k
+            = bimap
+                (MonoidMap.singleton k)
+                (fmap (MonoidMap.singleton k))
+            $ apportion (MonoidMap.get k m) (MonoidMap.get k <$> ms)
 
 --------------------------------------------------------------------------------
 -- Testing
 --------------------------------------------------------------------------------
 
-partitionLaws
+apportionLaws
     :: forall a.
         ( Arbitrary a
         , Eq a
         , Monoid a
-        , Partition a
+        , Apportion a
         , Show a
         )
     => Proxy a
     -> Laws
-partitionLaws _ = Laws "Partition"
+apportionLaws _ = Laws "Apportion"
     [ ( "Length"
-      , makeProperty partitionLaw_length)
+      , makeProperty apportionLaw_length)
     , ( "Sum"
-      , makeProperty partitionLaw_sum)
+      , makeProperty apportionLaw_sum)
     ]
   where
     makeProperty :: (a -> NonEmpty a -> Bool) -> Property
@@ -127,7 +151,7 @@ partitionLaws _ = Laws "Partition"
         buildCoverage value weights result $
         condition value weights
       where
-        result = partition value weights
+        result = apportion value weights
 
     buildCoverage
         :: Testable prop

@@ -1,16 +1,13 @@
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{- HLINT ignore "Redundant brackets" -}
 {- HLINT ignore "Use camelCase" -}
 
-module Algebra.PartitionSpec
+module Algebra.Apportion.Old.ApportionSpec
     where
 
-import Prelude
-
-import Algebra.Partition
-    ( Partition (..), partitionLaws )
+import Algebra.Apportion.Old.Apportion
+    ( Apportion (..), apportionLaws )
 import Data.List.NonEmpty
     ( NonEmpty (..) )
 import Data.Monoid
@@ -30,30 +27,30 @@ spec :: Spec
 spec = do
     parallel $ describe "Class instances obey laws" $ do
         testLawsMany @(Sum Natural)
-            [ partitionLaws
+            [ apportionLaws
             ]
 
-    parallel $ describe "partition" $ do
+    parallel $ describe "apportion" $ do
 
         describe "unit tests" $ do
-            unitTestSpec_partition_Natural
+            unitTestSpec_apportion_Natural
 
 --------------------------------------------------------------------------------
--- Unit tests: Partition Natural
+-- Unit tests: Apportion Natural
 --------------------------------------------------------------------------------
 
-unitTestSpec_partition_Natural :: Spec
-unitTestSpec_partition_Natural = unitTestSpec
-    "partition Natural"
-    "partition"
-    (partition)
-    (unitTestData_partition_Natural)
+unitTestSpec_apportion_Natural :: Spec
+unitTestSpec_apportion_Natural = unitTestSpec
+    "apportion Natural"
+    "apportion"
+    (apportion)
+    (unitTestData_apportion_Natural)
 
-unitTestData_partition_Natural :: UnitTestData2
+unitTestData_apportion_Natural :: UnitTestData2
     (Natural)
     (NonEmpty Natural)
     (Natural, NonEmpty Natural)
-unitTestData_partition_Natural = unitTestData2
+unitTestData_apportion_Natural = unitTestData2
     [ (  1, [              0], ( 1, [              0]) )
     , (  1, [          0,  0], ( 1, [          0,  0]) )
     , (  1, [      0,  0,  0], ( 1, [      0,  0,  0]) )
