@@ -217,7 +217,7 @@ instance (Ord a, MonoidNull v) => HasAssets (AssetValueMap a v) where
     type Asset (AssetValueMap a v) = a
     type Value (AssetValueMap a v) = v
     filterAssets = unpacked . MonoidMap.filterKeys
-    getAssets = MonoidMap.keys . unpack
+    getAssets = MonoidMap.nonNullKeys . unpack
     getAssetValue a = MonoidMap.get a . unpack
     setAssetValue a = unpacked . MonoidMap.set a
     singleton a = pack . MonoidMap.singleton a
@@ -241,7 +241,7 @@ newtype Balance a = Balance (MonoidMap a BalanceValue)
         )
 
 instance Foldable Balance where
-    foldMap f (Balance a) = foldMap f (MonoidMap.keys a)
+    foldMap f (Balance a) = foldMap f (MonoidMap.nonNullKeys a)
 
 --------------------------------------------------------------------------------
 -- Coin
@@ -278,7 +278,7 @@ instance Ord a => BoundedApportion (Coin a) where
     type Exact (Coin a) = CoinFraction a
 
 instance Foldable Coin where
-    foldMap f (Coin a) = foldMap f (MonoidMap.keys a)
+    foldMap f (Coin a) = foldMap f (MonoidMap.nonNullKeys a)
 
 --------------------------------------------------------------------------------
 -- CoinFraction
@@ -310,9 +310,9 @@ instance Ord a => CommutativeApportion (CoinFraction a)
 instance Ord a => ExactApportion (CoinFraction a)
 
 instance Ord a => BoundedExact (Coin a) (CoinFraction a) where
-    exact = unpacked $ MonoidMap.mapValues exact
-    lowerBound = unpacked $ MonoidMap.mapValues lowerBound
-    upperBound = unpacked $ MonoidMap.mapValues upperBound
+    exact = unpacked $ MonoidMap.map exact
+    lowerBound = unpacked $ MonoidMap.map lowerBound
+    upperBound = unpacked $ MonoidMap.map upperBound
 
 --------------------------------------------------------------------------------
 -- Conversions

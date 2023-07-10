@@ -29,7 +29,7 @@ instance (Ord k, Apportion v, Weight v ~ v) => Apportion (MonoidMap k v)
             F.foldl' salign empty $ apportionForKey <$> F.toList allKeys
           where
             allKeys :: Set k
-            allKeys = F.foldMap MonoidMap.keys (m : F.toList ms)
+            allKeys = F.foldMap MonoidMap.nonNullKeys (m : F.toList ms)
 
             empty :: Apportionment [] (MonoidMap k v)
             empty = Apportionment mempty (mempty <$ F.toList ms)

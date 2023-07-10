@@ -155,7 +155,7 @@ instance (Ord k, Eq v, BalancedApportion v, MonoidNull v, LeftReductive v) =>
         maybe 0 maximum (NE.nonEmpty distances)
       where
         allKeys :: Set k
-        allKeys = MonoidMap.keys m1 <> MonoidMap.keys m2
+        allKeys = MonoidMap.nonNullKeys m1 <> MonoidMap.nonNullKeys m2
 
         distances :: [Natural]
         distances = distanceForKey <$> F.toList allKeys
